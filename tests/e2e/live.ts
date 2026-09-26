@@ -12,7 +12,7 @@ const opts = { auth: { persistSession: false, autoRefreshToken: false } };
 const admin = () => createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, opts);
 const anon = () => createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, opts);
 
-export interface Fixture { run: string; householdId: string; userIds: string[]; member: Session; owner: Session }
+export interface Fixture { run: string; householdId: string; userIds: string[]; member: Session; owner: Session; ownerAal1: Session }
 
 /** RFC 6238 TOTP (SHA-1, 30s, 6 digits) — used to pass the owner's 2FA in tests. */
 export function totp(secretB32: string, t = Date.now()): string {
@@ -84,7 +84,9 @@ export async function createFixture(): Promise<Fixture> {
   const { error: ve } = await own.client.auth.mfa.challengeAndVerify({ factorId: f.id, code: totp(f.totp.secret) });
   if (ve) throw new Error(`mfa verify: ${ve.message}`);
   const { data: s2 } = await own.client.auth.getSession();
-  return { run, householdId, userIds: [member.id, owner.id], member: mem.session, owner: s2.session! };
+  // A second sign-in WITHOUT the code: a new device at aal1 (has a factor, needs aal2).
+  const own1 = await signIn(owner.email, owner.password);
+  return { run, householdId, userIds: [member.id, owner.id], member: mem.session, owner: s2.session!, ownerAal1: own1.session };
 }
 
 export async function destroyFixture(f: Pick<Fixture, "householdId" | "userIds">) {
