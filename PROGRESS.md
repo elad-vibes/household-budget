@@ -16,19 +16,20 @@ Commit messages are in Hebrew (מה שונה · למה · מה נבדק); hooks 
 
 ## ▶ HANDOFF (2026-09-27, session 2) — next session starts here
 Done this session (all committed on `main`, NOT pushed — push is Elad's):
-`ede2221` before-screenshots · `ea109e7` household-roles · `a6f5f9d` payment-methods · `87d99da` design pass.
-Live DB: migrations **0007_single_owner** and **0008_payment_methods** are applied (0 households had 2 owners before 0007).
-SMTP: fixed — Supabase `/auth/v1/otp` returns 200 (a code e-mail went to the super-admin address; Elad to confirm it arrived).
+`ede2221` before-screenshots · `ea109e7` household-roles · `a6f5f9d` payment-methods · `87d99da` design pass ·
+`0940554` bugs.md fixes (invite "למסך הכניסה", admin "חזרה לאפליקציה" — E2E in `tests/e2e/nav-bugs.spec.ts`, fail on old code).
+Live DB: migrations **0007_single_owner** and **0008_payment_methods** applied. SMTP fixed — Elad confirmed the code e-mail arrived.
+**Edge Functions: all 9 redeployed (new token)** — every one answers (OPTIONS 204; no login → 401/400; poll-batches and
+notify with the cron secret → 200); delete-account returns the new "העברת ניהול" text (checked on the synthetic fixture, nothing deleted).
+The receipt `payment` hint / masked card numbers and the "משיכת מזומן" statement rule are live.
 
 **Waiting on Elad**
-1. Push `main` → GitHub Actions deploys the frontend (roles UI, payment methods, design pass).
-2. Edge Functions redeploy (needs a NEW Supabase token, Full access, revoke after): `prompts.ts` / `ai.ts` (receipt
-   `payment` hint, full card numbers masked to ****1234; statement prompt: ATM → "משיכת מזומן"), `catalog.ts`
-   (new EXCL category), `account.ts` (delete-account text: "להעביר את הניהול"). Until then: receipts carry no payment
-   hint (the chip is chosen by hand) and Claude-read statements may file ATM as "העברות ומזומן" — the client re-maps ATM rows anyway.
-3. Files that appeared during this session and were NOT acted on (not in this chat's request): `bugs.md` (2 bugs: invite
-   "למסך הכניסה" dead link — hb2-join stays set; admin "חזרה לאפליקציה" stays on admin) and `email-import.md`
-   (email import + share-to-app, "build after design-brief"). Both untracked. Ask Elad before building. `backup.md` still not requested.
+1. Push `main` → GitHub Actions deploys the frontend (roles UI, payment methods, design pass, bug fixes).
+2. Revoke the Supabase access token (Preset Full access) — deployment is done; any later function change needs a NEW token.
+
+**Next in line: `email-import.md`** (email forwarding + share-to-app, Expensify-style) — NOT started, waiting for Elad's
+domain (Cloudflare Email Routing needs MX records). Untracked file `email-import.md` names a Google no-reply address
+and is blocked by the pre-commit scan until that line gets `scan-ok`. `backup.md` still not requested.
 
 **What was built**
 - Roles: one owner per household (partial unique index), owner invites only by super-admin for empty households,
@@ -40,7 +41,7 @@ SMTP: fixed — Supabase `/auth/v1/otp` returns 200 (a code e-mail went to the s
   badge, "לבדוק" / "מזומן" / "לפי אמצעי תשלום" cards, fixed ↔ method, new excluded category "משיכת מזומן".
 - Design: see design-brief.md; decisions 30–33; ASSETS.md; before/after at 390px in `docs/design-pass/` (after incl. dark).
 
-**Checks at 87d99da:** `npm test` 208 (RLS 108 · functions 40 · unit 60) · typecheck · check:functions 9 · Playwright 7/7
+**Checks (design pass 87d99da; after bug fixes: Playwright 9/9, unit 208):** `npm test` 208 (RLS 108 · functions 40 · unit 60) · typecheck · check:functions 9 · Playwright 7/7
 (smoke 5, payments, design) + 12 screenshot tests · Lighthouse (build, mobile) a11y 100 / BP 100 / SEO 100 / perf 97 ·
 axe-core wcag2aa clean on 7 signed-in screens, light + dark.
 
@@ -71,4 +72,4 @@ add a card + card expense + cash expense, import a card Excel → "הותאם", 
 
 ## Known issues
 - Commit 2285d16's message says "157 tests"; the correct count at that commit was 155.
-- email-import.md (email forwarding + share-to-app) — after design-brief.md
+- email-import.md (email forwarding + share-to-app) — next in line, waiting for Elad's domain (see HANDOFF)
