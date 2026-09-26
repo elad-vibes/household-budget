@@ -94,7 +94,7 @@ export function renderReceiptReview(): SafeHtml {
   if (!list.length) return html``;
   const w = canWrite();
   return html`<div class="card" style="border-color:var(--accent)">
-    <div class="card-h"><h2>${list.length} קבלות מחכות לאישור</h2>${w ? html`<button class="primary" data-click="rr-all">לאשר הכול</button>` : ""}</div>
+    <div class="card-h"><h2>${list.length === 1 ? "קבלה אחת מחכה לאישור" : `${list.length} קבלות מחכות לאישור`}</h2>${w ? html`<button class="primary" data-click="rr-all">לאשר הכול</button>` : ""}</div>
     <p class="muted small">Claude קרא את הקבלות. כדאי לבדוק סכום וקטגוריה לפני האישור. רק קבלות מאושרות נספרות בסקירה.</p>
     ${list.map((t) => html`<div class="txedit" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">
       <label class="f">בית עסק<input type="text" maxlength="80" value="${t.merchant}" data-change="rr-field" data-id="${t.id}" data-f="merchant" ${attr(!w, "disabled")}></label>

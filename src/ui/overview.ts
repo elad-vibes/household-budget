@@ -21,7 +21,7 @@ export function renderOverview(): SafeHtml {
   const tx = txOf(c, m).filter((x) => !isExcl(x));
   const pending = reviewTx(c).length;
   const reviewBanner = pending
-    ? banner(html`<b>${pending} קבלות מחכות לאישור.</b> <button data-click="go" data-to="tx">לאישור</button>`, "info")
+    ? banner(html`<b>${pending === 1 ? "קבלה אחת מחכה לאישור." : `${pending} קבלות מחכות לאישור.`}</b> <button data-click="go" data-to="tx">לאישור</button>`, "info")
     : html``;
   if (!tx.length) {
     return html`${reviewBanner}

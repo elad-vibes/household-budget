@@ -6,7 +6,7 @@ import { decodeCsv, fileKind, ImportError, localParse, parseAmt, parseDate } fro
 import { BANK_CSV, DISCOUNT_CSV, EMPTY_ROWS_CSV, ISRACARD_CSV, MAX_CSV, NO_COLUMNS_CSV, win1255 } from "../fixtures/synthetic.ts";
 
 const file = (bytes: Uint8Array | string, name: string, type = "text/csv") =>
-  new File([typeof bytes === "string" ? new TextEncoder().encode(bytes) : bytes], name, { type });
+  new File([(typeof bytes === "string" ? new TextEncoder().encode(bytes) : bytes) as BlobPart], name, { type });
 
 describe("parseDate / parseAmt", () => {
   it("reads Israeli date formats", () => {

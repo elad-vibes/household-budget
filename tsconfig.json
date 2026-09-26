@@ -16,5 +16,5 @@
     "resolveJsonModule": true
   },
   "include": ["src", "tests", "vite.config.ts", "vitest.config.ts", "playwright.config.ts", "supabase/functions/_shared/**/*.ts"],
-  "exclude": ["node_modules", "dist", "supabase/functions/*/index.ts", "supabase/functions/_shared/supabaseDeps.ts"]
+  "exclude": ["node_modules", "dist", "src/sw.ts", "supabase/functions/*/index.ts", "supabase/functions/_shared/supabaseDeps.ts"]
 }
