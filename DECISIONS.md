@@ -23,3 +23,4 @@ Decisions made during the autonomous build, with the reason. Newest at the botto
 | 17 | Own recovery codes (10, sha256 of `user_id:CODE`, single use) instead of Supabase's built-in ones | Supabase's recovery codes exist but are marked experimental and need server-side enablement. Ours: using a code (Edge Function `mfa-recover`) removes the lost TOTP factor, the user re-enrolls. |
 | 18 | Owner MFA reset: only for non-owner members of the same household, never the super-admin | Owner↔owner resets would let one owner weaken another's account. |
 | 19 | Sessions stay long-lived (Supabase refresh tokens, localStorage) | Family members are not asked for a code on every open; a new device or sign-out asks again. |
+| 20 | Categorization rule order: the pharmacy rule runs before the grocery rule | Bug found by the parser tests: in the prototype "סופר פארם" matched "סופר " and was filed as groceries. Everything else in RULES is unchanged. |

@@ -1,0 +1,94 @@
+// Row shapes as they come from Supabase (numeric columns arrive as strings
+// from PostgREST only for numeric types; we normalize to numbers on load).
+
+export type Role = "owner" | "member" | "viewer";
+
+export interface Household { id: string; name: string; role: Role }
+
+export interface Settings {
+  household_id: string;
+  theme: string;
+  send_mode: "immediate" | "weekly" | "monthly";
+  send_weekday: number;
+  send_monthday: number;
+  require_mfa: boolean;
+  quota_images: number;
+  quota_statements: number;
+  quota_analyses: number;
+  quota_usd: number;
+}
+
+export interface Person { id: string; household_id: string; name: string; user_id: string | null; sort: number; archived: boolean; legacy_key: string | null }
+
+export interface Member { user_id: string; role: Role; joined_at: string; display_name: string }
+
+export interface Tx {
+  id: string;
+  household_id: string;
+  date: string;
+  month: string;
+  merchant: string;
+  amount: number;
+  category: string;
+  is_fixed: boolean;
+  note: string;
+  person_id: string | null;
+  source: "manual" | "import" | "statement" | "receipt" | "backup";
+  source_title: string;
+  status: "review" | "saved";
+  receipt_job_id?: string | null;
+  receipt_client_id?: string | null;
+  created_by?: string | null;
+  created_at?: string;
+}
+
+export interface Fixed {
+  id: string;
+  household_id: string;
+  name: string;
+  amount: number;
+  keyword: string;
+  category: string;
+  person_id: string | null;
+  cycle: 1 | 2 | 12;
+  due_day: number | null;
+  note: string;
+}
+
+export interface ShopItem { id: string; household_id: string; name: string; qty: number; done: boolean; sort: number }
+
+export interface AnalysisTip { title: string; text: string; save: number | null; links: string[] }
+export interface AnalysisData { status: string; changes: string; tips: AnalysisTip[]; checks: string[]; local?: boolean }
+export interface Analysis { month: string; data: AnalysisData; created_at?: string; model?: string }
+
+export interface Invite {
+  id: string; role: Role; person_name: string | null; created_at: string; expires_at: string;
+  used_at: string | null; revoked_at: string | null; claimed_email: string | null;
+}
+
+export interface Usage {
+  month: string; images: number; statements: number; analyses: number; usd: number;
+  quota_images: number; quota_statements: number; quota_analyses: number; quota_usd: number;
+}
+
+/** A row on the review screen before it is saved. */
+export interface DraftRow {
+  id: string;
+  date: string;
+  month: string;
+  merchant: string;
+  amount: number;
+  category: string;
+  fixed: boolean;
+  note: string;
+  keep: boolean;
+  dup: boolean;
+}
+
+export interface DraftDoc {
+  title: string;
+  docType: string;
+  statementTotal: number | null;
+  source: "import" | "statement";
+  rows: DraftRow[];
+}

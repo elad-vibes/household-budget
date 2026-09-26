@@ -3,7 +3,7 @@
 Resume rule: read this file first, then `PLAN.md` and `DECISIONS.md`, then `git log`.
 
 ## Status
-- **Now:** Phase 1 — (b) auth + invites + MFA UI, then (c) core UI port
+- **Now:** Phase 1 — frontend: app shell + auth/MFA screens + UI port (src/ui/*)
 - **Live Supabase:** project reachable (session pooler `aws-0-eu-central-1`, cached in
   `supabase/.temp/pooler-host`, gitignored). Migrations 0001–0004 applied with
   `node scripts/db.mjs migrate`. RLS suite passes against the live DB
@@ -22,8 +22,15 @@ Resume rule: read this file first, then `PLAN.md` and `DECISIONS.md`, then `git 
       (owner RPC), hashed recovery codes, `svc_access` for Edge Functions,
       `svc_can_reset_mfa`. RLS tests for aal1 vs aal2 — 84 passing
 
+- [x] Edge Functions (logic in `supabase/functions/_shared/handlers`, thin Deno wrappers): invite-signin,
+      extract-statement, submit-receipts, poll-batches, analyze-month, delete-account, mfa-recover, mfa-reset.
+      34 handler tests (mocked Anthropic); `npm run check:functions` (deno check) green. NOT deployed yet (needs PAT).
+- [x] Frontend domain layer: parser (port of localParse), calc (sums/tips/summary), schedule, image
+      (compress + Laplacian blur), IndexedDB queue, backup v1/v2 — unit tests with synthetic Max/Isracard/bank files
+- Total tests: 147 passing (`npm test`)
+
 ## Next (Phase 1)
-- [ ] (b) auth + invites: Edge Function `invite-signin`, join screen, e-mail code sign-in
+- [ ] (b) auth + invites UI: join screen, e-mail code sign-in
 - [ ] (b2) MFA UI (Hebrew): enroll (QR + manual code) → verify → 10 recovery codes;
       code prompt on new device; recovery-code flow (Edge Function `mfa-recover`);
       owner "reset member MFA" (Edge Function `mfa-reset`); household "require MFA" switch;
