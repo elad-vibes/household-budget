@@ -102,7 +102,7 @@ function receiptSettingsCard(): SafeHtml {
   return html`<div class="card">
     <h2>שליחת קבלות לקריאה</h2>
     <p class="muted small">קבלות שמצלמים נשמרות במכשיר ונשלחות לקריאה ביחד. שליחה שבועית או חודשית זולה יותר. אפשר תמיד ללחוץ "לשלוח עכשיו".</p>
-    <div class="seg">${(["immediate", "weekly", "monthly"] as const).map((k) => html`<button type="button" data-click="send-mode" data-v="${k}" aria-pressed="${s.send_mode === k}" ${attr(!w, "disabled")}>${{ immediate: "מיד", weekly: "פעם בשבוע", monthly: "פעם בחודש" }[k]}</button>`)}</div>
+    <div class="seg">${(["immediate", "weekly", "monthly"] as const).map((k) => html`<button type="button" data-click="send-mode" data-v="${k}" aria-pressed="${s.send_mode === k ? "true" : "false"}" ${attr(!w, "disabled")}>${{ immediate: "מיד", weekly: "פעם בשבוע", monthly: "פעם בחודש" }[k]}</button>`)}</div>
     ${s.send_mode === "weekly" ? html`<label class="f">ביום<select data-change="send-weekday" ${attr(!w, "disabled")}>${HEB_D.map((d, i) => html`<option value="${i}" ${attr(s.send_weekday === i, "selected")}>יום ${d}</option>`)}</select></label>` : ""}
     ${s.send_mode === "monthly" ? html`<label class="f">בתאריך<select data-change="send-monthday" ${attr(!w, "disabled")}>${Array.from({ length: 28 }, (_, i) => i + 1).map((d) => html`<option value="${d}" ${attr(s.send_monthday === d, "selected")}>${d} בחודש</option>`)}</select></label>` : ""}
   </div>`;
@@ -126,10 +126,15 @@ function securityCard(): SafeHtml {
   </div>`;
 }
 
+const SCHEMES = [["system", "כמו בטלפון"], ["light", "בהיר"], ["dark", "כהה"]] as const;
+function currentScheme() { try { return localStorage.getItem("hb2-scheme") ?? "system"; } catch { return "system"; } }
+on("click", "scheme", (el) => { try { localStorage.setItem("hb2-scheme", el.dataset.v!); } catch { /* private mode */ } rerender(); });
+
 function themeCard(): SafeHtml {
-  return html`<div class="card"><h2>צבעים</h2>
+  return html`<div class="card"><h2>צבעים ומראה</h2>
+    <div class="f"><span class="small" style="font-weight:600;color:var(--ink2)">מצב תצוגה (במכשיר הזה)</span><div class="seg">${SCHEMES.map(([k, l]) => html`<button type="button" data-click="scheme" data-v="${k}" aria-pressed="${currentScheme() === k ? "true" : "false"}">${l}</button>`)}</div></div>
     <p class="muted small">אפשר להתאים את צבעי האפליקציה לגוון של הבנק או של כרטיס האשראי.</p>
-    <div class="swatches">${Object.entries(THEMES).map(([k, t]) => html`<button type="button" class="swatch" data-click="theme" data-k="${k}" aria-pressed="${(S.settings?.theme || "max") === k}" ${attr(!canWrite(), "disabled")}><i><span style="background:${t.accent}"></span><span style="background:${t.soft}"></span><span style="background:${t.var}"></span></i><span class="small">${t.label}</span></button>`)}</div>
+    <div class="swatches">${Object.entries(THEMES).map(([k, t]) => html`<button type="button" class="swatch" data-click="theme" data-k="${k}" aria-pressed="${(S.settings?.theme || "max") === k ? "true" : "false"}" ${attr(!canWrite(), "disabled")}><i><span style="background:${t.accent}"></span><span style="background:${t.soft}"></span><span style="background:${t.var}"></span></i><span class="small">${t.label}</span></button>`)}</div>
   </div>`;
 }
 

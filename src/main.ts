@@ -1,5 +1,6 @@
 // App shell: boot, auth gate, hash router, bottom navigation, rendering.
 import "./styles.css";
+import "./design.css";
 import type { Session } from "@supabase/supabase-js";
 import { html, render, type SafeHtml } from "./lib/html.ts";
 import { installEvents, on } from "./lib/events.ts";
@@ -8,7 +9,7 @@ import { addM, curMonth, mLabel } from "./lib/format.ts";
 import { THEMES } from "./domain/categories.ts";
 import { monthsWithData, reviewTx } from "./domain/calc.ts";
 import { ctx, household, rerender, S, setRenderer, type Tab } from "./state.ts";
-import { bootHousehold, loadUsage } from "./data.ts";
+import { bootHousehold, loadHousehold, loadUsage } from "./data.ts";
 import { checkJobs, loadQueue, maybeAutoSend } from "./receipts.ts";
 import { renderOverview } from "./ui/overview.ts";
 import { renderAdd } from "./ui/add.ts";
@@ -25,6 +26,11 @@ import { I } from "./ui/icons.ts";
 import { renderPlan } from "./ui/plan.ts";
 import { loadPhase2 } from "./phase2.ts";
 import "./payments.ts"; // payment methods: cards + handlers register themselves
+import { art, markArt, timeArt } from "./ui/art.ts";
+import { icon } from "./ui/cat.ts";
+import { captureFab, captureSheet } from "./ui/capture.ts";
+import { installGestures, onPullRefresh, runAfterRender, tabEnterClass } from "./ui/motion.ts";
+import { flash } from "./state.ts";
 
 /** Tabs; Phase 2 adds "plan" through registerTab(). */
 const TAB_RENDER: Partial<Record<Tab, () => SafeHtml>> = {
@@ -81,6 +87,7 @@ on("click", "go", (el) => {
 on("click", "more", () => { S.extra.more = !S.extra.more; rerender(); });
 on("click", "prevM", () => { S.month = addM(S.month, -1); S.monthTouched = true; rerender(); });
 on("click", "nextM", () => { S.month = addM(S.month, 1); S.monthTouched = true; rerender(); });
+on("click", "reload", () => location.reload());
 on("click", "sw-update", () => { navigator.serviceWorker.getRegistration().then((r) => r?.waiting?.postMessage("SKIP_WAITING")); });
 
 // ------------------------------------------------------------------ boot
@@ -107,7 +114,7 @@ async function start() {
     r = await bootHousehold();
   } catch {
     S.view = "app";
-    S.flash = { text: "אין חיבור לשרת כרגע. כדאי לבדוק את האינטרנט ולרענן.", kind: "err" };
+    S.extra.offline = true;
     rerender();
     return;
   }
@@ -131,6 +138,14 @@ async function start() {
 
 async function boot() {
   installEvents();
+  installGestures();
+  onPullRefresh(async () => {
+    await loadHousehold();
+    await loadPhase2().catch(() => undefined);
+    rerender();
+    flash("✓ עודכן", "ok");
+  });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => rerender());
   setRenderer(renderAll);
   if (!configured) { S.view = "noconfig"; renderAll(); return; }
   readHash();
@@ -165,17 +180,47 @@ function registerServiceWorker() {
 }
 
 // ---------------------------------------------------------------- render
+/** Light / dark per device ("system" follows the phone). */
+export const scheme = (): "system" | "light" | "dark" => {
+  try { return (localStorage.getItem("hb2-scheme") as "light" | "dark" | null) ?? "system"; } catch { return "system"; }
+};
+const isDark = () => scheme() === "dark" || (scheme() === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+const mix = (a: string, b: string, w: number) => {
+  const p = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const x = p(a), y = p(b);
+  return "#" + x.map((v, i) => Math.round(v * w + y[i] * (1 - w)).toString(16).padStart(2, "0")).join("");
+};
+
 function applyTheme() {
   const t = THEMES[S.settings?.theme ?? "max"] ?? THEMES.max;
-  const r = document.documentElement.style;
+  const dark = isDark();
+  const root = document.documentElement;
+  root.dataset.dark = dark ? "1" : "0";
+  const r = root.style;
+  // every preset gets a dark variant: the accent stays, "deep" becomes a light tint for text on dark surfaces
+  const deep = dark ? mix(t.accent, "#ffffff", 0.55) : t.deep;
   r.setProperty("--accent", t.accent);
-  r.setProperty("--accent-deep", t.deep);
-  r.setProperty("--fixed", t.deep);
-  r.setProperty("--accent-soft", t.soft);
-  r.setProperty("--ground", t.ground);
+  r.setProperty("--accent-deep", deep);
+  r.setProperty("--fixed", deep);
+  r.setProperty("--accent-soft", dark ? mix(t.accent, "#16201D", 0.24) : t.soft);
+  r.setProperty("--accent-ink", dark ? "#0E1513" : "#FFFFFF");
   r.setProperty("--var", t.var);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", t.accent);
+  if (dark) r.removeProperty("--ground"); else r.setProperty("--ground", t.ground);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#0E1513" : t.accent);
+  document.querySelector('meta[name="color-scheme"]')?.setAttribute("content", dark ? "dark" : "light");
 }
+
+function greeting(): SafeHtml {
+  const h = new Date().getHours();
+  const [text, pic] = h >= 5 && h < 12 ? ["בוקר טוב", timeArt.morning()] : h >= 12 && h < 17 ? ["צהריים טובים", timeArt.noon()] : ["ערב טוב", timeArt.evening()];
+  const me = S.members.find((m) => m.user_id === S.user?.id)?.display_name?.trim();
+  return html`<div class="greet">${pic}<span>${text}${me ? ", " + me : ""}</span></div>`;
+}
+
+const skeleton = () => html`<div class="skel" aria-busy="true" aria-label="טוען">
+  <div class="skel-card"><div class="skel-line" style="width:40%"></div><div class="skel-line big"></div><div class="skel-line" style="width:70%"></div></div>
+  <div class="skel-card"><div class="skel-line" style="width:30%"></div><div class="skel-line"></div><div class="skel-line" style="width:85%"></div><div class="skel-line" style="width:60%"></div></div>
+  <div class="skel-card"><div class="skel-line" style="width:35%"></div><div class="skel-line"></div></div></div>`;
 
 function shell(): SafeHtml {
   const tab = S.tab;
@@ -186,12 +231,15 @@ function shell(): SafeHtml {
   const navBtn = (t: Tab | "more", icon: SafeHtml, label: string, badge = 0) => html`<button data-click="${t === "more" ? "more" : "go"}" data-to="${t}" aria-current="${t === tab || (t === "more" && ["fixed", "plan", "home"].includes(tab)) ? "page" : "false"}" class="${t === "add" ? "add" : ""}">${icon}<span>${label}</span>${badge ? html`<span class="badge">${badge}</span>` : ""}</button>`;
   return html`
   <div class="top">
-    <div><button class="hhsw" data-click="go" data-to="home">${household()?.name ?? ""} ▾</button><h1>${tab === "overview" ? "הכסף של הבית" : TITLES[tab]}</h1></div>
+    <div><button class="hhsw" data-click="go" data-to="home">${household()?.name ?? ""} ▾</button>${tab === "overview" ? greeting() : ""}<h1>${tab === "overview" ? "הכסף של הבית" : TITLES[tab]}</h1></div>
     ${monthTabs ? html`<div class="monthsw" aria-label="בחירת חודש"><button data-click="prevM" aria-label="חודש קודם">→</button><b>${mLabel(S.month)}</b><button data-click="nextM" aria-label="חודש הבא">←</button></div>` : ""}
   </div>
   ${S.extra.swUpdate ? banner(html`יש גרסה חדשה של האפליקציה. <button data-click="sw-update">עדכון</button>`, "info") : ""}
   ${legacy ? banner(html`נמצאו במכשיר הזה נתונים מהגרסה הקודמת. <button data-click="go" data-to="home">לייבוא</button>`, "info") : ""}
-  <main class="wrap">${content}</main>
+  ${S.extra.offline ? html`<div class="card empty">${art.offline()}<h2>אין חיבור כרגע</h2><p class="muted">לא הצלחנו להגיע לשרת. קבלות שמצלמים נשמרות בטלפון ויישלחו כשהחיבור יחזור.</p><button class="primary" data-click="reload">לנסות שוב</button></div>` : ""}
+  ${tab === "overview" ? html`<div id="ptr" class="ptr" aria-hidden="true">${icon("refresh-cw")}</div>` : ""}
+  <main class="wrap ${tabEnterClass()}">${content}</main>
+  ${captureFab()}${captureSheet()}
   <nav class="bnav" aria-label="ניווט">
     ${navBtn("overview", I.overview, "סקירה")}
     ${navBtn("tx", I.tx, "תנועות", pending)}
@@ -211,14 +259,14 @@ function shell(): SafeHtml {
 function viewHtml(): SafeHtml {
   switch (S.view) {
     case "noconfig": return html`<div class="auth"><h1>הכסף של הבית</h1>${banner("חסרים פרטי חיבור ל-Supabase (VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY).", "err")}</div>`;
-    case "loading": return html`<div class="auth"><div class="logo">₪</div><p class="muted"><span class="spin"></span> טוען…</p></div>`;
+    case "loading": return html`<div class="wrap" style="margin-top:4vh">${skeleton()}</div>`;
     case "signin": return renderSignin();
     case "join": return renderJoin();
     case "mfa-challenge": return renderMfaChallenge();
     case "mfa-enroll": return renderMfaEnroll();
     case "install": return renderInstall();
     case "admin": return html`<div class="wrap">${renderAdmin()}</div>`;
-    case "nohousehold": return html`<div class="auth"><div class="logo">₪</div><h1>עוד אין משק בית</h1>
+    case "nohousehold": return html`<div class="auth">${markArt()}<h1>עוד אין משק בית</h1>
       <p>החשבון מחובר, אבל עוד לא הצטרפת לאף משק בית. כדי להצטרף צריך קישור הזמנה ממי שמנהל את משק הבית.</p>
       ${S.isAdmin ? html`<button class="primary" data-click="go" data-to="admin">ניהול מערכת</button>` : ""}
       <button class="ghost" data-click="signout">יציאה</button></div>`;
@@ -250,8 +298,11 @@ function renderAll() {
   applyTheme();
   document.body.classList.toggle("noapp", S.view !== "app");
   const snap = snapshot();
-  render(root, html`${viewHtml()}${S.flash ? html`<div class="flash banner ${S.flash.kind}" role="status">${S.flash.text}</div>` : ""}`);
+  const undo = S.extra.undo as { text: string } | undefined;
+  render(root, html`${viewHtml()}${S.flash ? html`<div class="flash banner ${S.flash.kind}" role="status">${S.flash.text}</div>`
+    : undo ? html`<div class="toast" role="status"><span>${undo.text}</span><button data-click="undo">ביטול</button></div>` : ""}`);
   restore(snap);
+  runAfterRender();
 }
 
 boot();

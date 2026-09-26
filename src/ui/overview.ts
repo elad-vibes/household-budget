@@ -10,6 +10,10 @@ import { canWrite, ctx, flash, rerender, S } from "../state.ts";
 import { fn } from "../data.ts";
 import { banner, linkHtml } from "./common.ts";
 import type { AnalysisData } from "../domain/types.ts";
+import { catColor, catIcon, tipIcon } from "./cat.ts";
+import { donut, sparkline } from "./charts.ts";
+import { art } from "./art.ts";
+import { curMonth } from "../lib/format.ts";
 
 /** Phase 2 modules push extra cards here (budgets, upcoming bills, suggestions). */
 export const overviewCards: ((m: string) => SafeHtml)[] = [];
@@ -25,7 +29,7 @@ export function renderOverview(): SafeHtml {
     : html``;
   if (!tx.length) {
     return html`${reviewBanner}
-      <div class="card herocard"><h2>${mLabel(m)}</h2>
+      <div class="card herocard empty">${art.noTx()}<h2>${mLabel(m)}</h2>
         <p class="muted">עוד אין הוצאות לחודש הזה. אפשר להעלות פירוט אשראי, יצוא מהבנק או לצלם קבלה בלשונית "הוספה".</p>
         ${canWrite() ? html`<div><button class="primary" data-click="go" data-to="add">להוספת הוצאות</button></div>` : ""}
       </div>
@@ -49,10 +53,13 @@ export function renderOverview(): SafeHtml {
   }
   const rows = Object.entries(cats).map(([k, v]) => [k, v, v.fx + v.vr] as const).filter((r) => Math.abs(r[2]) > 0.005).sort((a, b) => b[2] - a[2]);
   const mx = Math.max(...rows.map((r) => r[2]), 1);
+  const spark: number[] = [];
+  for (let i = 5; i >= 0; i--) spark.push(sumM(c, addM(m, -i)).total);
+  const saved = m < curMonth() && p.total > 0 && s.total < p.total;
 
   return html`${reviewBanner}
   <div class="card herocard">
-    <div class="hero"><span class="big num">${ils(s.total)}</span>${delta}</div>
+    <div class="herorow"><div class="hero"><span class="big num" data-countup="${Math.round(s.total)}" data-key="hero:${m}">${ils(s.total)}</span>${delta}</div>${sparkline(spark)}</div>
     <div class="muted small">סך ההוצאות ב${mLabel(m)} · ${s.count} תנועות${s.inc ? ` · הכנסות ${ils(s.inc)}` : ""}</div>
     <div class="tiles">
       <div class="tile"><div class="l"><i class="dot" style="background:var(--fixed)"></i>קבועות</div><div class="v num">${ils(s.fx)}</div><div class="muted small">${s.total ? Math.round((s.fx / s.total) * 100) : 0}% מההוצאות</div></div>
@@ -64,6 +71,7 @@ export function renderOverview(): SafeHtml {
           <div class="legend" style="margin-top:8px">${keys.map((k) => html`<span><i class="dot" style="background:${personColor(c, k || null)}"></i>${personName(c, k || null)} <b class="num">${ils(byP[k])}</b></span>`)}</div></div>`
       : html`<div class="legend">${keys.map((k) => html`<span><i class="dot" style="background:${personColor(c, k || null)}"></i>${personName(c, k || null)} <b class="num">${ils(byP[k])}</b></span>`)}</div>`}
   </div>
+  ${saved ? html`<div class="card empty">${art.success()}<h2>חודש חסכוני</h2><p class="muted">ב${mLabel(m)} יצא ${ils(p.total - s.total)} פחות מהחודש שלפניו. כל הכבוד!</p></div>` : ""}
   ${overviewCards.map((f) => f(m))}
   <div class="card" id="anCard">
     <div class="card-h"><h2>ניתוח והמלצות</h2>
@@ -73,7 +81,9 @@ export function renderOverview(): SafeHtml {
   </div>
   <div class="card">
     <div class="card-h"><h2>לאן הלך הכסף</h2><div class="legend"><span><i class="dot" style="background:var(--fixed)"></i>קבוע</span><span><i class="dot" style="background:var(--var)"></i>משתנה</span></div></div>
-    <div>${rows.map(([k, v, t]) => html`<div class="catrow"><div class="name">${k}<small>${v.n} תנועות</small></div><div class="track">${v.fx > 0 ? html`<span style="width:${(v.fx / mx) * 100}%;background:var(--fixed)"></span>` : ""}${v.vr > 0 ? html`<span style="width:${(v.vr / mx) * 100}%;background:var(--var)"></span>` : ""}</div><div class="amt num">${ils(t)}<small>${Math.round((t / s.total) * 100)}%</small></div></div>`)}</div>
+    <div class="donutwrap">${donut(rows.map(([k, , t]) => ({ key: k, value: t, color: catColor(k) })), ils(s.total), "לחיצה פותחת")}
+      <div class="dlegend">${rows.slice(0, 6).map(([k, , t]) => html`<button data-click="cat-go" data-cat="${k}"><i class="dot" style="background:${catColor(k)}"></i><span class="nm">${k}</span><b class="num">${Math.round((t / s.total) * 100)}%</b></button>`)}</div></div>
+    <div>${rows.map(([k, v, t]) => html`<button class="catrow as-btn" data-click="cat-go" data-cat="${k}" aria-label="${k}: ${ils(t)} — לתנועות">${catIcon(k, "s")}<div class="name">${k}<small>${v.n} תנועות</small></div><div class="track">${v.fx > 0 ? html`<span style="width:${(v.fx / mx) * 100}%;background:var(--fixed)"></span>` : ""}${v.vr > 0 ? html`<span style="width:${(v.vr / mx) * 100}%;background:var(--var)"></span>` : ""}</div><div class="amt num">${ils(t)}<small>${Math.round((t / s.total) * 100)}%</small></div></button>`)}</div>
   </div>
   ${subsCard(m)}
   ${fixedStatusCard(m)}
@@ -81,7 +91,7 @@ export function renderOverview(): SafeHtml {
 }
 
 function analysisHtml(m: string): SafeHtml {
-  if (S.anBusy) return html`<p class="muted"><span class="spin"></span> Claude עובר על החודש… זה לוקח בערך חצי דקה.</p>`;
+  if (S.anBusy) return html`<div class="skel" aria-busy="true"><p class="muted small">Claude עובר על החודש… זה לוקח בערך חצי דקה.</p><div class="skel-line" style="width:90%"></div><div class="skel-line" style="width:75%"></div><div class="skel-line" style="width:82%"></div></div>`;
   const an = S.analyses[m];
   const d: AnalysisData | null = an?.data ?? localTips(ctx(), m);
   if (!d) return html`<p class="muted">Claude יעבור על ההוצאות של החודש, ישווה לחודשים קודמים ויציע איפה אפשר לחסוך, עם קישורים לאתרי השוואה בישראל. הניתוח נשמר, וכל בני הבית רואים אותו.</p>`;
@@ -90,7 +100,7 @@ function analysisHtml(m: string): SafeHtml {
   return html`<div class="an-sec"><h3>תמונת מצב</h3><p>${d.status}</p></div>
     ${d.changes ? html`<div class="an-sec"><h3>מה השתנה</h3><p>${d.changes}</p></div>` : ""}
     ${tips.length ? html`<div class="an-sec"><div class="card-h"><h3>איפה אפשר לחסוך</h3>${totalSave ? html`<span class="chip save">פוטנציאל: עד ${ils(totalSave)} בחודש</span>` : ""}</div>
-      ${tips.map((t) => html`<div class="tip"><div class="t"><b>${t.title}</b>${t.save ? html`<span class="chip save">עד ${ils(+t.save)} בחודש</span>` : ""}</div><p>${t.text}</p>${linkHtml(t.links)}</div>`)}</div>` : ""}
+      ${tips.map((t) => html`<div class="tip"><div class="t">${tipIcon(t.title)}<b>${t.title}</b>${t.save ? html`<span class="chip save">עד ${ils(+t.save)} בחודש</span>` : ""}</div><p>${t.text}</p>${linkHtml(t.links)}</div>`)}</div>` : ""}
     ${(d.checks ?? []).length ? html`<div class="an-sec"><h3>לבדוק</h3><ul class="plain">${d.checks.map((c) => html`<li>${c}</li>`)}</ul>${d.local ? linkHtml(["itur"]) : ""}</div>` : ""}
     ${d.local
       ? html`<div class="muted small">אלה המלצות אוטומטיות לפי כללים קבועים.${canWrite() ? " הכפתור למעלה מבקש ניתוח מותאם אישית מ-Claude." : ""}</div>`
@@ -132,6 +142,16 @@ function trendCard(m: string): SafeHtml {
   return html`<div class="card"><div class="card-h"><h2>חצי שנה אחרונה</h2><span class="muted small">לחיצה על חודש פותחת אותו</span></div>
     <div class="trend">${data.map(([x, s]) => html`<button class="col ${x === m ? "cur" : ""}" data-click="month" data-m="${x}" aria-label="${mLabel(x)}: ${ils(s.total)}"><span class="tv num">${s.total ? (s.total / 1000).toFixed(1) + "K" : ""}</span><div class="stack" style="height:${Math.max((s.total / mx) * 100, s.total ? 3 : 0)}%"><span style="flex:${Math.max(s.fx, 0)};background:var(--fixed)"></span><span style="flex:${Math.max(s.vr, 0)};background:var(--var)"></span></div><small>${mShort(x)}</small></button>`)}</div></div>`;
 }
+
+// donut slice / legend / category row → that month's transactions of the category
+on("click", "cat-go", (el) => {
+  S.fCat = el.getAttribute("data-cat") || "all";
+  S.fPerson = "all";
+  S.tab = "tx";
+  history.replaceState(null, "", "#/tx");
+  rerender();
+  window.scrollTo({ top: 0 });
+});
 
 on("click", "month", (el) => {
   S.month = el.dataset.m!;

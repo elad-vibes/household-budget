@@ -15,6 +15,8 @@ import { overviewCards } from "./ui/overview.ts";
 import { fixedTop } from "./ui/fixed.ts";
 import { shopExtras } from "./ui/shop.ts";
 import { homeCards } from "./ui/home.ts";
+import { ring } from "./ui/charts.ts";
+import { catIcon } from "./ui/cat.ts";
 
 export interface Prefs { weekly_summary: boolean; bills: boolean; receipts: boolean; budget: boolean; weekly_day: number; quiet_start: number; quiet_end: number }
 export interface P2State {
@@ -58,8 +60,7 @@ overviewCards.push((m) => {
   const rows = budgetRows(ctx(), P2().budgets, m);
   if (!rows.length) return html``;
   return html`<div class="card"><div class="card-h"><h2>תקציבים החודש</h2><button class="ghost" data-click="go" data-to="plan">עריכה</button></div>
-    ${rows.slice(0, 6).map((r) => html`<div><div class="row between small"><b>${r.category}</b><span class="num">${ils(r.spent)} / ${ils(r.amount)}${r.level !== "ok" ? html` <span class="chip ${r.level === "over" ? "miss" : "warn"}">${Math.round(r.pct)}%</span>` : ""}</span></div>
-      <div class="bar ${r.level === "over" ? "over" : r.level === "warn" ? "warn" : ""}"><span style="width:${Math.min(100, r.pct)}%"></span></div></div>`)}</div>`;
+    <div class="rings">${rows.slice(0, 6).map((r) => html`<div class="rb">${ring(r.pct, r.level)}<b class="row" style="gap:4px;justify-content:center">${catIcon(r.category, "s")}${r.category}</b><span class="num muted">${ils(r.spent)} / ${ils(r.amount)}</span>${r.level !== "ok" ? html`<span class="chip ${r.level === "over" ? "miss" : "warn"}">${r.level === "over" ? "עברתם את התקציב" : "קרוב לתקציב"}</span>` : ""}</div>`)}</div></div>`;
 });
 
 overviewCards.push(() => {

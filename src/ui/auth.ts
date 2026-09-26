@@ -7,8 +7,9 @@ import { appUrl, dbMessage, sb } from "../lib/supa.ts";
 import { S, flash, household, isOwner, rerender } from "../state.ts";
 import { fn } from "../data.ts";
 import { banner, copyText, downloadBlob } from "./common.ts";
+import { markArt } from "./art.ts";
 
-const logo = html`<div class="logo">₪</div>`;
+const logo = markArt();
 const A = () => (S.extra.auth ??= {}) as Record<string, any>;
 const JOIN_KEY = "hb2-join";
 

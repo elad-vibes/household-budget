@@ -48,7 +48,7 @@ export function guessStatementMethod(d: Pick<DraftDoc, "title" | "hint">): strin
 // ---------------------------------------------------- chips
 export function methodChips(name: string, selected: string): SafeHtml {
   return html`<div class="seg chips" role="radiogroup" aria-label="איך שילמת?">${activeMethods().map((m) =>
-    html`<button type="button" role="radio" aria-checked="${m.id === selected}" data-click="pm-chip" data-name="${name}" data-v="${m.id}">${m.label}${m.last4 ? html` <span class="num">••${m.last4}</span>` : ""}</button>`)}</div>`;
+    html`<button type="button" role="radio" aria-checked="${m.id === selected ? "true" : "false"}" data-click="pm-chip" data-name="${name}" data-v="${m.id}">${m.label}${m.last4 ? html` <span class="num">••${m.last4}</span>` : ""}</button>`)}</div>`;
 }
 export const chipValue = (name: string, fallback: string): string => S.extra["pm:" + name] ?? fallback;
 on("click", "pm-chip", (el) => { S.extra["pm:" + el.dataset.name] = el.dataset.v; rerender(); });

@@ -14,8 +14,8 @@ const dmy = (day: number) => `${String(day).padStart(2, "0")}/${ym.slice(5, 7)}/
 
 async function heroTotal(page: Page): Promise<number> {
   await page.locator(".bnav").getByRole("button", { name: "סקירה" }).click();
-  const t = await page.locator(".hero .big").innerText();
-  return Number(t.replace(/[^\d.-]/g, ""));
+  // the hero counts up; its target value is in data-countup (whole shekels)
+  return Number(await page.locator(".hero .big").getAttribute("data-countup"));
 }
 
 async function addManual(page: Page, merchant: string, amount: string, day: number, method: RegExp) {

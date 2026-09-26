@@ -44,6 +44,18 @@ test.describe("signed in", () => {
     });
   }
 
+  for (const tab of ["overview", "tx", "plan"]) {
+    test(`${tab}-dark`, async ({ page }) => {
+      test.skip(SHOTS !== "after", "dark mode is new in the design pass");
+      await page.emulateMedia({ colorScheme: "dark" });
+      await signedIn(page, fixture()!.member);
+      await page.goto(`./#/${tab}`);
+      await expect(page.locator(".bnav")).toBeVisible({ timeout: 20_000 });
+      await expect(page.locator("html")).toHaveAttribute("data-dark", "1");
+      await shot(page, `${tab}-dark`);
+    });
+  }
+
   test("home-owner", async ({ page }) => {
     await signedIn(page, fixture()!.owner);
     await page.goto("./#/home");

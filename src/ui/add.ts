@@ -16,6 +16,7 @@ import { renderReview } from "./review.ts";
 import { I } from "./icons.ts";
 import { chipValue, guessStatementMethod, lastMethod, methodById, methodChips, rememberMethod, settle } from "../payments.ts";
 import { initialStatus, isAtmRow } from "../domain/match.ts";
+import { art } from "./art.ts";
 
 export function renderAdd(): SafeHtml {
   if (!canWrite()) return banner("יש לך הרשאת צפייה בלבד, אז אי אפשר להוסיף הוצאות.", "warn");
@@ -53,7 +54,7 @@ export function renderAdd(): SafeHtml {
 function personPicker(): SafeHtml {
   return html`<div class="card" style="padding:12px 16px">
     <div class="small" style="font-weight:600;color:var(--ink2)">של מי ההוצאות?</div>
-    <div class="seg">${personOptions(ctx()).map(([k, n]) => html`<button type="button" data-click="up-person" data-p="${k}" aria-pressed="${S.upPerson === k}">${n}</button>`)}</div>
+    <div class="seg">${personOptions(ctx()).map(([k, n]) => html`<button type="button" data-click="up-person" data-p="${k}" aria-pressed="${S.upPerson === k ? "true" : "false"}">${n}</button>`)}</div>
   </div>`;
 }
 
@@ -84,6 +85,7 @@ function receiptsCard(): SafeHtml {
     ${blurry.length ? banner(html`<b>${blurry.length === 1 ? "התמונה נראית מטושטשת." : `${blurry.length} תמונות נראות מטושטשות.`}</b> קבלה מטושטשת לא תיקרא טוב. כדאי לצלם שוב באור טוב, ישר מעל הקבלה.
         <div class="row" style="margin-top:8px"><button data-click="rc-retake">למחוק ולצלם שוב</button><button class="ghost" data-click="rc-keep-blurry">לשמור בכל זאת</button></div>`, "warn") : ""}
     ${S.extra.rcBusy ? html`<p class="muted"><span class="spin"></span> מכין את התמונות…</p>` : ""}
+    ${!q.length ? html`<div class="empty">${art.queueEmpty()}<p class="muted small">אין קבלות שמחכות לשליחה. אפשר לצלם גם מהכפתור העגול בכל מסך.</p></div>` : ""}
     ${q.length ? html`<div class="rq">${q.map((r) => html`<div class="it">
         <img src="${r.thumb}" alt="קבלה">
         ${r.status === "queued" || r.status === "failed" || r.status === "done" ? html`<button class="x ghost" data-click="rc-del" data-id="${r.id}" aria-label="מחיקה">✕</button>` : ""}

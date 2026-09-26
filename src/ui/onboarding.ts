@@ -2,6 +2,7 @@
 import { html, type SafeHtml } from "../lib/html.ts";
 import { on } from "../lib/events.ts";
 import { S, rerender } from "../state.ts";
+import { art, markArt } from "./art.ts";
 
 export const isStandalone = () =>
   matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
@@ -13,7 +14,13 @@ addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferred = 
 export function renderInstall(): SafeHtml {
   const ios = isIOS();
   return html`<div class="auth" style="margin-top:2vh">
-    <div class="logo">₪</div><h1>התקנה למסך הבית</h1>
+    ${markArt()}
+    ${!localStorage.getItem("hb2-onboarded") ? html`<div class="intro" aria-label="מה האפליקציה עושה">
+      <div class="card">${art.intro1()}<h2>כל הכסף של הבית במקום אחד</h2><p class="muted">כל בני הבית רואים את אותן הוצאות, קבועות ורשימת קניות.</p></div>
+      <div class="card">${art.intro2()}<h2>מצלמים קבלה, וזהו</h2><p class="muted">Claude קורא את הקבלות ואת פירוטי האשראי, ואתם רק מאשרים.</p></div>
+      <div class="card">${art.intro3()}<h2>רואים לאן הולך הכסף</h2><p class="muted">תקציבים, יעדי חיסכון והמלצות איפה אפשר לחסוך.</p></div>
+    </div>` : ""}
+    <h1>התקנה למסך הבית</h1>
     ${isStandalone() ? html`<div class="banner ok">✓ האפליקציה כבר מותקנת ופתוחה ממסך הבית.</div>` : ""}
     <div class="card"><h2>${ios ? "באייפון (Safari)" : "באייפון"}</h2>
       <ol class="steps">

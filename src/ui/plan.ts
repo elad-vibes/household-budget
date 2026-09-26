@@ -4,6 +4,9 @@ import { armed2, isArmed, on } from "../lib/events.ts";
 import { HEB_M, ils, ils2, today } from "../lib/format.ts";
 import { CATS } from "../domain/categories.ts";
 import { annualCalendar, budgetRows, goalProgress } from "../domain/plan.ts";
+import { jar } from "./charts.ts";
+import { art } from "./art.ts";
+import { confetti } from "./motion.ts";
 import { canWrite, ctx, flash, rerender, S } from "../state.ts";
 import { dbMessage, sb } from "../lib/supa.ts";
 import { P2 } from "../phase2.ts";
@@ -55,15 +58,15 @@ function goalsCard(): SafeHtml {
   return html`<div class="card"><h2>יעדי חיסכון</h2>
     ${goals.length ? goals.map((g) => {
       const pr = goalProgress(g, p.deposits, new Date());
-      return html`<div class="tip"><div class="t"><b>${g.name}</b><span class="num">${ils(pr.saved)} / ${ils(g.target)}</span></div>
-        <div class="bar ${pr.done ? "" : ""}"><span style="width:${pr.pct}%"></span></div>
-        <div class="muted small">${pr.done ? "🎉 היעד הושג!" : `נשארו ${ils(pr.remaining)}`}${pr.perMonth ? ` · כדי להגיע בזמן: ${ils(pr.perMonth)} בחודש` : ""}</div>
+      return html`<div class="tip"><div class="goal">${jar(pr.pct, g.id)}<div><div class="t"><b>${g.name}</b><span class="num">${ils(pr.saved)} / ${ils(g.target)}</span></div>
+        <div class="num" style="font-size:22px;font-weight:700;color:var(--accent-deep)">${Math.round(pr.pct)}%</div>
+        <div class="muted small">${pr.done ? "🎉 היעד הושג!" : `נשארו ${ils(pr.remaining)}`}${pr.perMonth ? ` · כדי להגיע בזמן: ${ils(pr.perMonth)} בחודש` : ""}</div></div></div>
         ${w ? html`<form class="row" style="flex-wrap:nowrap" data-submit="dep-save" data-id="${g.id}">
           <input type="number" name="amt" step="1" inputmode="decimal" placeholder="סכום (מינוס = משיכה)" aria-label="הפקדה">
           <button type="submit">הפקדה</button>
           <button type="button" class="ghost ${isArmed("goal/" + g.id) ? "danger" : ""}" data-click="goal-archive" data-id="${g.id}">${isArmed("goal/" + g.id) ? "לסגור?" : "סגירה"}</button></form>` : ""}
       </div>`;
-    }) : html`<p class="muted">עוד אין יעדים. למשל: חופשה, רכב, קרן חירום.</p>`}
+    }) : html`<div class="empty">${art.goalsEmpty()}<p class="muted">עוד אין יעדים. למשל: חופשה, רכב, קרן חירום.</p></div>`}
     ${w ? html`<form class="grid2" data-submit="goal-save">
       <label class="f">יעד<input type="text" id="goalName" maxlength="60" required placeholder="חופשה משפחתית"></label>
       <label class="f">סכום היעד (₪)<input type="number" id="goalTarget" min="1" step="1" inputmode="numeric" required></label>
@@ -126,7 +129,10 @@ on("submit", "dep-save", async (el) => {
   if (!amount) return;
   const { data, error } = await sb.from("goal_deposits").insert({ household_id: S.hh, goal_id: el.dataset.id, amount }).select("id, goal_id, amount, date, note").single();
   if (error) return fail(error);
+  const goal = P2().goals.find((g) => g.id === el.dataset.id);
+  const was = goal ? goalProgress(goal, P2().deposits, new Date()).done : true;
   P2().deposits = [{ ...(data as any), amount: Number((data as any).amount) }, ...P2().deposits];
+  if (goal && !was && goalProgress(goal, P2().deposits, new Date()).done) { confetti(); flash(`🎉 היעד "${goal.name}" הושג!`, "ok"); rerender(); return; }
   flash(amount > 0 ? `✓ הופקדו ${ils2(amount)}` : `✓ נמשכו ${ils2(-amount)}`, "ok");
   rerender();
 });

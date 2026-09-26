@@ -13,6 +13,8 @@ import { dbMessage } from "../lib/supa.ts";
 import { banner, catOptions, personOptionsHtml } from "./common.ts";
 import { draftMatch, matchSummary, methodById, methodLabel, methodSelect, saveDraftDoc, settle, waitingById } from "../payments.ts";
 import type { Tx } from "../domain/types.ts";
+import { art } from "./art.ts";
+import { catIcon } from "./cat.ts";
 import { awaitsStatement, detectMethod, initialStatus } from "../domain/match.ts";
 
 const excl = (c: string) => (EXCL as readonly string[]).includes(c);
@@ -57,7 +59,7 @@ export function renderReview(): SafeHtml {
         <td class="num">${ddmm(r.date)}</td>
         <td>${r.merchant}${r.note ? html`<div class="muted small">${r.note}</div>` : ""}${r.dup ? html`<div class="small" style="color:var(--warn)">כבר קיים</div>` : ""}${merged.has(r.id) || (d.choices[r.id] && res?.ambiguous.some((a) => a.rowKey === r.id)) ? html`<div class="small" style="color:var(--ok)">מתאחד עם הוצאה שנרשמה</div>` : ""}</td>
         <td class="num" style="font-weight:700">${ils(r.amount, 2)}</td>
-        <td><select data-change="rv-field" data-d="${di}" data-r="${ri}" data-f="category" aria-label="קטגוריה">${catOptions(r.category)}</select></td>
+        <td><span class="cat">${catIcon(r.category, "s")}<select data-change="rv-field" data-d="${di}" data-r="${ri}" data-f="category" aria-label="קטגוריה">${catOptions(r.category)}</select></span></td>
         <td><input type="checkbox" data-change="rv-field" data-d="${di}" data-r="${ri}" data-f="fixed" ${attr(r.fixed, "checked")} aria-label="קבוע"></td>
       </tr>`)}
       </tbody></table></div>
@@ -123,7 +125,11 @@ on("click", "rv-save", async () => {
 // ------------------------------------------------------ receipts to approve
 export function renderReceiptReview(): SafeHtml {
   const list = reviewTx(ctx()).sort((a, b) => b.date.localeCompare(a.date));
-  if (!list.length) return html``;
+  if (!list.length) {
+    // success moment right after the last receipt was approved
+    return Date.now() - (S.extra.allApproved ?? 0) < 15_000
+      ? html`<div class="card empty">${art.success()}<h2>כל הקבלות אושרו</h2><p class="muted">הן כבר נספרות בסקירה.</p></div>` : html``;
+  }
   const w = canWrite();
   return html`<div class="card" style="border-color:var(--accent)">
     <div class="card-h"><h2>${list.length === 1 ? "קבלה אחת מחכה לאישור" : `${list.length} קבלות מחכות לאישור`}</h2>${w ? html`<button class="primary" data-click="rr-all">לאשר הכול</button>` : ""}</div>
@@ -166,7 +172,12 @@ async function approve(t: Tx): Promise<string | null> {
 on("click", "rr-ok", async (el) => {
   const t = S.tx.find((x) => x.id === el.dataset.id);
   if (!t) return;
-  try { const msg = await approve(t); if (msg) flash("✓ " + msg, "ok"); rerender(); } catch (e) { flash(dbMessage(e), "err"); }
+  try {
+    const msg = await approve(t);
+    if (!reviewTx(ctx()).length) S.extra.allApproved = Date.now();
+    if (msg) flash("✓ " + msg, "ok");
+    rerender();
+  } catch (e) { flash(dbMessage(e), "err"); }
 });
 on("click", "rr-del", async (el) => {
   try { await deleteTx(el.dataset.id!); rerender(); } catch (e) { flash(dbMessage(e), "err"); }
@@ -174,6 +185,7 @@ on("click", "rr-del", async (el) => {
 on("click", "rr-all", async () => {
   try {
     for (const t of reviewTx(ctx())) await approve(t);
+    S.extra.allApproved = Date.now();
     flash("✓ כל הקבלות אושרו.", "ok");
   } catch (e) { flash(dbMessage(e), "err"); }
   rerender();

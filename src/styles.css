@@ -8,7 +8,7 @@
 :root{color-scheme:light;
   --ground:#F4FAF8;--surface:#FFFFFF;--surface2:#F3F7F6;--ink:#1A2522;--ink2:#4C5955;--muted:#5B6763;--line:#E3EAE7;
   --accent:#00A58E;--accent-ink:#FFFFFF;--accent-soft:#E0F5F1;--accent-deep:#00705F;--fixed:#00705F;--var:#E39B2D;--var-soft:#FCF0DC;
-  --danger:#C0443A;--danger-soft:#FBE8E5;--ok:#23804F;--ok-soft:#E2F3E8;--warn:#9A6212;--warn-soft:#FCF1DD;--info:#2F5E91;--info-soft:#E6EEF7;
+  --danger:#C0443A;--danger-soft:#FBE8E5;--ok:#1D6E43;--ok-soft:#E2F3E8;--warn:#9A6212;--warn-soft:#FCF1DD;--info:#2F5E91;--info-soft:#E6EEF7;
   --r:16px;--display:"Secular One","Assistant",system-ui,sans-serif;--body:"Assistant",system-ui,-apple-system,"Segoe UI",sans-serif;
   --nav-h:64px;
 }

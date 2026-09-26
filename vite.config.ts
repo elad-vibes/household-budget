@@ -77,12 +77,13 @@ export default defineConfig(({ mode }) => {
         },
         injectManifest: {
           globPatterns: ["**/*.{js,css,html,png,svg,webmanifest}", "**/*hebrew*.woff2", "**/*latin-[0-9]*-normal*.woff2"],
-          globIgnores: ["legacy/**"],
+          globIgnores: ["legacy/**", "icons/splash-*.png"], // iOS reads splash screens at install; no need to precache ~300KB
         },
         devOptions: { enabled: false },
       }),
     ],
-    build: { target: "es2022", sourcemap: false, chunkSizeWarningLimit: 900 },
+    // keep /*! @license */ notices (Lucide icons, ASSETS.md) in the minified bundle
+    build: { target: "es2022", sourcemap: false, chunkSizeWarningLimit: 900, rolldownOptions: { output: { comments: { legal: true } } } },
     server: { port: 5173, strictPort: true },
     preview: { port: 4173, strictPort: true },
   };

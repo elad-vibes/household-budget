@@ -1,0 +1,133 @@
+/* =================== design pass (design-brief.md) ===================
+   Loaded after styles.css. Every color is a theme token (styles.css + applyTheme()),
+   so all bank/card presets and dark mode recolor everything here. */
+
+/* ---- dark mode: static tokens here; theme-derived ones (accent …) come from applyTheme() ---- */
+:root{--nav-bg:rgba(255,255,255,.96);--shadow:0 6px 24px rgba(0,0,0,.12)}
+:root[data-dark="1"]{color-scheme:dark;
+  --ground:#0E1513;--surface:#16201D;--surface2:#1E2A27;--ink:#E6EEEB;--ink2:#BAC8C3;--muted:#9EADA8;--line:#2A3733;
+  --danger:#F29389;--danger-soft:#3B201D;--ok:#86D9A9;--ok-soft:#173222;--warn:#F2C37F;--warn-soft:#3A2D15;--info:#9CC2EE;--info-soft:#18273A;
+  --var-soft:#3A2D15;--nav-bg:rgba(22,32,29,.94);--shadow:0 6px 24px rgba(0,0,0,.5)}
+:root[data-dark="1"] .rq .x{background:rgba(22,32,29,.9)}
+:root[data-dark="1"] .qr{background:#fff}
+
+/* ---- pressed states ---- */
+button,.drop,.swatch{transition:transform .12s ease,background-color .15s ease,border-color .15s ease}
+button:active:not(:disabled),.drop:active{transform:scale(.97)}
+.bnav{background:var(--nav-bg)}
+
+/* ---- tab transition ---- */
+main.enter{animation:enter .22s ease-out}
+@keyframes enter{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ---- greeting + mark ---- */
+.greet{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;color:var(--ink2)}
+.greet .tod{width:28px;height:28px;flex:none}
+.mark{width:64px;height:64px;display:block}
+
+/* ---- category identity ---- */
+.lu{width:1em;height:1em;flex:none}
+.caticon{--c:#475569;display:inline-grid;place-items:center;flex:none;border-radius:50%;color:var(--c);background:color-mix(in srgb,var(--c) 13%,var(--surface))}
+.caticon.m{width:34px;height:34px;font-size:18px}
+.caticon.s{width:26px;height:26px;font-size:14px}
+.avatar{--c:#475569;display:inline-grid;place-items:center;flex:none;width:36px;height:36px;border-radius:12px;font-weight:700;font-size:16px;color:var(--c);background:color-mix(in srgb,var(--c) 13%,var(--surface))}
+:root[data-dark="1"] .caticon,:root[data-dark="1"] .avatar{color:color-mix(in srgb,var(--c) 38%,#fff);background:color-mix(in srgb,var(--c) 40%,var(--surface))}
+.tx{grid-template-columns:auto minmax(0,1fr) auto auto;background:var(--surface)}
+.catrow{grid-template-columns:auto minmax(0,1fr) 84px}
+.catrow .track{grid-column:2 / -1}
+.catrow.as-btn{width:100%;border:0;border-top:1px solid var(--line);border-radius:0;background:none;text-align:right;min-height:0;padding:8px 0;font-weight:inherit}
+.catrow.as-btn:first-child{border-top:0}
+@media (min-width:700px){.catrow{grid-template-columns:auto minmax(0,160px) minmax(0,1fr) 90px}.catrow .track{grid-column:auto}}
+td .cat{display:flex;align-items:center;gap:6px}
+.fxrow.av{grid-template-columns:auto minmax(0,1fr) auto auto}
+
+/* ---- hero ---- */
+.herocard{background:linear-gradient(140deg,color-mix(in srgb,var(--accent) 24%,var(--surface)) 0%,var(--accent-soft) 60%,var(--surface) 140%);border-color:transparent;position:relative;overflow:hidden}
+.herocard::after{content:"";position:absolute;inset-inline-start:-40px;top:-50px;width:160px;height:160px;border-radius:50%;background:var(--accent);opacity:.08;pointer-events:none}
+.herorow{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.spark{width:120px;height:38px;flex:none}
+.herocard .tile{background:color-mix(in srgb,var(--surface) 90%,transparent)}
+
+/* ---- donut ---- */
+.donutwrap{display:grid;grid-template-columns:150px minmax(0,1fr);gap:14px;align-items:center}
+.donut{width:150px;height:150px}
+.donut .slice{cursor:pointer;transition:stroke-width .15s ease}
+.donut .slice:hover{stroke-width:21}
+.donut .dc1{font:700 15px var(--body);fill:var(--ink)}
+.donut .dc2{font:600 10px var(--body);fill:var(--muted)}
+.dlegend{display:flex;flex-direction:column;gap:2px;min-width:0}
+.dlegend button{display:flex;align-items:center;gap:8px;border:0;background:none;padding:4px 2px;min-height:40px;font-weight:600;font-size:14px;text-align:right;min-width:0}
+.dlegend .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:360px){.donutwrap{grid-template-columns:1fr;justify-items:center}}
+
+/* ---- budget rings ---- */
+.rings{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+.rings .rb{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;font-size:13px}
+.ring{width:64px;height:64px}
+.ring .rt{font:700 13px var(--body);fill:var(--ink)}
+
+/* ---- goals jar ---- */
+.goal{display:grid;grid-template-columns:72px minmax(0,1fr);gap:12px;align-items:center}
+.jar{width:72px;height:100px}
+
+/* ---- tips ---- */
+.tip .t{align-items:center}
+.tip .t b{flex:1}
+
+/* ---- illustrations / empty states ---- */
+.art{width:180px;max-width:60%;height:auto;display:block;margin:4px auto}
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:8px 0}
+.empty p{max-width:34ch}
+.intro{display:grid;grid-auto-flow:column;grid-auto-columns:88%;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}
+.intro .card{scroll-snap-align:center;text-align:center;align-items:center}
+
+/* ---- skeletons ---- */
+.skel{display:flex;flex-direction:column;gap:12px;width:100%}
+.skel-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px}
+.skel-line{height:14px;border-radius:7px;background:linear-gradient(90deg,var(--surface2) 25%,var(--line) 50%,var(--surface2) 75%);background-size:200% 100%;animation:shimmer 1.2s linear infinite}
+.skel-line.big{height:38px;width:55%}
+@keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+
+/* ---- floating camera + capture sheet ---- */
+.fab{position:fixed;z-index:21;inset-inline-end:max(16px,env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + var(--nav-h) + 16px);
+  width:62px;height:62px;border-radius:50%;padding:0;display:grid;place-items:center;background:var(--accent-deep);color:var(--accent-ink);border:0;box-shadow:var(--shadow);font-size:28px}
+.fab:hover{border:0}
+.fab .badge{position:absolute;top:-4px;inset-inline-start:-4px;background:var(--var);color:#1A1200;border-radius:999px;font-size:12px;min-width:22px;height:22px;line-height:22px;padding:0 6px;font-weight:700}
+.capsheet{gap:12px;max-height:88vh;overflow-y:auto}
+.capsheet .frame{position:relative;height:190px;border-radius:14px;background:var(--surface2);display:grid;place-items:end center;padding:10px;color:var(--muted);font-size:13px}
+.capsheet .corners{position:absolute;inset:18px 26% 36px;border:3px dashed var(--accent);border-radius:10px;opacity:.8}
+.capsheet .tips{margin:0;padding-inline-start:18px;display:flex;gap:4px 18px;flex-wrap:wrap}
+.capsheet .shot{display:flex;gap:12px;align-items:center}
+.capsheet .shot img{width:64px;height:84px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.sheet .drop{justify-content:center}
+.big-drop{padding:18px}
+.big-drop .lu{font-size:30px;color:var(--accent-deep)}
+
+/* ---- swipe to delete + undo toast ---- */
+[data-swipe]{transition:transform .18s ease,opacity .18s ease;touch-action:pan-y}
+[data-swipe].swiping{box-shadow:inset -6px 0 0 var(--danger)}
+[data-swipe].gone{opacity:0;transform:translateX(-100%)!important}
+.toast{position:fixed;inset-inline:16px;bottom:calc(env(safe-area-inset-bottom,0px) + var(--nav-h) + 20px);z-index:41;max-width:600px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  background:var(--ink);color:var(--surface);border-radius:14px;padding:8px 14px;box-shadow:var(--shadow)}
+.toast button{background:transparent;border-color:transparent;color:var(--surface);text-decoration:underline;min-height:40px}
+
+/* ---- pull to refresh ---- */
+.ptr{position:fixed;top:calc(env(safe-area-inset-top,0px) - 30px);left:50%;margin-left:-18px;z-index:25;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;
+  background:var(--surface);color:var(--accent-deep);box-shadow:var(--shadow);opacity:0;font-size:18px;pointer-events:none}
+.ptr.ready{color:var(--accent)}
+.ptr.spinning .lu{animation:sp .8s linear infinite}
+
+/* ---- confetti ---- */
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:60;overflow:hidden}
+.confetti i{position:absolute;top:-12px;width:8px;height:12px;border-radius:2px;animation:fall 2s ease-in forwards}
+@keyframes fall{to{transform:translate(var(--dx),105vh) rotate(var(--r))}}
+
+/* ---- all motion off for people who asked for less ---- */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  button:active:not(:disabled),.drop:active{transform:none}
+}
+
+/* ---- fixes after the first screenshots ---- */
+.drop > svg:not(.lu){width:44px;height:44px;color:var(--accent-deep)}
+body:not(.noapp) main.wrap{padding-bottom:72px} /* room for the floating camera */

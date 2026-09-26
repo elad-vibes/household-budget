@@ -24,6 +24,7 @@
     "@types/pg": "^8.23.1",
     "deno": "^2.9.6",
     "fake-indexeddb": "^6.2.5",
+    "lucide-static": "^1.48.0",
     "pg": "^8.23.0",
     "supabase": "^2.118.0",
     "typescript": "^7.0.2",

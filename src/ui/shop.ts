@@ -5,6 +5,7 @@ import { canWrite, flash, rerender, S } from "../state.ts";
 import { addShop, deleteShop, updateShop } from "../data.ts";
 import { dbMessage } from "../lib/supa.ts";
 import { copyText, linkHtml } from "./common.ts";
+import { art } from "./art.ts";
 
 /** Phase 2: price history hints and the "our prices" card plug in here. */
 export const shopExtras = {
@@ -27,7 +28,7 @@ export function renderShop(): SafeHtml {
         <span class="nm">${i.name}${shopExtras.hint(i.name)}</span>
         <input type="number" min="1" max="99" step="1" value="${i.qty}" data-change="shop-qty" data-id="${i.id}" ${attr(!w, "disabled")} aria-label="כמות">
         ${w ? html`<button class="ghost" data-click="shop-del" data-id="${i.id}" aria-label="הסרה">✕</button>` : html`<span></span>`}
-      </div>`) : html`<p class="muted">הרשימה ריקה. מוסיפים פריט למעלה, וכל בני הבית רואים את אותה רשימה.</p>`}</div>
+      </div>`) : html`<div class="empty">${art.shopEmpty()}<p class="muted">הרשימה ריקה. מוסיפים פריט למעלה, וכל בני הבית רואים את אותה רשימה.</p></div>`}</div>
     ${items.length ? html`<div class="row"><button type="button" data-click="shop-copy">העתקת הרשימה</button>${w ? html`<button type="button" class="ghost" data-click="shop-clear">ניקוי מה שסומן</button>` : ""}</div>` : ""}
   </div>
   ${shopExtras.cards.map((f) => f())}
