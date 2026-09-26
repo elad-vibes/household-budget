@@ -8,8 +8,8 @@ Commit messages are in Hebrew (מה שונה · למה · מה נבדק); hooks 
   with the 6-digit code via Brevo SMTP, TOTP on, SMS off; WebAuthn MFA not available on this project → hidden);
   super-admin account created; pg_cron jobs calling poll-batches / notify verified (200 with the cron secret, 401 without).
 - GitHub: repo variables set, Pages source = GitHub Actions.
-- **Next (Elad):** `git push origin main` → GitHub Actions builds, tests, deploys. Then revoke all Supabase
-  personal access tokens (create a new one only when functions need redeploying).
+- **DEPLOYED 2026-09-27:** pushed; GitHub Actions run "deploy #1" green; live URL serves the new app (CSP, manifest,
+  service worker active, `/legacy/` = 200, no sideways scroll at 375px). Elad to revoke the Supabase access tokens.
 - **Then:** live check on an iPhone — sign in with the e-mail code, 2FA enrollment, admin → new household → invite,
   Excel import, receipt photo → weekly batch, push notification test.
 
