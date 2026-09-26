@@ -10,66 +10,48 @@ Commit messages are in Hebrew (מה שונה · למה · מה נבדק); hooks 
 - GitHub: repo variables set, Pages source = GitHub Actions.
 - **DEPLOYED 2026-09-27:** pushed; GitHub Actions run "deploy #1" green; live URL serves the new app (CSP, manifest,
   service worker active, `/legacy/` = 200, no sideways scroll at 375px). Elad to revoke the Supabase access tokens.
+- **2026-09-27 (session 2):** 0007 + 0008 applied live; frontend for roles / payment methods / design committed, waiting for push.
 - **Then:** live check on an iPhone — sign in with the e-mail code, 2FA enrollment, admin → new household → invite,
   Excel import, receipt photo → weekly batch, push notification test.
 
-## ▶ HANDOFF (2026-09-27) — next session starts here
-Elad's request (verbatim): "Read PROGRESS.md, then payment-methods.md and design-brief.md in this folder. Do payment-methods.md
-first (migration + RLS tests + matcher unit tests + UI + E2E), then the design pass from design-brief.md. Commit after each step,
-keep all tests green, add before/after screenshots at 390px, deploy when done, and update PROGRESS.md. Also read
-household-roles.md and apply it first (before payment-methods.md)."  → ORDER: household-roles → payment-methods → design-brief.
-`backup.md` also exists but was NOT requested yet — don't build it unless asked.
+## ▶ HANDOFF (2026-09-27, session 2) — next session starts here
+Done this session (all committed on `main`, NOT pushed — push is Elad's):
+`ede2221` before-screenshots · `ea109e7` household-roles · `a6f5f9d` payment-methods · `87d99da` design pass.
+Live DB: migrations **0007_single_owner** and **0008_payment_methods** are applied (0 households had 2 owners before 0007).
+SMTP: fixed — Supabase `/auth/v1/otp` returns 200 (a code e-mail went to the super-admin address; Elad to confirm it arrived).
 
-**Open issue first:** login e-mail failed because the Supabase SMTP username was wrong. `.env.local` SMTP_USER is fixed and a
-Brevo SMTP login test passes (`node scratch/smtp-test.mjs`). Elad was asked to fix Username in Supabase → Authentication →
-Emails → SMTP Settings. Confirm the code e-mail now arrives (diagnostic: `node scratch/diag-mail.mjs`).
-Supabase access tokens were revoked → any Edge Function / auth-config change needs a NEW token (Preset = Full access, revoke after).
+**Waiting on Elad**
+1. Push `main` → GitHub Actions deploys the frontend (roles UI, payment methods, design pass).
+2. Edge Functions redeploy (needs a NEW Supabase token, Full access, revoke after): `prompts.ts` / `ai.ts` (receipt
+   `payment` hint, full card numbers masked to ****1234; statement prompt: ATM → "משיכת מזומן"), `catalog.ts`
+   (new EXCL category), `account.ts` (delete-account text: "להעביר את הניהול"). Until then: receipts carry no payment
+   hint (the chip is chosen by hand) and Claude-read statements may file ATM as "העברות ומזומן" — the client re-maps ATM rows anyway.
+3. Files that appeared during this session and were NOT acted on (not in this chat's request): `bugs.md` (2 bugs: invite
+   "למסך הכניסה" dead link — hb2-join stays set; admin "חזרה לאפליקציה" stays on admin) and `email-import.md`
+   (email import + share-to-app, "build after design-brief"). Both untracked. Ask Elad before building. `backup.md` still not requested.
 
-### Step 0 — "before" screenshots
-New `tests/e2e/screens.spec.ts` (runs only when `SHOTS=before|after`), live synthetic fixture (`tests/e2e/live.ts`),
-390px PNGs of signin, overview, tx, add, fixed, plan, shop, home → `docs/design-pass/<before|after>/`.
-Add `!/docs/design-pass/**` to the allow-list `.gitignore` (requested by design-brief; synthetic data only; note in DECISIONS).
+**What was built**
+- Roles: one owner per household (partial unique index), owner invites only by super-admin for empty households,
+  `transfer_ownership()` (aal2, demote then promote), owner can't leave/delete account without a transfer; UI "העברת ניהול".
+- Payment methods: `payment_methods` (last4 only), default methods per household, "איך שילמת?" chips (remembered per
+  person), statement import asks the method once (auto-detect by last4/issuer, remembered per file source), pure matcher
+  `src/domain/match.ts` (±1₪ or 1st installment, date −2…+5, fuzzy merchant, bit rows), merge = logged row survives with
+  statement amount/date (`apply_statement` / `merge_statement_row`, security invoker, one transaction), "ממתין לפירוט"
+  badge, "לבדוק" / "מזומן" / "לפי אמצעי תשלום" cards, fixed ↔ method, new excluded category "משיכת מזומן".
+- Design: see design-brief.md; decisions 30–33; ASSETS.md; before/after at 390px in `docs/design-pass/` (after incl. dark).
 
-### Step 1 — household-roles.md (migration 0007_single_owner.sql)
-- Check live data first: no household may already have 2 owners.
-- `create unique index household_one_owner on household_members(household_id) where role = 'owner'`.
-- `create_invite`: reject `p_role = 'owner'`; `accept_invite`: reject an owner invite if the household already has an owner
-  (admin owner-invites exist only for member-less households).
-- `set_member_role`: refuse promoting to owner ('use_transfer').
-- New `transfer_ownership(p_household, p_new_owner)`: `is_owner()` (implies aal2) + target member/viewer → demote caller
-  FIRST, then promote target (one transaction; order avoids the unique index).
-- Leave / delete-account with other members → "צריך קודם להעביר את הניהול" (dbMessage last_owner; delete-account handler
-  text needs a function redeploy = new token).
-- UI (home.ts): remove owner from invite + role selects; card "העברת ניהול": pick member → confirm → rpc → reload.
-- Tests (tests/rls/roles.test.ts): 2nd owner rejected, owner invite rejected, promote-to-owner rejected, member can't
-  transfer/promote self, owner at aal1 can't transfer, transfer swaps roles, owner can't leave without transfer.
-- MFA: keep the current DB rule. Update ADMIN.md + DECISIONS.md.
+**Checks at 87d99da:** `npm test` 208 (RLS 108 · functions 40 · unit 60) · typecheck · check:functions 9 · Playwright 7/7
+(smoke 5, payments, design) + 12 screenshot tests · Lighthouse (build, mobile) a11y 100 / BP 100 / SEO 100 / perf 97 ·
+axe-core wcag2aa clean on 7 signed-in screens, light + dark.
 
-### Step 2 — payment-methods.md (migration 0008_payment_methods.sql)
-- `payment_methods` (type check cash|credit_card|debit_card|bank_transfer|standing_order|bit_paybox|other, label ≤40,
-  issuer ≤30, last4 `^\d{4}$` nullable, person_id composite FK, active, sort, unique(household_id,id)); RLS + mfa_gate + tests.
-- transactions: `payment_method_id` (composite FK, set null), `match_status` none|awaiting_statement|matched|
-  unmatched_after_statement, `matched_transaction_id` (audit), `payment_hint`; add to update grants. fixed_expenses: `payment_method_id`.
-- Merge model: the receipt/manual row SURVIVES (keeps category/note/person/receipt_items), takes statement amount/date/month;
-  the statement row is not inserted (import) or deleted (statement first). Awaiting rows count once; leftovers →
-  unmatched_after_statement in "לבדוק".
-- Pure matcher `src/domain/match.ts` + unit tests (exact, ±1₪, date −2…+5, installments, fuzzy merchant, two candidates,
-  none, refunds). New EXCL category "משיכת מזומן" (ATM rule). Receipt schema/prompt `payment` hint + SQL prefill (redeploy).
-- UI: methods manager, "איך שילמת?" chips (remember per person), import asks the method once (auto-detect last4/issuer,
-  remember per file), match summary + ambiguous review, "ממתין לפירוט" badge, cards "מזומן" + split by method; fixed ↔ method.
-- E2E: cash + card receipt → import synthetic statement → card merged, cash stays, totals not doubled.
-
-### Step 3 — design-brief.md (no business logic/RLS/function changes)
-Icon + iOS splash, time-of-day greeting, own inline-SVG illustrations (theme tokens) + ASSETS.md, Lucide (MIT) category icons +
-merchant avatars, hero gradient + count-up + sparkline, SVG donut (tap → filtered tx), budget rings, goal jar + confetti
-(reduced-motion aware), tip icons, skeletons, transitions, pressed states, swipe-delete + undo, pull-to-refresh, floating
-camera + capture sheet + sharpness badge, dark mode. Then "after" screenshots, Playwright green, Lighthouse a11y 100,
-deploy (push authorized in this request), update PROGRESS.md.
+**Next (after the push):** iPhone live check — sign in with the e-mail code, owner 2FA, "העברת ניהול" with a test member,
+add a card + card expense + cash expense, import a card Excel → "הותאם", splash screen / icon after re-adding to home screen, dark mode.
 
 ## Done
 - [x] Prototype read; git on top of `origin/main`; prototype at `public/legacy/` (served at `/legacy/`)
 - [x] PLAN.md (incl. full SQL), DECISIONS.md, AGENTS.md, README.md, SETUP.md, ADMIN.md, SECURITY.md
-- [x] DB: 0001 core · 0002 RLS · 0003 RPCs · 0004 MFA (restrictive aal2) · 0005 app · 0006 Phase 2 — all applied live
+- [x] DB: 0001 core · 0002 RLS · 0003 RPCs · 0004 MFA (restrictive aal2) · 0005 app · 0006 Phase 2 · 0007 single owner · 0008 payment methods — all applied live
+- [x] household-roles.md · payment-methods.md · design-brief.md (session 2, see HANDOFF)
 - [x] Edge Functions (9): invite-signin, extract-statement, submit-receipts, poll-batches, analyze-month,
       delete-account, mfa-recover, mfa-reset, notify — `npm run check:functions` green (**not deployed: needs PAT**)
 - [x] Frontend: all Phase 1 screens + Phase 2 (plan tab: budgets 80/100%, annual calendar, goals; overview cards;
@@ -89,3 +71,4 @@ deploy (push authorized in this request), update PROGRESS.md.
 
 ## Known issues
 - Commit 2285d16's message says "157 tests"; the correct count at that commit was 155.
+- email-import.md (email forwarding + share-to-app) — after design-brief.md
