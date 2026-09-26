@@ -1,6 +1,12 @@
-// Test harness: a real Postgres (PGlite, WASM — no Docker) with a small shim
-// of Supabase's auth schema and roles, then our migrations applied in order.
-// Queries run as `authenticated` with JWT claims, exactly as PostgREST does.
+// Test harness for the RLS suite.
+//
+// Local (default): a real Postgres (PGlite, WASM — no Docker) with a small shim of
+// Supabase's auth schema and roles, then our migrations applied in order.
+// Remote (RLS_TARGET=remote): the live Supabase database from .env.local. The whole
+// suite runs inside ONE transaction that is rolled back at the end, so no test data
+// is ever left behind.
+//
+// Either way, queries run as `authenticated` with JWT claims, exactly as PostgREST does.
 import { PGlite } from "@electric-sql/pglite";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -13,9 +19,16 @@ create role authenticated nologin noinherit;
 create role service_role nologin noinherit bypassrls;
 create schema auth;
 create table auth.users (id uuid primary key, email text unique, created_at timestamptz default now());
+create table auth.mfa_factors (
+  id uuid primary key, user_id uuid not null references auth.users (id) on delete cascade,
+  friendly_name text, factor_type text not null, status text not null,
+  created_at timestamptz not null default now(), updated_at timestamptz not null default now(), secret text);
 create function auth.uid() returns uuid language sql stable as $$
   select coalesce(nullif(current_setting('request.jwt.claim.sub', true), ''),
                   (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'))::uuid
+$$;
+create function auth.jwt() returns jsonb language sql stable as $$
+  select nullif(current_setting('request.jwt.claims', true), '')::jsonb
 $$;
 create function auth.role() returns text language sql stable as $$
   select nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role'
@@ -31,32 +44,86 @@ alter default privileges in schema public grant all on sequences to anon, authen
 `;
 
 export type Row = Record<string, any>;
-export type Actor = { role: "anon" | "authenticated" | "service_role"; uid?: string };
+export type Actor = { role: "anon" | "authenticated" | "service_role"; uid?: string; aal?: "aal1" | "aal2" };
+
+interface Driver {
+  query(sql: string, params: unknown[]): Promise<{ rows: Row[]; affected: number }>;
+  exec(sql: string): Promise<Row[]>; // multi-statement, returns rows of the last one
+  close(): Promise<void>;
+  remote: boolean;
+}
+
+function pgliteDriver(pg: PGlite): Driver {
+  return {
+    remote: false,
+    async query(sql, params) {
+      const r = await pg.query<Row>(sql, params);
+      return { rows: r.rows, affected: r.affectedRows ?? 0 };
+    },
+    async exec(sql) {
+      const results = await pg.exec(sql);
+      return (results[results.length - 1]?.rows ?? []) as Row[];
+    },
+    async close() {
+      await pg.close();
+    },
+  };
+}
+
+async function remoteDriver(): Promise<Driver> {
+  const { default: pg } = await import("pg");
+  const { loadEnv, projectRef } = await import("../../scripts/lib/env.mjs");
+  const env = loadEnv();
+  const host = readFileSync(join(process.cwd(), "supabase", ".temp", "pooler-host"), "utf8").trim();
+  const client = new pg.Client({
+    host, port: 5432, database: "postgres", user: `postgres.${projectRef(env)}`,
+    password: env.SUPABASE_DB_PASSWORD, ssl: { rejectUnauthorized: false },
+  });
+  await client.connect();
+  // numeric/date columns come back as strings, like PGlite
+  return {
+    remote: true,
+    async query(sql, params) {
+      const r = await client.query(sql, params as any[]);
+      return { rows: r.rows, affected: r.rowCount ?? 0 };
+    },
+    async exec(sql) {
+      const r: any = await client.query(sql);
+      const last = Array.isArray(r) ? r[r.length - 1] : r;
+      return last?.rows ?? [];
+    },
+    async close() {
+      await client.end();
+    },
+  };
+}
 
 export class TestDb {
-  constructor(public pg: PGlite) {}
+  constructor(private d: Driver) {}
 
-  /** Runs SQL as superuser (setup / verification). */
+  /** Runs SQL as the database owner (setup / verification). */
   async sql(query: string, params: unknown[] = []): Promise<Row[]> {
-    if (!params.length) {
-      const results = await this.pg.exec(query);
-      return (results[results.length - 1]?.rows ?? []) as Row[];
-    }
-    return (await this.pg.query<Row>(query, params)).rows;
+    if (!params.length) return this.d.exec(query);
+    return (await this.d.query(query, params)).rows;
   }
 
-  /** Runs one statement as the given actor inside a transaction. Throws on error. */
+  /** Runs one statement as the given actor. Throws on error. */
   async as(actor: Actor, query: string, params: unknown[] = []): Promise<{ rows: Row[]; affected: number }> {
-    const claims = JSON.stringify({ sub: actor.uid ?? null, role: actor.role });
-    await this.pg.exec("begin");
+    const claims = JSON.stringify({ sub: actor.uid ?? null, role: actor.role, aal: actor.aal ?? "aal1" });
+    const [open, ok, bad] = this.d.remote
+      ? ["savepoint t", "release savepoint t", "rollback to savepoint t"]
+      : ["begin", "commit", "rollback"];
+    await this.d.exec(open);
     try {
-      await this.pg.query("select set_config('request.jwt.claims', $1, true)", [claims]);
-      await this.pg.exec(`set local role ${actor.role}`);
-      const res = await this.pg.query<Row>(query, params);
-      await this.pg.exec("commit");
-      return { rows: res.rows, affected: res.affectedRows ?? 0 };
+      await this.d.query("select set_config('request.jwt.claims', $1, true)", [claims]);
+      await this.d.exec(`set local role ${actor.role}`);
+      const res = await this.d.query(query, params);
+      if (this.d.remote) await this.d.exec("reset role; select set_config('request.jwt.claims', '', true)");
+      await this.d.exec(ok);
+      return res;
     } catch (e) {
-      await this.pg.exec("rollback");
+      await this.d.exec(bad);
+      if (this.d.remote) await this.d.exec("reset role");
       throw e;
     }
   }
@@ -70,9 +137,19 @@ export class TestDb {
       return (e as Error).message;
     }
   }
+
+  async close() {
+    if (this.d.remote) await this.d.exec("rollback");
+    await this.d.close();
+  }
 }
 
 export async function createTestDb(): Promise<TestDb> {
+  if (process.env.RLS_TARGET === "remote") {
+    const d = await remoteDriver();
+    await d.exec("begin");
+    return new TestDb(d);
+  }
   const pg = new PGlite();
   await pg.exec(SUPABASE_SHIM);
   const files = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort();
@@ -83,7 +160,7 @@ export async function createTestDb(): Promise<TestDb> {
       throw new Error(`migration ${f} failed: ${(e as Error).message}`);
     }
   }
-  return new TestDb(pg);
+  return new TestDb(pgliteDriver(pg));
 }
 
 // Deterministic synthetic ids
@@ -107,14 +184,20 @@ export const P = {
   b1: "00000000-0000-4000-8000-0000000b0001",
 };
 
+// Owners and the super-admin must use two-factor (aal2); others default to aal1.
+const user = (uid: string, aal: "aal1" | "aal2" = "aal1"): Actor => ({ role: "authenticated", uid, aal });
 export const as = {
-  ownerA: { role: "authenticated", uid: U.ownerA } as Actor,
-  memberA: { role: "authenticated", uid: U.memberA } as Actor,
-  viewerA: { role: "authenticated", uid: U.viewerA } as Actor,
-  ownerB: { role: "authenticated", uid: U.ownerB } as Actor,
-  outsider: { role: "authenticated", uid: U.outsider } as Actor,
-  admin: { role: "authenticated", uid: U.admin } as Actor,
-  newbie: { role: "authenticated", uid: U.newbie } as Actor,
+  ownerA: user(U.ownerA, "aal2"),
+  ownerA1: user(U.ownerA, "aal1"),
+  memberA: user(U.memberA),
+  memberA2: user(U.memberA, "aal2"),
+  viewerA: user(U.viewerA),
+  viewerA2: user(U.viewerA, "aal2"),
+  ownerB: user(U.ownerB, "aal2"),
+  outsider: user(U.outsider),
+  admin: user(U.admin, "aal2"),
+  admin1: user(U.admin, "aal1"),
+  newbie: user(U.newbie),
   anon: { role: "anon" } as Actor,
   service: { role: "service_role" } as Actor,
 };

@@ -1,6 +1,6 @@
 // RLS proofs: household A can never read or write household B, viewers can
 // never write, and everything that is not explicitly allowed is denied.
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { as, createTestDb, H, P, seed, TestDb, U } from "./harness";
 
 let db: TestDb;
@@ -8,6 +8,10 @@ let db: TestDb;
 beforeAll(async () => {
   db = await createTestDb();
   await seed(db);
+});
+
+afterAll(async () => {
+  await db?.close();
 });
 
 const HOUSEHOLD_TABLES = [
@@ -197,7 +201,7 @@ describe("service and admin functions are locked down", () => {
 
   it("the super-admin sees usage per household but no money data", async () => {
     const { rows } = await db.as(as.admin, `select * from public.admin_overview()`);
-    expect(rows.map((r) => r.household_id).sort()).toEqual([H.A, H.B].sort());
+    expect(rows.map((r) => r.household_id)).toEqual(expect.arrayContaining([H.A, H.B]));
     const a = rows.find((r) => r.household_id === H.A)!;
     expect(a.images).toBe(3);
     expect(Object.keys(a)).not.toContain("amount");
@@ -353,5 +357,99 @@ describe("deleting data", () => {
     const r = (await db.as(as.service, `select public.svc_prepare_account_deletion($1) as r`, [U.outsider])).rows[0].r;
     expect(r.ok).toBe(true);
     expect((await db.sql(`select count(*)::int n from public.households where id = '00000000-0000-4000-8000-0000000000cc'`))[0].n).toBe(0);
+  });
+});
+
+describe("two-factor (aal1 vs aal2) is enforced by the database", () => {
+  const FIN = ["transactions", "fixed_expenses", "shopping_items", "people", "analyses", "receipt_jobs", "usage_ledger"];
+
+  it("an owner without a second factor (aal1) sees no financial data and cannot write", async () => {
+    for (const t of FIN) {
+      expect((await db.as(as.ownerA1, `select * from public.${t}`)).rows).toHaveLength(0);
+    }
+    expect(await db.fails(as.ownerA1,
+      `insert into public.transactions (household_id, date, month, merchant, amount, category)
+       values ($1, '2026-08-12', '2026-08', 'x', 1, 'שונות')`, [H.A])).toMatch(/row-level security/);
+    expect(await db.fails(as.ownerA1, `select public.create_invite($1)`, [H.A])).toMatch(/not_owner/);
+    expect((await db.as(as.ownerA1, `update public.households set name = 'x' where id = $1`, [H.A])).affected).toBe(0);
+  });
+
+  it("the same owner at aal2 has full access", async () => {
+    expect((await db.as(as.ownerA, `select * from public.transactions`)).rows.length).toBeGreaterThan(0);
+  });
+
+  it("at aal1 the owner still sees the household list and roster (to be told a code is needed)", async () => {
+    expect((await db.as(as.ownerA1, `select id from public.households`)).rows).toEqual([{ id: H.A }]);
+    expect((await db.as(as.ownerA1, `select role from public.household_members where user_id = $1`, [U.ownerA])).rows[0].role).toBe("owner");
+  });
+
+  it("a member without a factor may use aal1 when the household does not require it", async () => {
+    expect((await db.as(as.memberA, `select * from public.transactions`)).rows.length).toBeGreaterThan(0);
+  });
+
+  it("once a member enrolls a factor, aal1 is no longer enough", async () => {
+    await db.sql(`insert into auth.mfa_factors (id, user_id, friendly_name, factor_type, status, created_at, updated_at)
+                  values (gen_random_uuid(), $1, 'test', 'totp', 'verified', now(), now())`, [U.memberA]);
+    expect((await db.as(as.memberA, `select * from public.transactions`)).rows).toHaveLength(0);
+    expect((await db.as(as.memberA2, `select * from public.transactions`)).rows.length).toBeGreaterThan(0);
+    // an unverified (half-finished) enrollment does not lock anyone out
+    await db.sql(`insert into auth.mfa_factors (id, user_id, friendly_name, factor_type, status, created_at, updated_at)
+                  values (gen_random_uuid(), $1, 'test2', 'totp', 'unverified', now(), now())`, [U.viewerA]);
+    expect((await db.as(as.viewerA, `select * from public.transactions`)).rows.length).toBeGreaterThan(0);
+  });
+
+  it("when the owner requires MFA for the household, members need aal2 too", async () => {
+    expect(await db.fails(as.memberA2, `select public.set_require_mfa($1, true)`, [H.A])).toMatch(/not_owner/);
+    expect(await db.fails(as.memberA2, `update public.household_settings set require_mfa = true`)).toMatch(/permission denied/);
+    await db.as(as.ownerA, `select public.set_require_mfa($1, true)`, [H.A]);
+    expect((await db.as(as.viewerA, `select * from public.transactions`)).rows).toHaveLength(0);
+    expect((await db.as(as.viewerA2, `select * from public.transactions`)).rows.length).toBeGreaterThan(0);
+    expect(await db.fails(as.viewerA, `select public.household_usage($1)`, [H.A])).toMatch(/not_member/);
+    await db.as(as.ownerA, `select public.set_require_mfa($1, false)`, [H.A]);
+    expect((await db.as(as.viewerA, `select * from public.transactions`)).rows.length).toBeGreaterThan(0);
+  });
+
+  it("the super-admin needs aal2 for every admin function", async () => {
+    expect(await db.fails(as.admin1, `select * from public.admin_overview()`)).toMatch(/not_admin/);
+    expect(await db.fails(as.admin1, `select public.admin_set_global_cap(1)`)).toMatch(/not_admin/);
+    expect((await db.as(as.admin, `select * from public.admin_overview()`)).rows.length).toBeGreaterThan(0);
+  });
+
+  it("Edge Functions get the same answer through svc_access", async () => {
+    const r1 = (await db.as(as.service, `select public.svc_access($1, $2, 'aal1') as r`, [H.A, U.ownerA])).rows[0].r;
+    expect(r1).toEqual({ role: "owner", mfa_required: true, mfa_ok: false });
+    const r2 = (await db.as(as.service, `select public.svc_access($1, $2, 'aal2') as r`, [H.A, U.ownerA])).rows[0].r;
+    expect(r2.mfa_ok).toBe(true);
+    const r3 = (await db.as(as.service, `select public.svc_access($1, $2, 'aal1') as r`, [H.A, U.outsider])).rows[0].r;
+    expect(r3.role).toBeNull();
+    expect(await db.fails(as.ownerA, `select public.svc_access($1, $2, 'aal2')`, [H.A, U.ownerA])).toMatch(/permission denied/);
+  });
+
+  it("recovery codes: generated only at aal2, stored hashed, single use", async () => {
+    expect(await db.fails(as.memberA, `select public.generate_recovery_codes()`)).toMatch(/aal2_required/);
+    const codes = (await db.as(as.memberA2, `select public.generate_recovery_codes() as c`)).rows[0].c as string[];
+    expect(codes).toHaveLength(10);
+    expect(new Set(codes).size).toBe(10);
+    expect(codes[0]).toMatch(/^[0-9A-F]{5}-[0-9A-F]{5}$/);
+    const stored = await db.sql(`select code_hash from public.mfa_recovery_codes where user_id = $1`, [U.memberA]);
+    expect(stored).toHaveLength(10);
+    expect(stored.some((r) => r.code_hash.includes(codes[0].replace("-", "")))).toBe(false);
+    expect(await db.fails(as.memberA2, `select * from public.mfa_recovery_codes`)).toMatch(/permission denied/);
+
+    const use = (code: string) => db.as(as.service, `select public.svc_use_recovery_code($1, $2) as ok`, [U.memberA, code]);
+    expect((await use(codes[3].toLowerCase().replace("-", " "))).rows[0].ok).toBe(true); // case/format tolerant
+    expect((await use(codes[3])).rows[0].ok).toBe(false);                               // single use
+    expect((await use("AAAAA-BBBBB")).rows[0].ok).toBe(false);
+    expect((await db.as(as.memberA, `select public.recovery_codes_status() as s`)).rows[0].s).toEqual({ total: 10, remaining: 9 });
+    expect(await db.fails(as.memberA2, `select public.svc_use_recovery_code($1, $2)`, [U.memberA, codes[0]])).toMatch(/permission denied/);
+  });
+
+  it("an owner may reset MFA only for non-owner members of their own household", async () => {
+    const can = async (hh: string, caller: string, target: string) =>
+      (await db.as(as.service, `select public.svc_can_reset_mfa($1, $2, $3) as ok`, [hh, caller, target])).rows[0].ok;
+    expect(await can(H.A, U.ownerA, U.memberA)).toBe(true);
+    expect(await can(H.A, U.memberA, U.viewerA)).toBe(false);   // not an owner
+    expect(await can(H.A, U.ownerA, U.ownerA)).toBe(false);     // not yourself
+    expect(await can(H.A, U.ownerA, U.ownerB)).toBe(false);     // not in the household
   });
 });

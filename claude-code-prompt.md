@@ -88,3 +88,11 @@
 ## Definition of done
 - A new user can be invited, sign in with a magic link on iPhone Safari, add the app to the home screen, import an Excel statement, photograph receipts that get read in the weekly batch, see the overview and AI analysis, and cannot see any other household's data.
 - All tests pass. No secrets in the repo.
+
+## Addendum – two-factor authentication (added after the run started)
+- Supabase Auth MFA with TOTP (authenticator apps: Google Authenticator, Microsoft Authenticator, or the iPhone Passwords app).
+- **Required** for household owners and the super-admin; offered and encouraged for members and viewers (household owner can switch it to required for their household).
+- Enforce in the database, not only in the UI: RLS policies on financial tables require `aal2` when the user has a verified factor or when the household requires MFA (`auth.jwt() ->> 'aal'`). Add RLS tests for aal1 vs aal2.
+- Hebrew enrollment flow with QR code + manual code, verification step, and 10 one-time recovery codes (stored hashed). Owner can reset a member's MFA.
+- Keep sessions long-lived on the device so family members are not asked for a code on every open; ask again on a new device or after sign-out.
+- Do not use SMS (cost and SIM-swap risk). If Supabase supports passkeys/WebAuthn (Face ID) at build time, offer it as an additional option.

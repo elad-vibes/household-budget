@@ -3,19 +3,31 @@
 Resume rule: read this file first, then `PLAN.md` and `DECISIONS.md`, then `git log`.
 
 ## Status
-- **Now:** Phase 1 — (b) auth + invites, then (c) core UI port
-- **Blocked on user (credentials):** Supabase URL/keys/DB password + personal access token,
-  Anthropic key, SMTP (Brevo/Resend), super-admin e-mail, push permission. Asked in chat on 2026-09-26.
-  Everything is built and tested locally until they arrive.
+- **Now:** Phase 1 — (b) auth + invites + MFA UI, then (c) core UI port
+- **Live Supabase:** project reachable (session pooler `aws-0-eu-central-1`, cached in
+  `supabase/.temp/pooler-host`, gitignored). Migrations 0001–0004 applied with
+  `node scripts/db.mjs migrate`. RLS suite passes against the live DB
+  (`RLS_TARGET=remote npm run test:rls`, runs in one rolled-back transaction).
+- **Still needed from the user:** Supabase personal access token (for Edge Function
+  deploy + secrets + auth config — the Management API accepts nothing else), SMTP
+  credentials, super-admin e-mail confirmation, push-to-main confirmation.
 
 ## Done
-- [x] Read prototype (`legacy/index.html`) and the prompt
+- [x] Read prototype (`legacy/index.html`) and the prompt (+ MFA addendum)
 - [x] Git on top of the existing repo history (`origin/main`), prototype moved to `legacy/`
 - [x] PLAN.md, DECISIONS.md
-- [x] (a) Schema + RLS + RPCs (`supabase/migrations/0001–0003`), RLS tests on PGlite — 74 passing
+- [x] (a) Schema + RLS + RPCs (`supabase/migrations/0001–0003`), RLS tests — local PGlite + live DB
+- [x] (a2) **MFA in the database** (`0004_mfa.sql`): restrictive `mfa_gate` policies on all
+      household data, `is_owner()`/`is_super_admin()` require aal2, `require_mfa` per household
+      (owner RPC), hashed recovery codes, `svc_access` for Edge Functions,
+      `svc_can_reset_mfa`. RLS tests for aal1 vs aal2 — 84 passing
 
 ## Next (Phase 1)
-- [ ] (b) auth + invites (Edge Function `invite-signin`, join screen, code sign-in)
+- [ ] (b) auth + invites: Edge Function `invite-signin`, join screen, e-mail code sign-in
+- [ ] (b2) MFA UI (Hebrew): enroll (QR + manual code) → verify → 10 recovery codes;
+      code prompt on new device; recovery-code flow (Edge Function `mfa-recover`);
+      owner "reset member MFA" (Edge Function `mfa-reset`); household "require MFA" switch;
+      passkey/WebAuthn as an extra option if the project supports it
 - [ ] (c) core UI port (overview, tx, fixed, shopping, home, themes)
 - [ ] (d) Excel/CSV import (port `localParse`) + parser unit tests with synthetic Max/Isracard/bank CSVs
 - [ ] (e) statement extraction (`extract-statement`) + review screen
@@ -27,6 +39,7 @@ Resume rule: read this file first, then `PLAN.md` and `DECISIONS.md`, then `git 
 
 ## Phase 2
 - [ ] 10 budgets · 11 Web Push · 12 price history · 13 annual calendar · 14 savings goals · 15 fixed suggestions
+      (Phase 2 tables get the same restrictive `mfa_gate` policy)
 
 ## Final
 - [ ] SECURITY.md review + fixes · 390px check · Lighthouse · SETUP.md · ADMIN.md · README · final report
