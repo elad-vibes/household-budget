@@ -1,0 +1,76 @@
+# SETUP — הקמה צעד אחר צעד (בלי ידע בפיתוח)
+
+כל פקודה נכתבת ב-PowerShell או ב-Terminal, **בתוך תיקיית הפרויקט**:
+`C:\Users\elad_\Claude\brain\documents\פרויקטים אישיים\הכסף של הבית`
+(פותחים את התיקייה בסייר הקבצים → קליק ימני על מקום ריק → "Open in Terminal").
+
+## מה כבר נעשה
+פרויקט Supabase קיים (Frankfurt), מסד הנתונים מוכן (כל הטבלאות, ההרשאות, cron), ו-`.env.local` מכיל
+את מפתחות Supabase ו-Anthropic ואת מפתחות ההתראות (VAPID) ו-CRON_SECRET שנוצרו אוטומטית.
+
+## 1. טוקן אישי של Supabase (פעם אחת)
+1. נכנסים ל-https://supabase.com/dashboard/account/tokens
+2. **Generate new token** → שם: `household-budget` → **Generate**.
+3. מעתיקים את הטוקן (מתחיל ב-`sbp_`).
+4. פותחים את `.env.local` ב-Notepad ומוסיפים שורה בסוף: `SUPABASE_ACCESS_TOKEN=` ואחריה הטוקן. שומרים.
+
+## 2. שרת מייל (חובה — אחרת רק אתם תקבלו קודי כניסה)
+Brevo (חינם, 300 מיילים ביום):
+1. נרשמים ב-https://www.brevo.com → Settings (גלגל שיניים) → **Senders, Domains & Dedicated IPs** → **Senders** → **Add a sender**
+   → הכתובת שממנה יישלחו המיילים (למשל ה-Gmail שלכם) → מאשרים את המייל שמגיע.
+2. **SMTP & API** → לשונית **SMTP** → **Generate a new SMTP key** → מעתיקים.
+3. מוסיפים ל-`.env.local`:
+```bash
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=587
+SMTP_USER=<ה-Login שמופיע בעמוד SMTP>
+SMTP_PASS=<ה-SMTP key>
+SMTP_SENDER_EMAIL=<הכתובת שאישרתם>
+SUPER_ADMIN_EMAIL=<המייל שלכם, שאיתו תנהלו את המערכת>
+```
+
+## 3. הרצת ההקמה
+```bash
+node scripts/setup-remote.mjs
+```
+מה אמור להופיע: שורות עם ✓ (database, super-admin, function secrets, deploy Edge Functions, auth settings).
+אם מופיע ✗ — מעתיקים את השורה ושולחים ל-Claude.
+
+## 4. הגבלת הוצאה ב-Anthropic (חשוב)
+1. https://console.anthropic.com → **Settings** → **Limits**.
+2. **Spend limit** חודשי: למשל $30 (זהה לתקרה במערכת). כך גם תקלה לא תעלה יותר.
+3. (מומלץ) **Settings → API Keys**: לוודא שהמפתח שבשימוש שייך ל-workspace נפרד בשם household-budget.
+
+## 5. פרסום האתר (GitHub Pages)
+```bash
+node scripts/setup-remote.mjs --github --pages
+git push origin main
+```
+אחרי 2–3 דקות: https://github.com/elad-vibes/household-budget/actions → הריצה האחרונה ירוקה, והאתר עולה.
+
+## 6. משק הבית הראשון וקישורי הזמנה
+1. פותחים את האתר בטלפון **ב-Safari** → מתקינים למסך הבית (שיתוף → "הוספה למסך הבית").
+2. פותחים מהאייקון → מקלידים את `SUPER_ADMIN_EMAIL` → מקלידים את הקוד מהמייל.
+3. מגדירים אימות דו-שלבי (חובה למנהל): כפתור "הוספה לאפליקציית האימות" → מקלידים את הקוד → שומרים את 10 קודי השחזור **מחוץ לטלפון**.
+4. עוד → **ניהול מערכת** → "משק בית חדש" → שם (למשל "בית כהן") → **יצירה** → מעתיקים את הקישור.
+5. שולחים את הקישור בוואטסאפ לבעל/ת משק הבית. הם פותחים ב-Safari, מקלידים מייל וקוד, מגדירים אימות דו-שלבי — ואז
+   מזמינים את בני הבית בעצמם: הבית → "חברי משק הבית" → "יצירת קישור הזמנה".
+   (למשק הבית שלכם: יוצרים משק בית באותה דרך ופותחים את הקישור בעצמכם.)
+
+## איך מעדכנים גרסה (אחרי שינוי קוד)
+```bash
+npm test
+git push origin main
+```
+GitHub בונה ומפרסם לבד. אם השינוי כולל Edge Functions או מיגרציה חדשה:
+```bash
+node scripts/setup-remote.mjs
+```
+
+## אם משהו לא עובד
+| מה רואים | מה עושים |
+|---|---|
+| לא מגיע קוד במייל | בודקים ספאם; מוודאים ששלב 2 (SMTP) בוצע והרצתם שוב את שלב 3 |
+| "צריך להזין קוד מאפליקציית האימות" בלי סוף | מקלידים את הקוד שמופיע *עכשיו* (מתחלף כל 30 שניות); שעון הטלפון צריך להיות אוטומטי |
+| איבדתם את הטלפון | "אין לי גישה לאפליקציה" → קוד שחזור. לבעלים שאיבדו גם את הקודים: ראו ADMIN.md |
+| קבלות לא נקראות | ניהול מערכת → לבדוק מכסות; ב-Supabase: Edge Functions → poll-batches → Logs |
