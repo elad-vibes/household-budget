@@ -77,7 +77,14 @@ on("click", "go", (el) => {
   const to = el.dataset.to!;
   S.extra.more = false;
   if (to === "admin" || to === "install") location.hash = `#/${to}`;
-  else {
+  else if (S.user && ["admin", "install", "nohousehold"].includes(S.view)) {
+    // leaving the admin / install screens: the view must go back to the app, not just the tab
+    // (bug 2026-09-27: "חזרה לאפליקציה" left the admin screen showing)
+    S.tab = to as Tab;
+    history.replaceState(null, "", `#/${to}`);
+    start();
+    window.scrollTo({ top: 0 });
+  } else {
     S.tab = to as Tab;
     history.replaceState(null, "", `#/${to}`);
     rerender();

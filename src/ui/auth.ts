@@ -97,7 +97,7 @@ export function renderJoin(): SafeHtml {
   const a = A();
   if (a.sentTo) return codeForm(a.sentTo, "join");
   const info = a.invite as { household_name: string; role: string; person_name: string | null } | null;
-  if (a.inviteError) return html`<div class="auth">${logo}<h1>הזמנה</h1>${banner(a.inviteError, "err")}<p><a href="#/">למסך הכניסה</a></p></div>`;
+  if (a.inviteError) return html`<div class="auth">${logo}<h1>הזמנה</h1>${banner(a.inviteError, "err")}<p><button class="ghost" data-click="join-cancel">למסך הכניסה</button></p></div>`;
   if (!info) return html`<div class="auth">${logo}<p class="muted"><span class="spin"></span> בודק את ההזמנה…</p></div>`;
   const role = { owner: "מנהל/ת משק הבית", member: "חבר/ה", viewer: "צפייה בלבד" }[info.role] ?? info.role;
   return html`<div class="auth">${logo}<h1>הוזמנתם ל"${info.household_name}"</h1>
@@ -146,6 +146,23 @@ on("submit", "join-submit", async () => {
   }
 });
 
+/**
+ * Leaves the invite screen (bug 2026-09-27: after "the link was already used" the way out did nothing —
+ * the pending token kept routing back to it). Clears every trace of the invite, then goes to sign-in
+ * (or the app when already signed in).
+ */
+export function leaveJoin() {
+  const a = A();
+  try { localStorage.removeItem(JOIN_KEY); } catch { /* private mode */ }
+  S.joinToken = null;
+  a.invite = null; a.inviteError = null; a.sentTo = null; a.msg = null;
+  history.replaceState(null, "", location.pathname + location.search);
+}
+on("click", "join-cancel", () => {
+  leaveJoin();
+  if (S.user) location.reload(); else { S.view = "signin"; rerender(); }
+});
+
 /** Called after sign-in when a join token is pending. */
 export async function acceptInvite(): Promise<boolean> {
   const a = A();
@@ -156,7 +173,7 @@ export async function acceptInvite(): Promise<boolean> {
   const name = a.joinName ?? pending?.name ?? null;
   const { data, error } = await sb.rpc("accept_invite", { p_token: token, p_display_name: name });
   localStorage.removeItem(JOIN_KEY);
-  if (error) { a.inviteError = dbMessage(error); S.view = "join"; rerender(); return false; }
+  if (error) { a.inviteError = dbMessage(error); S.joinToken = null; S.view = "join"; rerender(); return false; }
   localStorage.setItem("hb2-hh", String(data));
   S.joinToken = null;
   history.replaceState(null, "", location.pathname + location.search);
