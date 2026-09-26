@@ -73,7 +73,22 @@ test.describe("member (live Supabase, synthetic data)", () => {
     await page.getByRole("menu").getByRole("button", { name: /הבית והגדרות/ }).click();
     await expect(page.getByRole("heading", { name: "מי בבית" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "אבטחה ואימות דו-שלבי" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "התראות" })).toBeVisible();
     await noHorizontalScroll(page);
+
+    // Phase 2: plan tab — add a budget, it shows on the overview
+    await page.locator(".bnav").getByRole("button", { name: "עוד" }).click();
+    await page.getByRole("menu").getByRole("button", { name: /תכנון/ }).click();
+    await page.locator("#budCat").selectOption("אוכל בחוץ ומשלוחים");
+    await page.locator("#budAmt").fill("100");
+    await page.getByRole("button", { name: "שמירה" }).click();
+    await expect(page.getByText(/\/ ₪100/)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "הוצאות שנתיות ולא סדירות" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "יעדי חיסכון" })).toBeVisible();
+    await noHorizontalScroll(page);
+    await page.locator(".bnav").getByRole("button", { name: "סקירה" }).click();
+    await expect(page.getByRole("heading", { name: "תקציבים החודש" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "נראה כמו הוצאה קבועה" })).toBeVisible(); // Netflix / Wolt repeat monthly in the fixture
   });
 });
 

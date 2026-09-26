@@ -35,6 +35,8 @@ export interface Deps {
   };
   /** Called by poll-batches with the households whose receipts are ready (Phase 2: push). */
   onReceiptsReady?(done: { household_id: string; submitted_by: string | null; parsed: number }[]): Promise<void>;
+  /** HTTP client for Web Push (defaults to global fetch). */
+  fetch?: typeof fetch;
   /** Structured, payload-free logging. */
   log(event: string, fields?: Record<string, string | number | boolean | null>): void;
   now(): Date;

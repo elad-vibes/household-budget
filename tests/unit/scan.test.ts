@@ -48,6 +48,7 @@ describe("pre-commit scan", () => {
       `insert into auth.users values ('x', 'owner.a@example.test');`,
       `Co-Authored-By: Claude <noreply@anthropic.com>`,
       `amount: 312.40, date: "2026-08-03", big: 5242880, ts: 1727350000000`,
+      `"@anthropic-ai/sdk": "npm:@anthropic-ai/sdk@0.128.0"`,
     ].join("\n");
     expect(kinds(code)).toEqual([]);
   });

@@ -24,3 +24,6 @@ verify_jwt = false  # the JWT is verified inside the function (asymmetric keys, 
 
 [functions.mfa-reset]
 verify_jwt = false  # the JWT is verified inside the function (asymmetric keys, public invite, cron)
+
+[functions.notify]
+verify_jwt = false  # the JWT is verified inside the function (asymmetric keys, public invite, cron)

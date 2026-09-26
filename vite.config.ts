@@ -47,6 +47,7 @@ export default defineConfig(({ mode }) => {
     define: {
       "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(url),
       "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(key),
+      "import.meta.env.VITE_VAPID_PUBLIC_KEY": JSON.stringify(env.VITE_VAPID_PUBLIC_KEY || env.VAPID_PUBLIC_KEY || ""),
     },
     plugins: [
       cspPlugin,

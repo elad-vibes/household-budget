@@ -22,10 +22,12 @@ import { isStandalone, renderInstall } from "./ui/onboarding.ts";
 import { banner } from "./ui/common.ts";
 import { legacyData } from "./importer.ts";
 import { I } from "./ui/icons.ts";
+import { renderPlan } from "./ui/plan.ts";
+import { loadPhase2 } from "./phase2.ts";
 
 /** Tabs; Phase 2 adds "plan" through registerTab(). */
 const TAB_RENDER: Partial<Record<Tab, () => SafeHtml>> = {
-  overview: renderOverview, add: renderAdd, tx: renderTx, fixed: renderFixed, shop: renderShop, home: renderHome,
+  overview: renderOverview, add: renderAdd, tx: renderTx, fixed: renderFixed, shop: renderShop, home: renderHome, plan: renderPlan,
 };
 export function registerTab(tab: Tab, fn: () => SafeHtml) { TAB_RENDER[tab] = fn; }
 const TITLES: Record<Tab, string> = { overview: "סקירה", add: "הוספה", tx: "תנועות", fixed: "קבועות", plan: "תכנון", shop: "קניות", home: "הבית" };
@@ -112,6 +114,7 @@ async function start() {
   if (r === "none") { S.view = "nohousehold"; rerender(); return; }
   if (r === "mfa-challenge") { await prepareChallenge(); S.view = "mfa-challenge"; rerender(); return; }
   if (r === "mfa-enroll") { S.view = "mfa-enroll"; rerender(); return; }
+  await loadPhase2().catch(() => undefined);
   if (!S.monthTouched) {
     const ms = monthsWithData(ctx());
     S.month = ms.length ? ms[ms.length - 1] : curMonth();
