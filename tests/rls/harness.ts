@@ -10,6 +10,7 @@
 import { PGlite } from "@electric-sql/pglite";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { NAMES } from "../fixtures/synthetic.ts";
 
 const MIGRATIONS = join(process.cwd(), "supabase", "migrations");
 
@@ -211,13 +212,13 @@ export async function seed(db: TestDb) {
       ('${U.outsider}', 'outsider@example.test'), ('${U.admin}', 'admin@example.test'),
       ('${U.newbie}', 'newbie@example.test');
     insert into public.app_admins (user_id) values ('${U.admin}');
-    insert into public.households (id, name) values ('${H.A}', 'בית א'), ('${H.B}', 'בית ב');
+    insert into public.households (id, name) values ('${H.A}', '${NAMES.hhA}'), ('${H.B}', '${NAMES.hhB}');
     insert into public.household_members (household_id, user_id, role) values
       ('${H.A}', '${U.ownerA}', 'owner'), ('${H.A}', '${U.memberA}', 'member'),
       ('${H.A}', '${U.viewerA}', 'viewer'), ('${H.B}', '${U.ownerB}', 'owner');
     insert into public.people (id, household_id, name, user_id) values
-      ('${P.a1}', '${H.A}', 'דנה', '${U.ownerA}'), ('${P.a2}', '${H.A}', 'יואב', '${U.memberA}'),
-      ('${P.kidA}', '${H.A}', 'נועה', null), ('${P.b1}', '${H.B}', 'רון', '${U.ownerB}');
+      ('${P.a1}', '${H.A}', '${NAMES.a1}', '${U.ownerA}'), ('${P.a2}', '${H.A}', '${NAMES.a2}', '${U.memberA}'),
+      ('${P.kidA}', '${H.A}', '${NAMES.kid}', null), ('${P.b1}', '${H.B}', '${NAMES.b1}', '${U.ownerB}');
     insert into public.transactions (household_id, date, month, merchant, amount, category, person_id, created_by) values
       ('${H.A}', '2026-08-03', '2026-08', 'שופרסל דיל', 312.40, 'סופר ומכולת', '${P.a1}', '${U.ownerA}'),
       ('${H.A}', '2026-08-05', '2026-08', 'חברת החשמל', 420.00, 'חשבונות בית', null, '${U.ownerA}'),

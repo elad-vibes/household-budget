@@ -24,3 +24,7 @@ Decisions made during the autonomous build, with the reason. Newest at the botto
 | 18 | Owner MFA reset: only for non-owner members of the same household, never the super-admin | Owner↔owner resets would let one owner weaken another's account. |
 | 19 | Sessions stay long-lived (Supabase refresh tokens, localStorage) | Family members are not asked for a code on every open; a new device or sign-out asks again. |
 | 20 | Categorization rule order: the pharmacy rule runs before the grocery rule | Bug found by the parser tests: in the prototype "סופר פארם" matched "סופר " and was filed as groceries. Everything else in RULES is unchanged. |
+| 21 | Pre-commit scan in Node (not Python), with a separate **commit-msg** hook | One toolchain for the repo. The hub scans `.git/COMMIT_EDITMSG` from pre-commit, which at that moment still holds the *previous* message; a commit-msg hook scans the real one. |
+| 22 | Real-name denylist is local (`.scan-denylist.txt`, built from the live DB by `npm run scan:names`) | Names of real families must never be written into the repo, not even into the scanner's list. `scan-ok` on a line = reviewed synthetic example. |
+| 23 | Import aliases per issuer + a "signed amount" mode (Discount's single "זכות/חובה" column) | Loud column checks need explicit aliases; the signed column is how Discount exports look. |
+| 24 | Commit messages in Hebrew from here on (מה שונה · למה · מה נבדק) | Mirrors hub AGENTS.md. Earlier commits stay in English. |

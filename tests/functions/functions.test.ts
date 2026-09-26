@@ -7,6 +7,7 @@ import { createInviteHandler } from "../../supabase/functions/_shared/handlers/i
 import { createDeleteAccountHandler, createMfaRecoverHandler, createMfaResetHandler } from "../../supabase/functions/_shared/handlers/account.ts";
 import { costUsd } from "../../supabase/functions/_shared/config.ts";
 import { HH, JPEG, makeDeps, message, ORIGIN, PDF, PERSON, PNG, req } from "./fakes.ts";
+import { NAMES } from "../fixtures/synthetic.ts";
 
 const call = async (h: (r: Request) => Promise<Response>, r: Request) => {
   const res = await h(r);
@@ -270,7 +271,7 @@ describe("invite-signin", () => {
   it("shows the household name for a valid invite", async () => {
     const { deps } = makeDeps();
     const r = await call(createInviteHandler(deps), req({ action: "info", token }));
-    expect(r.body).toMatchObject({ ok: true, household_name: "בית כהן" });
+    expect(r.body).toMatchObject({ ok: true, household_name: NAMES.hhA });
   });
   it("explains used / expired invites in Hebrew", async () => {
     const { deps } = makeDeps({ invite: { ok: false, reason: "expired" } });
@@ -302,7 +303,7 @@ describe("invite-signin", () => {
 
 describe("account: delete, MFA recovery, MFA reset", () => {
   it("delete-account needs the confirm word and refuses the last owner of a shared household", async () => {
-    const { deps, s } = makeDeps({ deletionPrep: { ok: false, blocked: ["בית כהן"] } });
+    const { deps, s } = makeDeps({ deletionPrep: { ok: false, blocked: [NAMES.hhA] } });
     const h = createDeleteAccountHandler(deps);
     expect((await call(h, req({}, { token: "tok-aal1" }))).body.error).toBe("confirm");
     const r = await call(h, req({ confirm: "מחיקה" }, { token: "tok-aal1" }));

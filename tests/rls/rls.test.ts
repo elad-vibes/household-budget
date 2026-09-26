@@ -2,6 +2,7 @@
 // never write, and everything that is not explicitly allowed is denied.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { as, createTestDb, H, P, seed, TestDb, U } from "./harness";
+import { NAMES } from "../fixtures/synthetic.ts";
 
 let db: TestDb;
 
@@ -52,7 +53,7 @@ describe("reading: a family sees only its own household", () => {
 
   it("profiles: only yourself and people in your households", async () => {
     await db.sql(`insert into public.profiles (user_id, display_name) values
-      ('${U.ownerA}', 'דנה'), ('${U.ownerB}', 'רון') on conflict do nothing`);
+      ('${U.ownerA}', '${NAMES.a1}'), ('${U.ownerB}', '${NAMES.b1}') on conflict do nothing`);
     const { rows } = await db.as(as.memberA, "select user_id from public.profiles");
     expect(rows.map((r) => r.user_id)).toContain(U.ownerA);
     expect(rows.map((r) => r.user_id)).not.toContain(U.ownerB);
@@ -223,7 +224,7 @@ describe("service and admin functions are locked down", () => {
 
 describe("invites", () => {
   it("owner creates a single-use invite, the new user joins, reuse fails", async () => {
-    const { rows } = await db.as(as.ownerA, `select public.create_invite($1, 'member', 'סבתא') as t`, [H.A]);
+    const { rows } = await db.as(as.ownerA, `select public.create_invite($1, 'member', $2) as t`, [H.A, NAMES.grandma]);
     const token = rows[0].t as string;
     expect(token).toMatch(/^[0-9a-f]{64}$/);
     // only the hash is stored
@@ -237,7 +238,7 @@ describe("invites", () => {
     const role = await db.sql(`select role from public.household_members where household_id = $1 and user_id = $2`, [H.A, U.newbie]);
     expect(role[0].role).toBe("member");
     const person = await db.sql(`select name from public.people where household_id = $1 and user_id = $2`, [H.A, U.newbie]);
-    expect(person[0].name).toBe("סבתא");
+    expect(person[0].name).toBe(NAMES.grandma);
 
     expect(await db.fails(as.outsider, `select public.accept_invite($1)`, [token])).toMatch(/invite_used/);
     // newbie now sees A's data, still nothing of B

@@ -10,11 +10,12 @@ import { addM, ils } from "../../src/lib/format.ts";
 import { exportV2, parseBackup, planImport } from "../../src/domain/backup.ts";
 import { queue, meta } from "../../src/lib/idb.ts";
 import type { Fixed, Person, Tx } from "../../src/domain/types.ts";
+import { NAMES } from "../fixtures/synthetic.ts";
 
 const HH = "hh";
 const people: Person[] = [
-  { id: "p1", household_id: HH, name: "דנה", user_id: "u1", sort: 1, archived: false, legacy_key: null },
-  { id: "p2", household_id: HH, name: "יואב", user_id: null, sort: 2, archived: false, legacy_key: "p2" },
+  { id: "p1", household_id: HH, name: NAMES.a1, user_id: "u1", sort: 1, archived: false, legacy_key: null },
+  { id: "p2", household_id: HH, name: NAMES.a2, user_id: null, sort: 2, archived: false, legacy_key: "p2" },
 ];
 let n = 0;
 const tx = (month: string, merchant: string, amount: number, category: string, over: Partial<Tx> = {}): Tx => ({
@@ -58,7 +59,7 @@ describe("month totals", () => {
   it("finds subscriptions and names people", () => {
     expect(subsOf(ctx, "2026-08").map((x) => x.name)).toEqual(["נטפליקס"]);
     expect(personName(ctx, null)).toBe("משותף");
-    expect(personName(ctx, "p2")).toBe("יואב");
+    expect(personName(ctx, "p2")).toBe(NAMES.a2);
   });
   it("rule-based tips and the summary text", () => {
     const t = localTips(ctx, "2026-08")!;
@@ -66,7 +67,7 @@ describe("month totals", () => {
     expect(t.tips.map((x) => x.title)).toContain("לבדוק ספק חשמל פרטי");
     expect(t.status).toContain("אוגוסט 2026");
     const sum = monthSummaryText(ctx, "2026-08");
-    expect(sum).toContain("בני הבית: דנה, יואב");
+    expect(sum).toContain(`בני הבית: ${NAMES.a1}, ${NAMES.a2}`);
     expect(sum).toContain("יולי 2026");
     expect(sum).not.toContain("קבלה בבדיקה");
   });
@@ -148,7 +149,7 @@ describe("backups", () => {
       ] },
     ],
     fixed: [{ id: "f", name: "ארנונה", amount: 610, keyword: "עיריית", category: "חשבונות בית", person: "any", cycle: 2 }],
-    settings: { people: [{ id: "p1", name: "דנה" }, { id: "p9", name: "נועה" }], theme: "cal" },
+    settings: { people: [{ id: "p1", name: NAMES.a1 }, { id: "p9", name: NAMES.kid }], theme: "cal" },
     shop: [{ id: "s", name: "חלב", qty: 2, done: false }],
     analyses: { "2026-08": { data: { status: "סיכום", tips: [], checks: [] } } },
   };
@@ -165,8 +166,8 @@ describe("backups", () => {
     const b = parseBackup(v1);
     const existingTx = [tx("2026-08", "סופר", 100, "סופר ומכולת", { date: "2026-08-03", person_id: "p1" })];
     const plan = planImport(b, people, existingTx);
-    expect(plan.personMap.p1).toBe("p1");            // matched "דנה" by name
-    expect(plan.newPeople.map((p) => p.name)).toEqual(["נועה"]);
+    expect(plan.personMap.p1).toBe("p1");            // matched by name
+    expect(plan.newPeople.map((p) => p.name)).toEqual([NAMES.kid]);
     expect(plan.tx).toHaveLength(1);
     expect(plan.skippedDup).toBe(1);
   });

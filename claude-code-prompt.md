@@ -96,3 +96,11 @@
 - Hebrew enrollment flow with QR code + manual code, verification step, and 10 one-time recovery codes (stored hashed). Owner can reset a member's MFA.
 - Keep sessions long-lived on the device so family members are not asked for a code on every open; ask again on a new device or after sign-out.
 - Do not use SMS (cost and SIM-swap risk). If Supabase supports passkeys/WebAuthn (Face ID) at build time, offer it as an additional option.
+
+## Addendum – reuse proven patterns from Elad's `vibes-command` repo (C:\Users\elad_\Claude\brain\hub)
+Read these files there (read-only – do not modify that repo) and port the patterns, not the business code:
+1. **Pre-commit safety scan** – `engine/precommit_scan.py` + `tools-git/pre-commit`. Build the same for this repo: block commits containing secrets (`sb_secret_`, `sk-ant-`, JWTs, `.env*`), card/account numbers, Israeli ID numbers, and real names/amounts outside `tests/fixtures/` (which must be synthetic). Also scan the commit message.
+2. **Allowlist `.gitignore`** (see hub `README.md`/`AGENTS.md`): block everything by default, allow only source paths with `!`. No user data, exports, screenshots or keys ever enter git.
+3. **Loud column checks** – `engine/tabular.py`: when an Excel/CSV import is missing a required column (date / merchant / amount), fail loudly and show the user which columns were found, with header aliases per bank/card company. Never import 0 rows silently.
+4. **Repo working rules** – mirror the relevant parts of hub `AGENTS.md`: Hebrew commit/PR descriptions (what changed, why, what was tested), code that produces communication creates drafts only, no business-rule numbers changed silently.
+5. Not needed now, keep in mind for later: RTL-reversed text from Hebrew PDFs (the `fix_bidi` approach in `docs/m245-hebrew-search.md`) if text-based PDF parsing is ever added; Gmail attachment-to-Drive Apps Script (`tools/06-gmail-scripts/`) for a future "import statements from email" feature.

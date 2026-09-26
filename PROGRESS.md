@@ -27,7 +27,12 @@ Resume rule: read this file first, then `PLAN.md` and `DECISIONS.md`, then `git 
       34 handler tests (mocked Anthropic); `npm run check:functions` (deno check) green. NOT deployed yet (needs PAT).
 - [x] Frontend domain layer: parser (port of localParse), calc (sums/tips/summary), schedule, image
       (compress + Laplacian blur), IndexedDB queue, backup v1/v2 — unit tests with synthetic Max/Isracard/bank files
-- Total tests: 147 passing (`npm test`)
+- [x] **Addendum "reuse proven patterns"** (hub files read-only, hub untouched):
+      pre-commit + commit-msg scan (`scripts/precommit-scan.mjs`, hooks in `tools-git/`, auto-installed by
+      `npm install`); allowlist `.gitignore`; loud column checks with per-issuer header aliases
+      (`src/domain/columns.ts`, 0 rows = error); `AGENTS.md` (Hebrew commits: מה/למה/מה נבדק, drafts only,
+      rule numbers table); synthetic test data moved to `tests/fixtures/`; prototype moved to `public/legacy/`
+- Total tests: 155 passing (`npm test`)
 
 ## Next (Phase 1)
 - [ ] (b) auth + invites UI: join screen, e-mail code sign-in
@@ -50,6 +55,10 @@ Resume rule: read this file first, then `PLAN.md` and `DECISIONS.md`, then `git 
 
 ## Final
 - [ ] SECURITY.md review + fixes · 390px check · Lighthouse · SETUP.md · ADMIN.md · README · final report
+
+## Later (from the addendum — not now)
+- Hebrew RTL-reversed text from PDFs (hub `fix_bidi`, docs/m245) if text-based PDF parsing is ever added
+- Gmail attachment → Drive Apps Script (hub tools/06-gmail-scripts) for "import statements from e-mail"
 
 ## Known issues
 - (none yet)

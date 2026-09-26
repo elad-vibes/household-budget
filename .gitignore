@@ -1,6 +1,36 @@
-.env.local
-.env*.local
-.env
+# ===== הכסף של הבית — קוד בלבד (רשימת היתר, כמו ב-hub) =====
+# ברירת מחדל: הכול חסום. מותר רק מה שמופיע ברשימת ה-! למטה.
+# אין להוסיף חריגים בלי אישור אלעד (AGENTS.md, חוק 1).
+*
+!*/
+
+!/.gitignore
+!/.gitattributes
+!/.env.example
+!/*.md
+!/index.html
+!/package.json
+!/package-lock.json
+!/tsconfig.json
+!/vite.config.ts
+!/vitest.config.ts
+!/playwright.config.ts
+
+!/src/**
+!/scripts/**/*.mjs
+!/scripts/**/*.mts
+!/tools-git/*
+!/tests/**/*.ts
+!/public/**
+!/.github/workflows/*.yml
+
+!/supabase/config.toml
+!/supabase/migrations/*.sql
+!/supabase/remote/*.sql
+!/supabase/functions/**/*.ts
+!/supabase/functions/*/deno.json
+
+# ===== מפורש — לעולם לא נכנסים לגיט (גם אם נמצאים בנתיב מותר) =====
 node_modules/
 dist/
 scratch/
@@ -8,4 +38,26 @@ test-results/
 playwright-report/
 supabase/.temp/
 supabase/.branches/
+.env*
+.scan-denylist.txt
 *.log
+*.xlsx
+*.xls
+*.xlsm
+*.csv
+*.tsv
+*.zip
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.heic
+*.webp
+*.key
+*.pem
+token*.json
+
+# ===== היתרים שחייבים לבוא אחרונים (ההתאמה האחרונה מנצחת) =====
+!/.env.example
+!/public/icons/*.png
+!/tests/fixtures/**

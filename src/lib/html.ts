@@ -28,6 +28,10 @@ export function html(strings: TemplateStringsArray, ...values: unknown[]): SafeH
 /** Only for markup we generate ourselves (never user or AI text). */
 export const raw = (s: string) => new SafeHtml(s);
 
+/** Boolean attribute: attr(isChecked, "checked") → checked | "" */
+export const attr = (on: unknown, name: "checked" | "selected" | "disabled" | "hidden" | "open" | "required") =>
+  new SafeHtml(on ? name : "");
+
 export function render(el: Element | null, content: SafeHtml | string) {
   if (!el) return;
   el.innerHTML = content instanceof SafeHtml ? content.value : esc(content);

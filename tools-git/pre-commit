@@ -1,0 +1,5 @@
+#!/bin/sh
+# חוסם קומיט שמכיל סודות, מספרי כרטיס/חשבון/ת"ז או נתונים אמיתיים (scripts/precommit-scan.mjs).
+# מותקן אוטומטית ב-npm install (git config core.hooksPath tools-git).
+# עקיפה חד-פעמית (רק אם בטוחים):  git commit --no-verify
+node "$(git rev-parse --show-toplevel)/scripts/precommit-scan.mjs" || exit 1

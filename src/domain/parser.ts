@@ -5,8 +5,11 @@
 //   * installments "תשלום X מתוך Y" moved into the statement's main month
 //   * bank statements: debit/credit columns, credit → income
 //   * card lump-sum debits on bank statements → "חיוב אשראי מרוכז" (excluded)
+//   * loud column checks (columns.ts): missing columns or 0 rows → ImportError, never a silent empty import
 import { addM } from "../lib/format.ts";
 import { catOf } from "./categories.ts";
+import { headerComplete, mapHeader, missingColumnsError, missingOf, noRowsError } from "./columns.ts";
+export { ImportError } from "./columns.ts";
 
 export interface ParsedRow { date: string; month: string; merchant: string; amount: number; category: string; fixed: boolean; note: string }
 export interface ParseResult { docType: "bank" | "credit_card"; title: string; statementTotal: null; rows: ParsedRow[] }
@@ -50,49 +53,50 @@ export function parseAmt(v: Cell): number {
   return isFinite(n) ? (neg ? -n : n) : NaN;
 }
 
-function pickCol(hdr: string[], scores: [RegExp, number][]): number {
-  let best = -1, bs = 0;
-  hdr.forEach((h, i) => {
-    const t = String(h || "").trim();
-    for (const [re, sc] of scores) if (re.test(t) && sc > bs) { bs = sc; best = i; }
-  });
-  return best;
-}
-
-/** Core parser over already-read sheets (pure; unit-tested with synthetic files). */
+/**
+ * Core parser over already-read sheets (pure; unit-tested with synthetic files).
+ * Throws ImportError (loud) when the columns are missing or no row could be read.
+ */
 export function parseSheets(sheets: Sheet[], title: string): ParseResult {
   const rows: ParsedRow[] = [];
-  let bankMode = false;
+  let bankMode = false, headerFound = false, skipped = 0;
+  let found: string[] = [];
+  let best = { score: -1, cells: [] as string[], missing: missingOf({ date: -1, merchant: -1, amount: -1, debit: -1, credit: -1, signed: -1, note: -1 }) };
   for (const data of sheets) {
     for (let i = 0; i < Math.min(data.length, 40); i++) {
-      const r = (data[i] ?? []).map((x) => String(x ?? ""));
-      const j = r.join("|");
-      if (!(/תאריך|date/i.test(j) && /סכום|חובה|חיוב|amount|debit/i.test(j))) continue;
-      const dc = pickCol(r, [[/תאריך עסקה|transaction date/i, 3], [/^תאריך$|^date$/i, 2], [/תאריך/i, 1]]);
-      const mc = pickCol(r, [[/בית.?ה?עסק|merchant/i, 4], [/תיאור|הפעולה|description/i, 3], [/פרטים|details/i, 2]]);
-      const ac = pickCol(r, [[/סכום.?(ה)?חיוב|סכום לחיוב|חיוב בש/i, 5], [/^סכום$|^amount$/i, 3], [/סכום|amount/i, 2]]);
-      const deb = pickCol(r, [[/חובה|debit/i, 3]]);
-      const cre = pickCol(r, [[/זכות|credit/i, 3]]);
-      const nc = pickCol(r, [[/הערות|פירוט נוסף|notes/i, 2], [/סוג עסקה/i, 1]]);
-      if (dc < 0 || mc < 0 || (ac < 0 && deb < 0)) continue;
-      bankMode = bankMode || deb >= 0;
+      const raw = data[i] ?? [];
+      const cells = raw.map((x) => String(x ?? "").trim()).filter(Boolean);
+      const m = mapHeader(raw);
+      if (!headerComplete(m)) {
+        const score = (m.date >= 0 ? 1 : 0) + (m.merchant >= 0 ? 1 : 0) + (m.amount >= 0 || m.debit >= 0 || m.signed >= 0 ? 1 : 0);
+        if (cells.length >= 2 && score > best.score) best = { score, cells: cells.slice(0, 20), missing: missingOf(m) };
+        continue;
+      }
+      headerFound = true;
+      found = cells.slice(0, 20);
+      bankMode = bankMode || m.debit >= 0 || m.signed >= 0;
       for (let k = i + 1; k < data.length; k++) {
         const row = data[k] ?? [];
-        const date = parseDate(row[dc]);
-        if (!date) continue;
-        const merchant = String(row[mc] ?? "").trim();
-        if (!merchant) continue;
+        if (!row.some((c) => String(c ?? "").trim())) continue;
+        const date = parseDate(row[m.date]);
+        const merchant = String(row[m.merchant] ?? "").trim();
+        if (!date || !merchant) { skipped++; continue; }
         let amount: number, forceInc = false;
-        if (deb >= 0) {
-          const d = parseAmt(row[deb]), c = cre >= 0 ? parseAmt(row[cre]) : NaN;
+        if (m.debit >= 0) {
+          const d = parseAmt(row[m.debit]), c = m.credit >= 0 ? parseAmt(row[m.credit]) : NaN;
           if (isFinite(d) && d !== 0) amount = Math.abs(d);
           else if (isFinite(c) && c !== 0) { amount = Math.abs(c); forceInc = true; }
-          else continue;
+          else { skipped++; continue; }
+        } else if (m.signed >= 0) {
+          const v = parseAmt(row[m.signed]);
+          if (!isFinite(v) || v === 0) { skipped++; continue; }
+          amount = Math.abs(v);
+          forceInc = v > 0;
         } else {
-          amount = parseAmt(row[ac]);
-          if (!isFinite(amount) || amount === 0) continue;
+          amount = parseAmt(row[m.amount]);
+          if (!isFinite(amount) || amount === 0) { skipped++; continue; }
         }
-        const note = nc >= 0 ? String(row[nc] ?? "").trim() : "";
+        const note = m.note >= 0 ? String(row[m.note] ?? "").trim() : "";
         let { category, fixed } = catOf(merchant + " " + note);
         if (forceInc && category !== "חיוב אשראי מרוכז") category = "הכנסה";
         if (!forceInc && category === "הכנסה") category = "שונות";
@@ -106,8 +110,10 @@ export function parseSheets(sheets: Sheet[], title: string): ParseResult {
       break;
     }
   }
+  if (!headerFound) throw missingColumnsError(title, best.cells, best.missing);
+  if (!rows.length) throw noRowsError(title, found, skipped);
   // Card statements: installments and old standing orders belong to the statement's main month.
-  if (!bankMode && rows.length) {
+  if (!bankMode) {
     const cnt: Record<string, number> = {};
     rows.forEach((r) => (cnt[r.month] = (cnt[r.month] || 0) + 1));
     const main = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0][0];

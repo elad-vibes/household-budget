@@ -1,6 +1,7 @@
 // Fake dependencies for Edge Function tests: an in-memory "database" that
 // answers the svc_* RPCs, a mocked Anthropic client, and a recording logger.
 import type { Claims, Deps } from "../../supabase/functions/_shared/deps.ts";
+import { NAMES } from "../fixtures/synthetic.ts";
 
 export const HH = "11111111-1111-4111-8111-111111111111";
 export const USER = "22222222-2222-4222-8222-222222222222";
@@ -50,7 +51,7 @@ export function makeDeps(over: Partial<FakeState> = {}) {
     batchResults: [],
     retrieveError: null,
     openJobs: [],
-    invite: { ok: true, household_name: "בית כהן", role: "member", person_name: "סבתא" },
+    invite: { ok: true, household_name: NAMES.hhA, role: "member", person_name: NAMES.grandma },
     claim: { ok: true },
     recoveryOk: false,
     canReset: false,
