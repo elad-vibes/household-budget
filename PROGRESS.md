@@ -3,17 +3,15 @@
 Resume rule: read this file first, then `PLAN.md`, `DECISIONS.md`, `AGENTS.md`, then `git log`.
 Commit messages are in Hebrew (מה שונה · למה · מה נבדק); hooks in `tools-git/` scan every commit.
 
-## Status (2026-09-26, end of the autonomous run)
-- **Phase 1 + Phase 2 + MFA + "reuse proven patterns": built and tested.** Everything that does not need the
-  Supabase personal access token is live on the Supabase project: migrations 0001–0006, Realtime, Vault
-  secrets, pg_cron jobs (`node scripts/setup-remote.mjs` ran the DB step).
-- **Blocked on the user** (see SETUP.md steps 1–2, 5):
-  1. `SUPABASE_ACCESS_TOKEN` → then `node scripts/setup-remote.mjs` deploys the 9 Edge Functions, sets their
-     secrets and the auth settings (**sign-ups off**, Hebrew e-mail with the 6-digit code, TOTP on, SMS off, SMTP).
-  2. SMTP (Brevo) + `SUPER_ADMIN_EMAIL` in `.env.local`.
-  3. OK to push `main` → `node scripts/setup-remote.mjs --github --pages` then `git push origin main`
-     (GitHub Actions builds, tests and deploys; prototype stays at `/legacy/`).
-  4. After deploy: verify on the live URL (sign-in e-mail, invite, receipts batch, push on an iPhone).
+## Status (2026-09-27)
+- **Backend is LIVE:** 9 Edge Functions deployed with their secrets; auth configured (sign-ups off, Hebrew e-mail
+  with the 6-digit code via Brevo SMTP, TOTP on, SMS off; WebAuthn MFA not available on this project → hidden);
+  super-admin account created; pg_cron jobs calling poll-batches / notify verified (200 with the cron secret, 401 without).
+- GitHub: repo variables set, Pages source = GitHub Actions.
+- **Next (Elad):** `git push origin main` → GitHub Actions builds, tests, deploys. Then revoke all Supabase
+  personal access tokens (create a new one only when functions need redeploying).
+- **Then:** live check on an iPhone — sign in with the e-mail code, 2FA enrollment, admin → new household → invite,
+  Excel import, receipt photo → weekly batch, push notification test.
 
 ## Done
 - [x] Prototype read; git on top of `origin/main`; prototype at `public/legacy/` (served at `/legacy/`)
@@ -28,7 +26,8 @@ Commit messages are in Hebrew (מה שונה · למה · מה נבדק); hooks 
       `npx playwright test` 5 (390px, live Supabase, synthetic data, incl. 2FA gate and plan tab)
 
 ## Next
-- [ ] The 4 blocked steps above; then a live smoke test on an iPhone
+- [x] Token, SMTP, super-admin, setup-remote (all steps green)
+- [ ] Push (Elad) + live smoke test on an iPhone
 - [ ] Lighthouse on the deployed URL (a local check was run — see the final report)
 
 ## Later (from the addendum — not now)
