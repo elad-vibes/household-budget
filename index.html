@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>הכסף של הבית</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700&family=Secular+One&display=swap">
+<style>
+:root{color-scheme:light;
+  --ground:#F4FAF8;--surface:#FFFFFF;--surface2:#F3F7F6;--ink:#1A2522;--ink2:#4C5955;--muted:#85918D;--line:#E3EAE7;
+  --accent:#00A58E;--accent-ink:#FFFFFF;--accent-soft:#E0F5F1;--accent-deep:#00705F;--fixed:#00705F;--var:#E39B2D;--var-soft:#FCF0DC;
+  --danger:#C0443A;--danger-soft:#FBE8E5;--ok:#23804F;--ok-soft:#E2F3E8;--warn:#9A6212;--warn-soft:#FCF1DD;--info:#2F5E91;--info-soft:#E6EEF7;
+  --r:16px;--display:"Secular One","Assistant",system-ui,sans-serif;--body:"Assistant",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;padding-inline:16px;padding-block:18px 56px}
+.wrap{max-width:780px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{margin:0;font-weight:400;text-wrap:balance}
+h1{font-family:var(--display);font-size:28px;letter-spacing:-.2px;color:var(--accent-deep)}
+h2{font-family:var(--display);font-size:19px}
+h3{font-size:15px;font-weight:700}
+p{margin:0}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)} .small{font-size:13px}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:8px 14px;font-weight:600;min-height:40px}
+button:hover{border-color:var(--muted)}
+button:focus-visible,select:focus-visible,input:focus-visible,label.drop:focus-within,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.primary:disabled{opacity:.45;cursor:default}
+button.ghost{background:transparent;border-color:transparent;color:var(--ink2);padding:6px 8px}
+button.danger{color:var(--danger)}
+select,input[type=text],input[type=number],input[type=date]{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:9px 11px;min-width:0;width:100%;min-height:42px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--ink2);font-weight:600}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.monthsw{display:flex;align-items:center;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px}
+.monthsw b{min-width:116px;text-align:center;font-weight:700}
+.monthsw button{border:0;padding:6px 12px;background:transparent}
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;overflow-x:auto;scrollbar-width:none}
+.tabs button{border:0;flex:1;white-space:nowrap;background:transparent;color:var(--ink2);padding:9px 12px}
+.tabs button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent-deep)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px}
+.card-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.banner{border-radius:12px;padding:10px 14px;font-size:14px}
+.banner.info{background:var(--info-soft);color:var(--info)} .banner.warn{background:var(--warn-soft);color:var(--warn)} .banner.err{background:var(--danger-soft);color:var(--danger)} .banner.ok{background:var(--ok-soft);color:var(--ok)}
+.herocard{background:var(--accent-soft);border-color:transparent}
+.hero{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.hero .big{font-family:var(--display);font-size:46px;line-height:1;color:var(--accent-deep)}
+.delta{font-size:13px;font-weight:700;padding:2px 9px;border-radius:999px}
+.delta.up{background:var(--danger-soft);color:var(--danger)} .delta.down{background:var(--ok-soft);color:var(--ok)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tile{background:var(--surface);border-radius:12px;padding:12px}
+.tile .l{font-size:13px;color:var(--ink2);display:flex;align-items:center;gap:6px}
+.tile .v{font-size:22px;font-weight:700}
+.dot{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
+.split{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--surface);gap:2px}
+.split span{display:block;height:100%}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--ink2)}
+.legend span{display:flex;align-items:center;gap:6px}
+.catrow{display:grid;grid-template-columns:minmax(0,150px) minmax(0,1fr) 84px;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line)}
+.catrow:first-child{border-top:0}
+.catrow .name{font-weight:600;font-size:14px;line-height:1.25}
+.catrow .name small{display:block;color:var(--muted);font-weight:400;font-size:12px}
+.track{height:12px;border-radius:6px;background:var(--surface2);display:flex;overflow:hidden;gap:2px}
+.track span{height:100%;display:block}
+.catrow .amt{text-align:left;font-weight:700;font-size:14px}
+.catrow .amt small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.trend{display:flex;align-items:flex-end;gap:10px;height:150px;padding-top:8px}
+.trend .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;cursor:pointer;background:none;border:0;padding:0;min-height:0}
+.trend .stack{width:100%;max-width:46px;display:flex;flex-direction:column-reverse;gap:2px;border-radius:6px 6px 0 0;overflow:hidden}
+.trend .stack span{display:block;width:100%}
+.trend .col small{font-size:12px;color:var(--muted)}
+.trend .col.cur small{color:var(--ink);font-weight:700}
+.trend .col .tv{font-size:11px;color:var(--ink2)}
+.chip{font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.chip.ok{background:var(--ok-soft);color:var(--ok)} .chip.warn{background:var(--warn-soft);color:var(--warn)} .chip.miss{background:var(--danger-soft);color:var(--danger)} .chip.fx{background:var(--accent-soft);color:var(--accent-deep)} .chip.grey{background:var(--surface2);color:var(--ink2)} .chip.save{background:var(--ok-soft);color:var(--ok)}
+.fxrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.fxrow:first-child{border-top:0}
+.fxrow .n{font-weight:600} .fxrow .n small{display:block;color:var(--muted);font-weight:400;font-size:12px}
+.fxrow .a{text-align:left;font-size:14px} .fxrow .a small{display:block;color:var(--muted);font-size:12px}
+.an-sec{display:flex;flex-direction:column;gap:6px}
+.an-sec h3{color:var(--accent-deep)}
+.tip{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.tip .t{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.tip .t b{font-size:15px}
+.links{display:flex;flex-wrap:wrap;gap:6px}
+.links a{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:var(--accent-deep);background:var(--accent-soft);border-radius:999px;padding:5px 11px;text-decoration:none}
+.links a::after{content:"↗";font-size:11px}
+ul.plain{margin:0;padding-inline-start:18px;display:flex;flex-direction:column;gap:4px}
+.drop{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:2px dashed var(--line);border-radius:16px;padding:26px 16px;text-align:center;cursor:pointer;background:var(--surface2)}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop b{font-size:16px;color:var(--accent-deep)}
+.drop input{position:absolute;opacity:0;width:1px;height:1px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{padding:7px 12px;font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-deep)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{font-size:12px;color:var(--muted);font-weight:600;text-align:right;padding:6px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:6px;border-bottom:1px solid var(--line);vertical-align:middle}
+td select{padding:5px 6px;font-size:13px;min-width:120px;min-height:34px}
+tr.dup td{opacity:.55}
+.txday{font-size:12px;color:var(--muted);font-weight:700;padding:10px 0 2px}
+.tx{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.tx .m{font-weight:600;overflow-wrap:anywhere} .tx .m small{display:block;color:var(--muted);font-weight:400;font-size:12px}
+.tx .a{font-weight:700;text-align:left}
+.tx .a.neg{color:var(--ok)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.member{display:flex;align-items:center;gap:8px}
+.member input{flex:1}
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.swatch{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--surface);min-height:0}
+.swatch i{display:flex;gap:3px}
+.swatch i span{width:18px;height:18px;border-radius:5px;display:block}
+.swatch[aria-pressed="true"]{border:2px solid var(--accent);padding:9px}
+.shop{display:grid;grid-template-columns:auto minmax(0,1fr) 64px auto;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
+.shop:first-child{border-top:0}
+.shop.done .nm{text-decoration:line-through;color:var(--muted)}
+.shop input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
+.shop input[type=number]{padding:6px;min-height:36px;text-align:center}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp 0.8s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+@media (max-width:520px){.catrow{grid-template-columns:minmax(0,1fr) 78px}.catrow .track{grid-column:1 / -1;order:3}.hero .big{font-size:38px}.tabs button{padding:9px 7px;font-size:14px}}
+</style>
+</head>
+<body>
+<noscript><div style="margin:16px;padding:14px;border-radius:12px;background:#FCF1DD;color:#7A4E0E;font-family:sans-serif">התצוגה המקדימה לא מריצה את הדף. צריך לפתוח את הקובץ בדפדפן (Chrome או Edge במחשב).</div></noscript>
+
+
+<div class="wrap" dir="rtl" lang="he">
+  <div class="top">
+    <div>
+      <div class="muted small">תקציב משק הבית</div>
+      <h1>הכסף של הבית</h1>
+    </div>
+    <div class="monthsw" aria-label="בחירת חודש">
+      <button id="prevM" aria-label="חודש קודם">→</button>
+      <b id="monthLbl">—</b>
+      <button id="nextM" aria-label="חודש הבא">←</button>
+    </div>
+  </div>
+  <div id="banner"></div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="overview" aria-selected="true">סקירה</button>
+    <button role="tab" data-tab="upload" aria-selected="false">הוספה</button>
+    <button role="tab" data-tab="tx" aria-selected="false">תנועות</button>
+    <button role="tab" data-tab="fixed" aria-selected="false">קבועות</button>
+    <button role="tab" data-tab="shop" aria-selected="false">קניות</button>
+    <button role="tab" data-tab="home" aria-selected="false">הבית</button>
+  </nav>
+
+  <section id="tab-overview" class="wrap"></section>
+
+  <section id="tab-upload" class="wrap" hidden>
+    <div class="card">
+      <h2>העלאת פירוט או קבלה</h2>
+      <p class="muted small">צילום מסך של פירוט אשראי, יצוא מהאתר של הבנק או של חברת האשראי (Excel, CSV או PDF), או צילום של קבלה. אחרי הקריאה כל השורות מוצגות לבדיקה לפני שמירה.</p>
+      <div>
+        <div class="small" style="font-weight:600;color:var(--ink2);margin-bottom:6px">של מי ההוצאות?</div>
+        <div class="seg" id="upPerson"></div>
+      </div>
+      <label class="drop" id="drop">
+        <input type="file" id="fileIn" multiple accept="image/*,.pdf,.xlsx,.xls,.csv">
+        <b>לבחור קבצים או לגרור לכאן</b>
+        <span class="muted small" id="dropHint">תמונות, PDF, Excel או CSV · אפשר כמה קבצים ביחד</span>
+      </label>
+      <div id="upStatus"></div>
+      <div id="review"></div>
+    </div>
+    <div class="card">
+      <h2>הוספה ידנית</h2>
+      <form id="manForm" class="grid2">
+        <label class="f">תאריך<input type="date" id="mDate" required></label>
+        <label class="f">סכום (₪)<input type="number" id="mAmt" step="0.01" inputmode="decimal" required placeholder="0.00"></label>
+        <label class="f" style="grid-column:1/-1">על מה<input type="text" id="mDesc" required placeholder="למשל: שוק, מתנה ליום הולדת, מזומן לבייביסיטר"></label>
+        <label class="f">קטגוריה<select id="mCat"></select></label>
+        <label class="f">של מי<select id="mPerson"></select></label>
+        <div class="row" style="grid-column:1/-1;justify-content:space-between">
+          <label class="row small" style="gap:6px"><input type="checkbox" id="mFixed"> הוצאה קבועה</label>
+          <button class="primary" type="submit">הוספה</button>
+        </div>
+        <div id="manMsg" class="small" style="grid-column:1/-1"></div>
+      </form>
+    </div>
+  </section>
+
+  <section id="tab-tx" class="wrap" hidden>
+    <div class="card">
+      <div class="card-h"><h2>תנועות החודש</h2><span class="muted small num" id="txCount"></span></div>
+      <div class="grid2">
+        <label class="f">של מי<select id="fPerson"></select></label>
+        <label class="f">קטגוריה<select id="fCat"></select></label>
+      </div>
+      <div id="txList"></div>
+    </div>
+  </section>
+
+  <section id="tab-fixed" class="wrap" hidden>
+    <div class="card">
+      <div class="card-h"><h2>ההוצאות הקבועות</h2><span class="muted small num" id="fxTotal"></span></div>
+      <p class="muted small">כל הוצאה כאן מזוהה אוטומטית בתנועות לפי מילת החיפוש, ובסקירה רואים אם היא ירדה החודש ובאיזה סכום.</p>
+      <div id="fxList"></div>
+    </div>
+    <div class="card">
+      <h2 id="fxFormTitle">הוצאה קבועה חדשה</h2>
+      <form id="fxForm" class="grid2">
+        <label class="f">שם<input type="text" id="xName" required placeholder="ביטוח בריאות – הראל"></label>
+        <label class="f">סכום חודשי צפוי (₪)<input type="number" id="xAmt" step="0.01" inputmode="decimal" required></label>
+        <label class="f">מילת חיפוש בפירוט<input type="text" id="xKey" required placeholder="הראל"></label>
+        <label class="f">קטגוריה<select id="xCat"></select></label>
+        <label class="f">של מי<select id="xPerson"></select></label>
+        <label class="f">תדירות<select id="xCycle"><option value="1">כל חודש</option><option value="2">כל חודשיים</option><option value="12">פעם בשנה</option></select></label>
+        <div class="row" style="grid-column:1/-1;justify-content:flex-end">
+          <button type="button" class="ghost" id="fxCancel" hidden>ביטול</button>
+          <button class="primary" type="submit">שמירה</button>
+        </div>
+        <div id="fxMsg" class="small" style="grid-column:1/-1"></div>
+      </form>
+    </div>
+  </section>
+
+  <section id="tab-shop" class="wrap" hidden>
+    <div class="card">
+      <div class="card-h"><h2>רשימת קניות</h2><span class="muted small num" id="shopCount"></span></div>
+      <form id="shopForm" class="row" style="flex-wrap:nowrap">
+        <input type="text" id="shopIn" placeholder="מה צריך? אפשר כמה פריטים מופרדים בפסיק" aria-label="פריט חדש">
+        <button class="primary" type="submit">הוספה</button>
+      </form>
+      <div id="shopList"></div>
+      <div class="row" id="shopActions">
+        <button type="button" id="shopCopy">העתקת הרשימה</button>
+        <button type="button" id="shopClear" class="ghost">ניקוי מה שסומן</button>
+        <span id="shopMsg" class="small"></span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>איפה הכי זול?</h2>
+      <p class="muted small">האתרים האלה משווים מחירים בין הרשתות לפי הסניפים ליד הבית. מוסיפים שם את המוצרים מהרשימה לסל, והם מראים איפה הסל כולו הכי זול.</p>
+      <div class="links" id="shopLinks"></div>
+      <div class="row"><button type="button" id="shopTips">רעיונות לחיסכון בסל</button><button class="ghost" id="shopStop" hidden>עצירה</button></div>
+      <div id="shopTipsOut"></div>
+    </div>
+  </section>
+
+  <section id="tab-home" class="wrap" hidden>
+    <div class="card">
+      <h2>מי בבית</h2>
+      <p class="muted small">כל מי שמופיע כאן אפשר לשייך אליו הוצאות. כדי שבן משפחה יוכל גם להיכנס ולהעלות בעצמו, צריך לשתף איתו את הדף מתפריט השיתוף.</p>
+      <div id="members" style="display:flex;flex-direction:column;gap:8px"></div>
+      <form id="addMember" class="row" style="flex-wrap:nowrap">
+        <input type="text" id="newMember" placeholder="שם (למשל: נועה)" aria-label="שם בן בית חדש">
+        <button type="submit">הוספה</button>
+      </form>
+      <div id="memMsg" class="small"></div>
+    </div>
+    <div class="card">
+      <h2>צבעים</h2>
+      <p class="muted small">אפשר להתאים את צבעי הדף לגוון של הבנק או של כרטיס האשראי.</p>
+      <div class="swatches" id="swatches"></div>
+    </div>
+    <div class="card">
+      <h2>גיבוי ושחזור</h2>
+      <p class="muted small" id="bkText"></p>
+      <div class="row">
+        <button type="button" class="primary" id="bkExport">שמירת קובץ גיבוי</button>
+        <label class="row" style="gap:0"><input type="file" id="bkFile" accept=".json,application/json" hidden><button type="button" id="bkImport">טעינת קובץ גיבוי</button></label>
+      </div>
+      <div id="bkMsg" class="small"></div>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+(function(){
+const CATS=["סופר ומכולת","אוכל בחוץ ומשלוחים","חשבונות בית","דיור (שכירות/משכנתא)","תקשורת ומנויים","ביטוחים","רכב, דלק וחניה","תחבורה ציבורית","בריאות ופארם","ילדים ותינוק","חינוך וחוגים","ביגוד והנעלה","קניות אונליין","בית ותחזוקה","בילויים ופנאי","מתנות ואירועים","חופשות ונסיעות","העברות ומזומן","הלוואות","עמלות וריבית","שונות"];
+const EXCL=["הכנסה","חיוב אשראי מרוכז","העברה בין חשבונות"];
+const ALLCATS=CATS.concat(EXCL);
+const THEMES={
+  max:{label:"מקס",accent:"#00A58E",deep:"#00705F",soft:"#E0F5F1",ground:"#F4FAF8",var:"#E39B2D"},
+  isracard:{label:"ישראכרט",accent:"#1F5BB8",deep:"#163F80",soft:"#E5EDF9",ground:"#F5F8FC",var:"#E39B2D"},
+  cal:{label:"כאל",accent:"#5B46B5",deep:"#3F2F85",soft:"#ECE8F8",ground:"#F7F6FC",var:"#E39B2D"},
+  leumi:{label:"לאומי",accent:"#0A84C6",deep:"#075E8E",soft:"#E2F1FA",ground:"#F4F9FC",var:"#E39B2D"},
+  hapoalim:{label:"הפועלים",accent:"#D4273A",deep:"#9C1A28",soft:"#FBE6E8",ground:"#FCF6F6",var:"#3C7FC0"},
+  discount:{label:"דיסקונט",accent:"#2E9B47",deep:"#1F6E32",soft:"#E3F4E7",ground:"#F5FAF6",var:"#E39B2D"},
+  mizrahi:{label:"מזרחי-טפחות",accent:"#EE7A1F",deep:"#A9530F",soft:"#FDEEDF",ground:"#FDF8F3",var:"#3C7FC0"},
+  neutral:{label:"ניטרלי",accent:"#3E6B78",deep:"#2B4C56",soft:"#E6EFF1",ground:"#F5F7F7",var:"#D9942E"}
+};
+const PCOLORS=["accent","#7B68D9","#E07A5F","#3BA3C7","#B99A2E","#C25FA0","#5E9E6E"];
+const LINKS={
+  harb:{t:"הר הביטוח",u:"https://harb.cma.gov.il/",d:"כל הפוליסות במקום אחד, לגלות כפל ביטוחים (משרד האוצר)"},
+  car_calc:{t:"מחשבון ביטוח רכב",u:"https://car.cma.gov.il/",d:"השוואת מחירי ביטוח רכב של רשות שוק ההון"},
+  itur:{t:"הר הכסף",u:"https://itur.mof.gov.il/",d:"איתור כספים שנשכחו בבנקים, בפנסיה ובביטוח"},
+  elec_cmp:{t:"השוואת ספקי חשמל",u:"https://www.mishtalemli.co.il/product_cat/electricity/",d:"מסלולי הנחה של ספקי חשמל פרטיים"},
+  elec_gov:{t:"רשות החשמל",u:"https://www.gov.il/he/departments/the_electricity_authority/govil-landing-page",d:"מידע רשמי על מעבר ספק חשמל"},
+  cell_cmp:{t:"השוואת חבילות סלולר",u:"https://www.kamaze.co.il/compare/1/cellular",d:"כמה זה – השוואת חבילות"},
+  comm_cmp:{t:"השוואת טלוויזיה ואינטרנט",u:"https://www.mishtalemli.co.il/",d:"משתלם לי – תקשורת, טלוויזיה, אינטרנט"},
+  chp:{t:"CHP – השוואת סל בסופר",u:"https://chp.co.il/",d:"מחירים לפי סניפים ליד הבית"},
+  pricez:{t:"פרייסז",u:"https://www.pricez.co.il/",d:"השוואת מחירי מזון ופארם"},
+  apple_subs:{t:"ביטול מינוי Apple",u:"https://support.apple.com/he-il/118428",d:"איך רואים ומבטלים מינויים באייפון"},
+  netflix:{t:"נטפליקס – ניהול חשבון",u:"https://www.netflix.com/YourAccount",d:"שינוי תוכנית או ביטול"},
+  disney:{t:"דיסני+ – ניהול מנוי",u:"https://www.disneyplus.com/account",d:"שינוי תוכנית או ביטול"},
+  spotify:{t:"ספוטיפיי – ניהול מנוי",u:"https://www.spotify.com/account/overview/",d:"שינוי תוכנית (משפחתי/זוגי) או ביטול"}
+};
+const SUBS=[["נטפליקס",/netflix|נטפליקס/i,["netflix"]],["דיסני+",/disney|דיסני/i,["disney"]],["ספוטיפיי",/spotify|ספוטיפיי/i,["spotify"]],["Apple",/apple|itunes|icloud|אפל/i,["apple_subs"]],["יוטיוב",/youtube|יוטיוב/i,[]],["אמזון פריים",/amazon prime|prime video|אמזון/i,[]],["HBO",/\bhbo\b/i,[]],["גוגל",/google|גוגל/i,[]],["סטינג",/sting|סטינג/i,["comm_cmp"]],["YES",/\byes\b/i,["comm_cmp"]],["HOT",/\bhot\b|הוט/i,["comm_cmp"]],["פרטנר TV",/partner ?tv|פרטנר טי/i,["comm_cmp"]],["סלקום TV",/cellcom ?tv|סלקום טי/i,["comm_cmp"]],["ChatGPT",/openai|chatgpt/i,[]],["Claude",/anthropic|claude/i,[]]];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ils=(n,d=0)=>(n<0?"-":"")+"₪"+Math.abs(n).toLocaleString("he-IL",{minimumFractionDigits:d,maximumFractionDigits:d});
+const HEB_M=["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+const mLabel=m=>{const[y,mm]=m.split("-");return HEB_M[+mm-1]+" "+y};
+const mShort=m=>HEB_M[+m.split("-")[1]-1].slice(0,3)+"׳";
+const addM=(m,k)=>{let[y,mm]=m.split("-").map(Number);mm+=k;while(mm<1){mm+=12;y--}while(mm>12){mm-=12;y++}return y+"-"+String(mm).padStart(2,"0")};
+const ddmm=d=>d?d.slice(8,10)+"/"+d.slice(5,7):"";
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const norm=s=>String(s||"").toLowerCase().replace(/[\s"'׳״\-–.]/g,"");
+const linkHtml=ids=>{const a=(ids||[]).filter(i=>LINKS[i]);return a.length?`<div class="links">${a.map(i=>`<a href="${LINKS[i].u}" target="_blank" rel="noopener" title="${esc(LINKS[i].d)}">${esc(LINKS[i].t)}</a>`).join("")}</div>`:""};
+
+const S={batches:[],fixed:[],settings:{},analyses:{},shop:[],month:null,monthTouched:false,fPerson:"all",fCat:"all",upPerson:"p1",pending:null,busy:false,db:null,sample:null,limits:null,dbState:"loading",editFx:null,ctl:null,anCtl:null,anText:null,anBusy:false,delArm:null,shopCtl:null};
+
+function people(){const s=S.settings;if(Array.isArray(s.people)&&s.people.length)return s.people;return[{id:"p1",name:s.p1||"שלי"},{id:"p2",name:s.p2||"בעלי"}]}
+function personName(id){if(id==="joint")return"משותף";const p=people().find(x=>x.id===id);return p?p.name:"לשעבר"}
+function persons(){return people().map(p=>[p.id,p.name]).concat([["joint","משותף"]])}
+function personColor(id){if(id==="joint")return"var(--muted)";const i=people().findIndex(p=>p.id===id);const c=PCOLORS[(i<0?6:i)%PCOLORS.length];return c==="accent"?"var(--accent)":c}
+function theme(){return THEMES[S.settings.theme]||THEMES.max}
+function applyTheme(){const t=theme(),r=document.documentElement.style;r.setProperty("--accent",t.accent);r.setProperty("--accent-deep",t.deep);r.setProperty("--fixed",t.deep);r.setProperty("--accent-soft",t.soft);r.setProperty("--ground",t.ground);r.setProperty("--var",t.var)}
+
+function allTx(){const out=[];for(const b of S.batches){for(const it of (b.items||[])){out.push(Object.assign({},it,{batchId:b.id,person:it.person||b.person||"p1"}))}}return out}
+function fixedMatch(tx){const m=norm(tx.merchant);return S.fixed.find(f=>{const k=norm(f.keyword);return k&&m.includes(k)&&(f.person==="any"||!f.person||f.person===tx.person)})}
+function isFixed(tx){return !!tx.fixed||!!fixedMatch(tx)}
+function isExcl(tx){return EXCL.includes(tx.category)}
+function monthsWithData(){return[...new Set(allTx().map(t=>t.month).filter(Boolean))].sort()}
+function txOf(m){return allTx().filter(t=>t.month===m)}
+function sumM(m){const all=txOf(m),t=all.filter(x=>!isExcl(x));let fx=0,vr=0;for(const x of t){if(isFixed(x))fx+=x.amount;else vr+=x.amount}const inc=all.filter(x=>x.category==="הכנסה").reduce((a,x)=>a+Math.abs(x.amount),0);return{fx,vr,total:fx+vr,inc,count:t.length}}
+function curMonth(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")}
+function subsOf(m){const out=[];for(const[name,re,links]of SUBS){const hits=txOf(m).filter(t=>re.test(t.merchant));if(hits.length){out.push({name,amount:hits.reduce((a,t)=>a+t.amount,0),n:hits.length,links})}}return out}
+
+function banner(){let h="";
+  if(S.dbState==="local")h+=`<div class="banner info">מצב מקומי: הנתונים נשמרים רק בדפדפן הזה, במכשיר הזה${S.localOk?"":" (שמירה בדפדפן חסומה כאן, אז חשוב לשמור גיבוי)"}. כדאי לשמור קובץ גיבוי מדי פעם בלשונית "הבית".</div>`;
+  if(S.dbState==="none")h+='<div class="banner warn">השמירה בענן לא זמינה בתצוגה הזאת, אז שום דבר לא יישמר. כדי לשמור צריך לפתוח את הדף מתוך Claude עם הרשאת עריכה.</div>';
+  if(S.dbState==="readonly")h+='<div class="banner warn">יש לך הרשאת צפייה בלבד, אז אי אפשר לשמור שינויים. בעל הדף יכול לתת לך הרשאת עריכה.</div>';
+  if(S.dbState==="loading")h+='<div class="banner info"><span class="spin"></span> טוען נתונים…</div>';
+  $("banner").innerHTML=h}
+function setMonthDefault(){if(S.monthTouched&&S.month)return;const ms=monthsWithData();S.month=ms.length?ms[ms.length-1]:curMonth()}
+function renderAll(){applyTheme();setMonthDefault();$("monthLbl").textContent=mLabel(S.month);banner();renderOverview();renderTx();renderFixed();renderUploadBits();renderShop();renderHome();persistLocal()}
+/* ---------- local mode ---------- */
+const LKEY="hb-data-v1";
+function persistLocal(){if(S.dbState!=="local")return;try{localStorage.setItem(LKEY,JSON.stringify({v:1,batches:S.batches,fixed:S.fixed,settings:S.settings,shop:S.shop,analyses:S.analyses}));S.localOk=true}catch(e){S.localOk=false}}
+function loadLocal(){try{const d=JSON.parse(localStorage.getItem(LKEY)||"null");S.localOk=true;if(d)applyBackup(d)}catch(e){S.localOk=false}}
+function applyBackup(d){S.batches=Array.isArray(d.batches)?d.batches:[];S.fixed=Array.isArray(d.fixed)?d.fixed:[];S.settings=d.settings&&typeof d.settings==="object"?d.settings:{};S.shop=Array.isArray(d.shop)?d.shop:[];S.analyses=d.analyses&&typeof d.analyses==="object"?d.analyses:{}}
+function exportBackup(){const data=JSON.stringify({v:1,exportedAt:new Date().toISOString(),batches:S.batches,fixed:S.fixed,settings:S.settings,shop:S.shop,analyses:S.analyses},null,1);
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data],{type:"application/json"}));a.download="גיבוי-הכסף-של-הבית-"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+  $("bkMsg").innerHTML='<span style="color:var(--ok)">✓ קובץ הגיבוי ירד לתיקיית ההורדות.</span>'}
+async function importBackup(file){const msg=$("bkMsg");let d;try{d=JSON.parse(await file.text())}catch(e){msg.innerHTML='<span style="color:var(--danger)">הקובץ לא נקרא. צריך לבחור קובץ גיבוי (JSON) שנשמר מהדף הזה.</span>';return}
+  if(!d||!Array.isArray(d.batches)){msg.innerHTML='<span style="color:var(--danger)">זה לא נראה כמו קובץ גיבוי של הדף.</span>';return}
+  if(S.db){msg.innerHTML='<span class="spin"></span> מעלה לענן…';try{for(const b of d.batches){const o=Object.assign({},b);delete o.id;await S.db.doc("batches/"+(b.id&&!/^local/.test(b.id)?b.id:"b"+uid())).set(o)}for(const f of (d.fixed||[])){const o=Object.assign({},f);delete o.id;await S.db.doc("fixed/"+(f.id||"f"+uid())).set(o)}if(d.settings)await S.db.doc("settings/main").set(d.settings);if(Array.isArray(d.shop))await S.db.doc("shopping/list").set({items:d.shop});msg.innerHTML='<span style="color:var(--ok)">✓ הגיבוי נטען לענן.</span>'}catch(e){msg.innerHTML=`<span style="color:var(--danger)">${esc(dbErrMsg(e))}</span>`}return}
+  applyBackup(d);S.monthTouched=false;renderAll();msg.innerHTML=`<span style="color:var(--ok)">✓ נטענו ${d.batches.reduce((a,b)=>a+(b.items||[]).length,0)} תנועות מהגיבוי.</span>`}
+const RULES=[
+ [/חיוב.*(כרטיס|אשראי)|ישראכרט|לאומי קארד|כאל |cal |מקס איט|max it|אמריקן אקספרס|דיינרס|ויזה כאל/i,"חיוב אשראי מרוכז",false],
+ [/משכורת|שכר עבודה|ביטוח לאומי|קצבת|החזר מס/i,"הכנסה",false],
+ [/חברת החשמל|חשמל|תאגיד|מי |מיה|מים |פז גז|פזגז|אמישראגז|סופרגז|גז |ארנונה|עיריית|ועד בית/i,"חשבונות בית",true],
+ [/משכנתא|שכר דירה|שכירות/i,"דיור (שכירות/משכנתא)",true],
+ [/ביטוח|הראל|מגדל|מנורה|כלל ביטוח|הפניקס|איילון|aig|איי אי ג|שומרה|ליברה|wesure/i,"ביטוחים",true],
+ [/פלאפון|סלקום|פרטנר|בזק|גולן טלקום|הוט|\bhot\b|\byes\b|we4g|019|012 סמייל|רמי לוי תקשורת/i,"תקשורת ומנויים",true],
+ [/netflix|נטפליקס|spotify|ספוטיפיי|disney|דיסני|apple|itunes|icloud|google|youtube|openai|chatgpt/i,"תקשורת ומנויים",false],
+ [/wolt|וולט|תן ביס|10bis|סיבוס|cibus|מקדונלד|בורגר|פיצה|דומינוס|קפה|cafe|ארומה|רולדין|מסעדה|שווארמה|סושי|גלידה|בייקרי|מאפה|גונומימי/i,"אוכל בחוץ ומשלוחים",false],
+ [/aliexpress|אלי אקספרס|temu|טמו|amazon|אמזון|ebay|shein|שיין|iherb/i,"קניות אונליין",false],
+ [/שופרסל|רמי לוי|יוחננוף|ויקטורי|טיב טעם|מגה |יינות ביתן|אושר עד|חצי חינם|קרפור|carrefour|סטריט מרקט|am:pm|אם פם|מיני מקס|פרש מרקט|סופר |מכולת|זול ובגדול|קשת טעמים/i,"סופר ומכולת",false],
+ [/סונול|\bפז\b|דלק|דור אלון|\bten\b|yellow|חניון|חניה|פנגו|pango|סלופארק|cellopark|כביש 6|מוסך|רישוי/i,"רכב, דלק וחניה",false],
+ [/רב.?קו|moovit|מוביט|gett|גט טקסי|רכבת|אגד|יאנגו|yango/i,"תחבורה ציבורית",false],
+ [/סופר.?פארם|super.?pharm|גוד פארם|good pharm|בי דראגסטורס|\bbe\b|כללית|מכבי|מאוחדת|לאומית|מרפאה|רופא|אופטיק/i,"בריאות ופארם",false],
+ [/בייבי|baby|שילב|טויס|toys|צעצוע|מעון|גן ילדים/i,"ילדים ותינוק",false],
+ [/חוג|קורס|אוניברסיטה|מכללה|בית ספר|הדרכה/i,"חינוך וחוגים",false],
+ [/קסטרו|castro|fox|פוקס|רנואר|h&m|zara|זארה|גולף|דלתא|terminal x|טרמינל איקס|אמריקן איגל|נעלי/i,"ביגוד והנעלה",false],
+ [/איקאה|ikea|הום סנטר|אייס|ace |טמבור|מחסני חשמל|ksp|באג|עמינח/i,"בית ותחזוקה",false],
+ [/סינמה|קולנוע|יס פלאנט|הופעה|תיאטרון|eventim|לאן/i,"בילויים ופנאי",false],
+ [/מלון|booking|airbnb|אל על|el al|ישראייר|ארקיע|wizz|ryanair/i,"חופשות ונסיעות",false],
+ [/\bbit\b|ביט|paybox|פייבוקס|משיכת מזומן|כספומט|\batm\b/i,"העברות ומזומן",false],
+ [/הלוואה/i,"הלוואות",true],
+ [/עמלה|דמי כרטיס|ריבית|דמי ניהול/i,"עמלות וריבית",false],
+ [/פרחים|מתנה/i,"מתנות ואירועים",false]];
+function catOf(m){for(const[re,c,f]of RULES)if(re.test(m))return{category:c,fixed:f};return{category:"שונות",fixed:false}}
+function parseDate(v){if(v instanceof Date&&!isNaN(v))return v.getFullYear()+"-"+String(v.getMonth()+1).padStart(2,"0")+"-"+String(v.getDate()).padStart(2,"0");
+  if(typeof v==="number"&&v>20000&&v<80000&&window.XLSX){const d=XLSX.SSF.parse_date_code(v);return d.y+"-"+String(d.m).padStart(2,"0")+"-"+String(d.d).padStart(2,"0")}
+  const s=String(v||"").trim();let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return m[1]+"-"+m[2].padStart(2,"0")+"-"+m[3].padStart(2,"0");
+  m=s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/);if(m){let y=m[3];if(y.length===2)y="20"+y;return y+"-"+m[2].padStart(2,"0")+"-"+m[1].padStart(2,"0")}return""}
+function parseAmt(v){if(typeof v==="number")return v;let s=String(v||"").trim();if(!s)return NaN;const neg=/^\(.*\)$/.test(s)||/-/.test(s);s=s.replace(/[^\d.]/g,"");const n=parseFloat(s);return isFinite(n)?(neg?-n:n):NaN}
+function pickCol(hdr,scores){let best=-1,bs=0;hdr.forEach((h,i)=>{const t=String(h||"").trim();for(const[re,sc]of scores){if(re.test(t)&&sc>bs){bs=sc;best=i}}});return best}
+async function readTable(file){if(!window.XLSX)throw{code:"xlsx"};const buf=await file.arrayBuffer();let wb;
+  if(fileKind(file)==="csv"){let text;try{text=new TextDecoder("utf-8",{fatal:true}).decode(buf)}catch(e){text=new TextDecoder("windows-1255").decode(buf)}wb=XLSX.read(text,{type:"string",raw:true})}else wb=XLSX.read(buf,{type:"array",cellDates:true});
+  return wb.SheetNames.map(n=>XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:""}))}
+async function localParse(file){const sheets=await readTable(file);const rows=[];let bankMode=false;
+  for(const data of sheets){for(let i=0;i<Math.min(data.length,40);i++){const r=data[i].map(x=>String(x||""));const j=r.join("|");
+      if(!(/תאריך|date/i.test(j)&&/סכום|חובה|חיוב|amount|debit/i.test(j)))continue;
+      const dc=pickCol(r,[[/תאריך עסקה|transaction date/i,3],[/^תאריך$|^date$/i,2],[/תאריך/i,1]]);
+      const mc=pickCol(r,[[/בית.?ה?עסק|merchant/i,4],[/תיאור|הפעולה|description/i,3],[/פרטים|details/i,2]]);
+      const ac=pickCol(r,[[/סכום.?(ה)?חיוב|סכום לחיוב|חיוב בש/i,5],[/^סכום$|^amount$/i,3],[/סכום|amount/i,2]]);
+      const deb=pickCol(r,[[/חובה|debit/i,3]]),cre=pickCol(r,[[/זכות|credit/i,3]]);const nc=pickCol(r,[[/הערות|פירוט נוסף|notes/i,2],[/סוג עסקה/i,1]]);
+      if(dc<0||mc<0||(ac<0&&deb<0))continue;bankMode=bankMode||deb>=0;
+      for(let k=i+1;k<data.length;k++){const row=data[k];const date=parseDate(row[dc]);if(!date)continue;const merchant=String(row[mc]||"").trim();if(!merchant)continue;
+        let amount,forceInc=false;if(deb>=0){const d=parseAmt(row[deb]),c=cre>=0?parseAmt(row[cre]):NaN;if(isFinite(d)&&d!==0)amount=Math.abs(d);else if(isFinite(c)&&c!==0){amount=Math.abs(c);forceInc=true}else continue}else{amount=parseAmt(row[ac]);if(!isFinite(amount)||amount===0)continue}
+        const note=nc>=0?String(row[nc]||"").trim():"";let{category,fixed}=catOf(merchant+" "+note);
+        if(forceInc&&category!=="חיוב אשראי מרוכז")category="הכנסה";if(!forceInc&&category==="הכנסה")category="שונות";
+        const inst=note.match(/תשלום\s*(\d+)\s*מתוך\s*(\d+)/);rows.push({date,month:date.slice(0,7),merchant,amount,category,fixed,note:inst?`תשלום ${inst[1]} מתוך ${inst[2]}`:note.slice(0,40)})}
+      break}}
+  if(!bankMode&&rows.length){const cnt={};rows.forEach(r=>cnt[r.month]=(cnt[r.month]||0)+1);const main=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0][0];rows.forEach(r=>{if(r.month!==main&&(/תשלום/.test(r.note)||r.month<addM(main,-1)))r.month=main})}
+  return{docType:bankMode?"bank":"credit_card",title:file.name,statementTotal:null,rows}}
+function localTips(m){const tx=txOf(m).filter(x=>!isExcl(x));const s=sumM(m);const tips=[],checks=[];if(!tx.length)return null;
+  const sumRe=re=>tx.filter(t=>re.test(t.merchant)).reduce((a,t)=>a+t.amount,0);
+  const elec=sumRe(/חשמל/);if(elec>250)tips.push({title:"לבדוק ספק חשמל פרטי",text:`החשמל החודש עלה ${ils(elec)}. ספקים פרטיים נותנים הנחה על התעריף של חברת החשמל, בלי החלפת מונה.`,save:Math.round(elec*0.07),links:["elec_cmp","elec_gov"]});
+  const ins=tx.filter(t=>t.category==="ביטוחים");if(ins.length>=2)tips.push({title:"לעשות סדר בביטוחים",text:`יש ${ins.length} חיובי ביטוח החודש (${ils(ins.reduce((a,t)=>a+t.amount,0))}). כדאי לבדוק בהר הביטוח שאין כפל, ולהשוות את ביטוח הרכב לפני החידוש.`,save:null,links:["harb","car_calc"]});
+  const subs=subsOf(m);const subT=subs.reduce((a,x)=>a+x.amount,0);if(subs.length)tips.push({title:"לעבור על המנויים",text:`${subs.map(x=>x.name).join(", ")}: ${ils(subT,subT%1?2:0)} בחודש. כדאי לבטל את מה שלא משתמשים בו או לבדוק אם זה כלול בחבילה.`,save:null,links:[...new Set(subs.flatMap(x=>x.links))]});
+  const tel=tx.filter(t=>t.category==="תקשורת ומנויים"&&t.amount>25).reduce((a,t)=>a+t.amount,0);if(tel>150)tips.push({title:"להשוות חבילות תקשורת",text:`תקשורת ומנויים החודש: ${ils(tel)}. שווה לבדוק אם יש חבילה זולה יותר לסלולר, לאינטרנט או לטלוויזיה.`,save:Math.round(tel*0.15),links:["cell_cmp","comm_cmp"]});
+  const groc=tx.filter(t=>t.category==="סופר ומכולת");const small=groc.filter(t=>t.amount>0&&t.amount<60).length;const gT=groc.reduce((a,t)=>a+t.amount,0);if(small>=6||gT>1500)tips.push({title:"לרכז את הקניות בסופר",text:`${groc.length} קניות בסופר ובמכולת (${ils(gT)}), מתוכן ${small} קטנות. קנייה גדולה אחת בשבוע ברשת זולה חוסכת בדרך כלל כמה אחוזים.`,save:Math.round(gT*0.06),links:["chp","pricez"]});
+  const food=tx.filter(t=>t.category==="אוכל בחוץ ומשלוחים").reduce((a,t)=>a+t.amount,0);if(s.total&&food/s.total>0.08)tips.push({title:"אוכל בחוץ ומשלוחים",text:`${ils(food)} החודש (${Math.round(food/s.total*100)}% מההוצאות). אפשר לקבוע תקציב שבועי למשלוחים.`,save:Math.round(food*0.25),links:[]});
+  const onl=tx.filter(t=>t.category==="קניות אונליין").reduce((a,t)=>a+t.amount,0);if(onl>250)tips.push({title:"קניות אונליין קטנות",text:`${ils(onl)} בקניות אונליין. כדאי לחכות כמה ימים לפני קנייה קטנה ולראות אם עדיין צריך.`,save:Math.round(onl*0.3),links:[]});
+  for(const f of S.fixed){const k=norm(f.keyword);const a=txOf(m).filter(t=>k&&norm(t.merchant).includes(k)).reduce((z,t)=>z+t.amount,0);if(!a&&(+f.cycle||1)===1)checks.push(`${f.name} לא הופיע החודש`);else if(a&&Math.abs(a-f.amount)>Math.max(5,f.amount*0.05))checks.push(`${f.name}: ${ils(a,2)} במקום ${ils(f.amount,2)}`)}
+  tx.filter(t=>/תשלום\s*(\d+)\s*מתוך\s*\1\b/.test(t.note)).forEach(t=>checks.push(`${t.merchant}: זה התשלום האחרון, מהחודש הבא החיוב יורד`));
+  checks.push("פעם בשנה כדאי לבדוק בהר הכסף אם נשכח כסף בבנקים או בפנסיה");
+  return{status:`ב${mLabel(m)} יצאו ${ils(s.total)}: ${ils(s.fx)} קבועות ו-${ils(s.vr)} משתנות.`,changes:"",tips:tips.slice(0,6),checks:checks.slice(0,5),local:true}}
+
+/* ---------- overview ---------- */
+function renderOverview(){
+  const m=S.month,s=sumM(m),p=sumM(addM(m,-1)),el=$("tab-overview");
+  const tx=txOf(m).filter(x=>!isExcl(x));
+  if(!tx.length){el.innerHTML=`<div class="card herocard"><h2>${esc(mLabel(m))}</h2><p class="muted">עוד אין הוצאות לחודש הזה. אפשר להעלות פירוט אשראי, יצוא מהבנק או קבלה בלשונית "הוספה".</p><div><button class="primary" data-go="upload">להוספת הוצאות</button></div></div>`+trendCard(m);bindOverview();return}
+  let delta="";if(p.total>0){const d=(s.total-p.total)/p.total*100;delta=`<span class="delta ${d>0?"up":"down"}">${d>0?"▲":"▼"} ${Math.abs(Math.round(d))}% מול ${HEB_M[+addM(m,-1).split("-")[1]-1]}</span>`}
+  const byP={};for(const x of tx){byP[x.person]=(byP[x.person]||0)+x.amount}
+  const keys=Object.keys(byP);
+  const splitBar=keys.filter(k=>byP[k]>0).map(k=>`<span style="width:${byP[k]/s.total*100}%;background:${personColor(k)}"></span>`).join("");
+  const splitLeg=keys.map(k=>`<span><i class="dot" style="background:${personColor(k)}"></i>${esc(personName(k))} <b class="num">${ils(byP[k])}</b></span>`).join("");
+  const cats={};for(const x of tx){const c=cats[x.category]||(cats[x.category]={fx:0,vr:0,n:0});if(isFixed(x))c.fx+=x.amount;else c.vr+=x.amount;c.n++}
+  const rows=Object.entries(cats).map(([k,v])=>[k,v,v.fx+v.vr]).filter(r=>Math.abs(r[2])>0.005).sort((a,b)=>b[2]-a[2]);
+  const mx=Math.max(...rows.map(r=>r[2]),1);
+  const catHtml=rows.map(([k,v,t])=>`<div class="catrow"><div class="name">${esc(k)}<small>${v.n} תנועות</small></div><div class="track">${v.fx>0?`<span style="width:${v.fx/mx*100}%;background:var(--fixed)"></span>`:""}${v.vr>0?`<span style="width:${v.vr/mx*100}%;background:var(--var)"></span>`:""}</div><div class="amt num">${ils(t)}<small>${Math.round(t/s.total*100)}%</small></div></div>`).join("");
+  el.innerHTML=`
+  <div class="card herocard">
+    <div class="hero"><span class="big num">${ils(s.total)}</span>${delta}</div>
+    <div class="muted small">סך ההוצאות ב${esc(mLabel(m))} · ${s.count} תנועות${s.inc?` · הכנסות ${ils(s.inc)}`:""}</div>
+    <div class="tiles">
+      <div class="tile"><div class="l"><i class="dot" style="background:var(--fixed)"></i>קבועות</div><div class="v num">${ils(s.fx)}</div><div class="muted small">${s.total?Math.round(s.fx/s.total*100):0}% מההוצאות</div></div>
+      <div class="tile"><div class="l"><i class="dot" style="background:var(--var)"></i>משתנות</div><div class="v num">${ils(s.vr)}</div><div class="muted small">${p.vr?(s.vr>p.vr?"▲ ":"▼ ")+ils(Math.abs(s.vr-p.vr))+" מהחודש הקודם":"אין חודש קודם להשוואה"}</div></div>
+      ${s.inc?`<div class="tile"><div class="l">יתרה (הכנסות פחות הוצאות)</div><div class="v num" style="color:${s.inc-s.total>=0?"var(--ok)":"var(--danger)"}">${ils(s.inc-s.total)}</div><div class="muted small">לפי מה שהועלה</div></div>`:""}
+    </div>
+    ${keys.length>1?`<div><div class="split">${splitBar}</div><div class="legend" style="margin-top:8px">${splitLeg}</div></div>`:`<div class="legend">${splitLeg}</div>`}
+  </div>
+  <div class="card" id="anCard">
+    <div class="card-h"><h2>ניתוח והמלצות</h2><div class="row"><button class="ghost" id="anStop" hidden>עצירה</button><button class="primary" id="anBtn">${S.analyses[m]?"ניתוח מחדש":"לנתח את החודש"}</button></div></div>
+    <div id="anOut">${analysisHtml(m)}</div>
+  </div>
+  <div class="card">
+    <div class="card-h"><h2>לאן הלך הכסף</h2><div class="legend"><span><i class="dot" style="background:var(--fixed)"></i>קבוע</span><span><i class="dot" style="background:var(--var)"></i>משתנה</span></div></div>
+    <div>${catHtml}</div>
+  </div>
+  ${subsCard(m)}
+  ${fixedStatusCard(m)}
+  ${trendCard(m)}`;
+  bindOverview();
+}
+function analysisHtml(m){
+  if(S.anBusy)return`<p class="muted"><span class="spin"></span> ${esc(S.anText||"Claude עובר על החודש… זה לוקח בערך חצי דקה.")}</p>`;
+  let an=S.analyses[m];
+  if(!an&&!S.sample){const d=localTips(m);if(d)an={data:d}}
+  if(!an)return`<p class="muted">Claude יעבור על ההוצאות של החודש, ישווה לחודשים קודמים ויציע איפה אפשר לחסוך, עם קישורים לאתרי השוואה בישראל. הניתוח נשמר, וכל בני הבית רואים אותו.</p>`;
+  const when=an.at?`<div class="muted small">נוצר ${new Date(an.at).toLocaleString("he-IL",{day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"})}</div>`:"";
+  const d=an.data;if(!d)return`<div style="white-space:pre-wrap;line-height:1.7">${esc(an.text||"")}</div>${when}`;
+  const tips=(d.tips||[]).map(t=>`<div class="tip"><div class="t"><b>${esc(t.title)}</b>${t.save?`<span class="chip save">עד ${ils(+t.save)} בחודש</span>`:""}</div><p>${esc(t.text)}</p>${linkHtml(t.links)}</div>`).join("");
+  const totalSave=(d.tips||[]).reduce((a,t)=>a+(+t.save||0),0);
+  return`<div class="an-sec"><h3>תמונת מצב</h3><p>${esc(d.status||"")}</p></div>
+  ${d.changes?`<div class="an-sec"><h3>מה השתנה</h3><p>${esc(d.changes)}</p></div>`:""}
+  ${tips?`<div class="an-sec"><div class="card-h"><h3>איפה אפשר לחסוך</h3>${totalSave?`<span class="chip save">פוטנציאל: עד ${ils(totalSave)} בחודש</span>`:""}</div>${tips}</div>`:""}
+  ${(d.checks||[]).length?`<div class="an-sec"><h3>לבדוק</h3><ul class="plain">${d.checks.map(c=>`<li>${esc(c)}</li>`).join("")}</ul>${d.local?linkHtml(["itur"]):""}</div>`:""}
+  ${d.local?`<div class="muted small">אלה המלצות אוטומטיות לפי כללים קבועים. כשפותחים את הדף מתוך Claude, מקבלים ניתוח מותאם אישית.</div>`:when}`}
+function subsCard(m){const subs=subsOf(m);if(!subs.length)return"";const tot=subs.reduce((a,x)=>a+x.amount,0);
+  const allLinks=[...new Set(subs.flatMap(x=>x.links))];
+  return`<div class="card"><div class="card-h"><h2>מנויים ותוכן</h2><span class="muted small num">${ils(tot,tot%1?2:0)} החודש · ${ils(tot*12)} בשנה</span></div>
+  <div>${subs.map(x=>`<div class="fxrow"><div class="n">${esc(x.name)}<small>${x.n} חיובים החודש</small></div><div class="a num">${ils(x.amount,x.amount%1?2:0)}</div><span></span></div>`).join("")}</div>
+  <p class="small muted">כדאי לבדוק כל כמה חודשים אם באמת צופים או משתמשים בכל אחד. אפשר לבטל ולחדש לחודש אחד כשיוצאת סדרה, לעבור לתוכנית זולה יותר, או לבדוק אם ספק הסלולר או הטלוויזיה נותן את השירות בחבילה.</p>
+  ${linkHtml(allLinks)}</div>`}
+function fixedStatusCard(m){
+  if(!S.fixed.length)return`<div class="card"><h2>הקבועות החודש</h2><p class="muted small">עוד לא הוגדרו הוצאות קבועות.</p><div><button data-go="fixed">להגדרת קבועות</button></div></div>`;
+  const tx=txOf(m);
+  const rows=S.fixed.slice().sort((a,b)=>b.amount-a.amount).map(f=>{
+    const k=norm(f.keyword);const hits=tx.filter(t=>k&&norm(t.merchant).includes(k)&&(f.person==="any"||!f.person||f.person===t.person));
+    const act=hits.reduce((a,t)=>a+t.amount,0);const cyc=+f.cycle||1;let chip;
+    if(!hits.length)chip=cyc>1?`<span class="chip grey">לא החודש</span>`:`<span class="chip miss">לא הופיע</span>`;
+    else if(Math.abs(act-f.amount)<=Math.max(5,f.amount*0.05))chip=`<span class="chip ok">כרגיל</span>`;
+    else chip=`<span class="chip warn">${act>f.amount?"גבוה":"נמוך"} ב-${ils(Math.abs(act-f.amount))}</span>`;
+    return`<div class="fxrow"><div class="n">${esc(f.name)}<small>${esc(f.category||"")}${cyc===2?" · כל חודשיים":cyc===12?" · שנתי":""}</small></div><div class="a num">${hits.length?ils(act,act%1?2:0):"—"}<small>צפוי ${ils(f.amount,f.amount%1?2:0)}</small></div>${chip}</div>`}).join("");
+  return`<div class="card"><div class="card-h"><h2>הקבועות החודש</h2><button class="ghost" data-go="fixed">עריכה</button></div><div>${rows}</div></div>`}
+function trendCard(m){
+  const ms=[];for(let i=5;i>=0;i--)ms.push(addM(m,-i));
+  const data=ms.map(x=>[x,sumM(x)]);const mx=Math.max(...data.map(d=>d[1].total),1);
+  if(!data.some(d=>d[1].total>0))return"";
+  const cols=data.map(([x,s])=>`<button class="col ${x===m?"cur":""}" data-m="${x}" aria-label="${esc(mLabel(x))}: ${ils(s.total)}"><span class="tv num">${s.total?(s.total/1000).toFixed(1)+"K":""}</span><div class="stack" style="height:${Math.max(s.total/mx*100,s.total?3:0)}%"><span style="flex:${Math.max(s.fx,0)};background:var(--fixed)"></span><span style="flex:${Math.max(s.vr,0)};background:var(--var)"></span></div><small>${mShort(x)}</small></button>`).join("");
+  return`<div class="card"><div class="card-h"><h2>חצי שנה אחרונה</h2><span class="muted small">לחיצה על חודש פותחת אותו</span></div><div class="trend">${cols}</div></div>`}
+function bindOverview(){
+  document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>setTab(b.dataset.go));
+  document.querySelectorAll(".trend .col").forEach(b=>b.onclick=()=>{S.month=b.dataset.m;S.monthTouched=true;renderAll()});
+  const ab=$("anBtn");if(ab){ab.onclick=runAnalysis;ab.disabled=S.anBusy;ab.hidden=!S.sample;$("anStop").hidden=!S.anBusy;$("anStop").onclick=()=>S.anCtl&&S.anCtl.abort()}
+}
+
+/* ---------- analysis ---------- */
+function monthSummaryText(m){
+  const tx=txOf(m).filter(x=>!isExcl(x));const s=sumM(m);
+  const cats={};for(const x of tx){cats[x.category]=(cats[x.category]||0)+x.amount}
+  const merch={};for(const x of tx){const k=x.merchant.replace(/\(.*?\)/g,"").trim();const o=merch[k]||(merch[k]={n:0,a:0});o.n++;o.a+=x.amount}
+  const topM=Object.entries(merch).sort((a,b)=>b[1].a-a[1].a).slice(0,18).map(([k,v])=>`${k}: ${v.n} פעמים, ${v.a.toFixed(0)} ₪`).join("\n");
+  const byP={};for(const x of tx){byP[personName(x.person)]=(byP[personName(x.person)]||0)+x.amount}
+  const small=tx.filter(x=>x.amount>0&&x.amount<60).length;
+  const fx=S.fixed.map(f=>{const k=norm(f.keyword);const a=txOf(m).filter(t=>k&&norm(t.merchant).includes(k)).reduce((z,t)=>z+t.amount,0);return`${f.name}: צפוי ${f.amount}, בפועל ${a?a.toFixed(0):"לא הופיע"}${(+f.cycle||1)>1?" (לא חודשי)":""}`}).join("\n");
+  const subs=subsOf(m).map(x=>`${x.name}: ${x.amount.toFixed(2)}`).join(", ");
+  const hist=[1,2,3].map(i=>addM(m,-i)).map(x=>[x,sumM(x)]).filter(d=>d[1].total>0).map(([x,v])=>{const c={};for(const t of txOf(x).filter(t=>!isExcl(t)))c[t.category]=(c[t.category]||0)+t.amount;return`${mLabel(x)}: סה"כ ${v.total.toFixed(0)} (קבועות ${v.fx.toFixed(0)}, משתנות ${v.vr.toFixed(0)}). לפי קטגוריה: ${Object.entries(c).sort((a,b)=>b[1]-a[1]).map(([k,a])=>k+" "+a.toFixed(0)).join(", ")}`}).join("\n");
+  const notes=tx.filter(x=>x.note).slice(0,20).map(x=>`${x.merchant} ${x.amount}: ${x.note}`).join("\n");
+  return`חודש: ${mLabel(m)}
+בני הבית: ${people().map(p=>p.name).join(", ")}
+סה"כ הוצאות: ${s.total.toFixed(0)} ₪ (קבועות ${s.fx.toFixed(0)}, משתנות ${s.vr.toFixed(0)}), ${s.count} תנועות. הכנסות שהועלו: ${s.inc.toFixed(0)}.
+לפי אדם: ${Object.entries(byP).map(([k,a])=>k+" "+a.toFixed(0)).join(", ")}
+לפי קטגוריה: ${Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,a])=>k+" "+a.toFixed(0)).join(", ")}
+בתי עסק מובילים:
+${topM}
+קניות קטנות (מתחת ל-60 ₪): ${small}
+מנויים שזוהו: ${subs||"אין"}
+הוצאות קבועות מוגדרות מול בפועל:
+${fx||"לא הוגדרו"}
+הערות על תנועות (תשלומים, ביטולים):
+${notes||"אין"}
+חודשים קודמים:
+${hist||"אין נתונים מחודשים קודמים"}`}
+async function runAnalysis(){
+  if(!S.sample||S.anBusy)return;const m=S.month;S.anBusy=true;S.anText=null;S.anCtl=new AbortController();renderOverview();
+  const catalog=Object.entries(LINKS).map(([k,v])=>`${k} = ${v.t} (${v.d})`).join("\n");
+  const prompt=`את/ה יועץ/ת כלכלת בית שמכיר/ה היטב את השוק הישראלי. זה סיכום ההוצאות החודשי של משק בית בישראל. כתוב/י ניתוח בעברית פשוטה וחמה, ספציפי לנתונים (לציין בתי עסק וסכומים אמיתיים מהסיכום), בלי להמציא נתונים.
+
+דברים שכדאי לשקול כשהם רלוונטיים לנתונים:
+- חשמל: בישראל אפשר לעבור לספק חשמל פרטי עם הנחה על התעריף של חברת החשמל, בלי החלפת מונה.
+- ביטוחים: לבדוק כפל בין ביטוח משלים של קופת החולים לביטוח בריאות פרטי, ולהשוות ביטוח רכב כל שנה.
+- תקשורת וטלוויזיה: להשוות חבילות, לבדוק אם מנויי סטרימינג כלולים בחבילה, לבטל מנויים שלא משתמשים בהם, או לסובב ביניהם.
+- סופר: לרכז קניות במקום הרבה קניות קטנות במכולת, להשוות סל בין רשתות, מותג פרטי.
+- אוכל בחוץ ומשלוחים, קניות אונליין קטנות ותשלומים שמסתיימים.
+המלצה על מוצר או שירות שיעזור לחסוך מותרת כשהיא באמת מתאימה לנתונים.
+
+קישורים: מותר לצרף לכל המלצה רק מזהים מהרשימה הזאת, ורק כשהם רלוונטיים ישירות:
+${catalog}
+
+החזר/י אך ורק JSON במבנה:
+{"status":"2-3 משפטים על המצב","changes":"משפט או שניים על השינוי מחודשים קודמים, או מחרוזת ריקה אם אין נתונים","tips":[{"title":"כותרת קצרה","text":"1-2 משפטים מעשיים","save":מספר חיסכון חודשי משוער בשקלים או null,"links":["מזהה"]}],"checks":["דבר שכדאי לבדוק: חריגה, כפילות אפשרית, קבועה שלא הופיעה או שהסכום שלה השתנה, תשלום שמסתיים"]}
+3 עד 6 המלצות, עד 4 פריטים לבדיקה. הערכות חיסכון זהירות ומציאותיות.
+
+${monthSummaryText(m)}`;
+  try{const d=await S.sample.json(prompt,{signal:S.anCtl.signal,modelTier:"default",onText:()=>{if(!S.anText){S.anText="כותב את ההמלצות…";const o=$("anOut");if(o&&S.month===m)o.innerHTML=analysisHtml(m)}}});
+    if(!d||typeof d!=="object"||!d.status)throw{code:"invalid_json"};
+    const tips=Array.isArray(d.tips)?d.tips.slice(0,6).map(t=>({title:String(t.title||"").slice(0,80),text:String(t.text||"").slice(0,400),save:isFinite(+t.save)&&+t.save>0?Math.round(+t.save):null,links:Array.isArray(t.links)?t.links.filter(x=>LINKS[x]).slice(0,3):[]})):[];
+    const doc={data:{status:String(d.status).slice(0,600),changes:String(d.changes||"").slice(0,400),tips,checks:Array.isArray(d.checks)?d.checks.slice(0,4).map(c=>String(c).slice(0,200)):[]},at:new Date().toISOString(),month:m};
+    S.analyses[m]=doc;S.anBusy=false;renderOverview();
+    if(S.db){try{await S.db.doc("analyses/"+m).set(doc)}catch(e){dbErr(e)}}
+  }catch(e){S.anBusy=false;renderOverview();const o=$("anOut");if(o&&e.code!=="cancelled")o.insertAdjacentHTML("afterbegin",`<div class="banner err">${esc(sampleErr(e))}</div>`)}
+}
+function sampleErr(e){const c=e&&e.code;return({not_granted:"לא ניתנה הרשאה ל-Claude בדף הזה, אז הניתוח והקריאה האוטומטית כבויים.",sampling_disabled:"Claude לא זמין בחשבון הזה.",rate_limited:"הגעת למגבלת השימוש ב-Claude כרגע. אפשר לנסות שוב בעוד כמה דקות.",session_expired:"צריך להתחבר מחדש ל-Claude ולרענן את הדף.",image_rejected:"אחת התמונות לא נקראה (סוג או גודל לא נתמך). אפשר לנסות צילום מסך אחר.",images_unavailable:"בתצוגה הזאת אי אפשר לשלוח תמונות. אפשר להעלות קובץ Excel או CSV.",prompt_too_large:"הקובץ גדול מדי לקריאה אחת. אפשר לפצל אותו לחודשים.",invalid_json:"התשובה לא הגיעה בפורמט הנכון. כדאי לנסות שוב.",refused:"Claude לא עיבד את הקלט הזה.",empty_completion:"לא התקבלה תשובה. כדאי לנסות שוב.",cancelled:"נעצר."})[c]||"משהו השתבש בתקשורת עם Claude. כדאי לנסות שוב."}
+
+/* ---------- upload ---------- */
+function renderUploadBits(){
+  if(!persons().some(p=>p[0]===S.upPerson))S.upPerson=people()[0].id;
+  $("upPerson").innerHTML=persons().map(([k,n])=>`<button type="button" data-p="${esc(k)}" aria-pressed="${S.upPerson===k}">${esc(n)}</button>`).join("");
+  $("upPerson").querySelectorAll("button").forEach(b=>b.onclick=()=>{S.upPerson=b.dataset.p;renderUploadBits()});
+  const opts=persons().map(([k,n])=>`<option value="${esc(k)}">${esc(n)}</option>`).join("");
+  const keep=(id,html,val)=>{const e=$(id);const v=e.value;e.innerHTML=html;e.value=v||val;if(!e.value)e.value=val};
+  keep("mPerson",opts,people()[0].id);keep("xPerson",`<option value="any">כל אחד</option>`+opts,"any");
+  keep("mCat",CATS.concat(["הכנסה"]).map(c=>`<option>${esc(c)}</option>`).join(""),"סופר ומכולת");
+  keep("xCat",CATS.map(c=>`<option>${esc(c)}</option>`).join(""),"ביטוחים");
+  if(!$("mDate").value)$("mDate").value=new Date().toISOString().slice(0,10);
+  $("dropHint").textContent=S.sample?"תמונות, PDF, Excel או CSV · אפשר כמה קבצים ביחד":"קובץ Excel או CSV שהורד מאתר הבנק או חברת האשראי · צילומים נקראים רק דרך Claude";
+  renderReview();
+}
+function status(html,cls){$("upStatus").innerHTML=html?`<div class="banner ${cls||"info"}">${html}</div>`:""}
+const drop=$("drop");
+["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("over")}));
+["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("over")}));
+drop.addEventListener("drop",e=>{if(e.dataTransfer&&e.dataTransfer.files.length)handleFiles([...e.dataTransfer.files])});
+$("fileIn").addEventListener("change",e=>{const f=[...e.target.files];e.target.value="";if(f.length)handleFiles(f)});
+
+function extractPrompt(kindDesc,data){
+  return`את/ה מחלץ/ת תנועות כספיות למערכת תקציב של משק בית בישראל. ${kindDesc}
+החזר/י אך ורק JSON במבנה:
+{"docType":"credit_card|bank|receipt|other","title":"תיאור קצר של המסמך, למשל: פירוט מקס חיוב 02/09/26","statementTotal":מספר או null,"rows":[{"date":"YYYY-MM-DD","month":"YYYY-MM","merchant":"שם בית העסק","amount":123.45,"category":"...","fixed":false,"note":""}]}
+כללים:
+- amount הוא הסכום בשקלים שחויב בפועל (עמודת "סכום חיוב"), לא סכום העסקה המקורי. בעסקאות תשלומים: רק התשלום של החודש, ובשדה note לרשום "תשלום X מתוך Y". ביטול, זיכוי או החזר = מספר שלילי.
+- month: החודש שאליו ההוצאה שייכת. בדרך כלל חודש התאריך. בשורות תשלומים או הוראות קבע שהתאריך המקורי שלהן ישן, השתמש/י בחודש שאליו שייכות רוב שאר השורות במסמך.
+- category: בדיוק אחת מהרשימה: ${ALLCATS.join(" | ")}.
+- בדפי בנק: חיוב מרוכז של חברת אשראי (ישראכרט, כאל, מקס, לאומי קארד, אמריקן אקספרס, דיינרס) = "חיוב אשראי מרוכז". משכורת, קצבאות והחזרים לחשבון = "הכנסה" עם amount חיובי. העברה בין חשבונות של אותה משפחה או הפקדה לחיסכון = "העברה בין חשבונות". שאר ההוצאות לפי סוגן.
+- fixed=true להוצאות קבועות וחוזרות: ביטוחים, חשמל, מים, גז, ארנונה, ועד בית, שכירות, משכנתא, הלוואות, סלולר, אינטרנט, טלוויזיה, חוגים וגנים, הוראות קבע.
+- הוצאות קבועות שכבר מוגדרות אצלנו (שם : מילת חיפוש): ${S.fixed.map(f=>f.name+" : "+f.keyword).join(" ; ")||"אין"}.
+- statementTotal: סכום "סה"כ לחיוב" שמופיע במסמך (אם יש כמה סכומים, הסכום הכולל של ארץ וחו"ל). אם אין, null.
+- merchant כפי שמופיע במסמך, בלי מספרי כרטיס או חשבון.
+- לא לדלג על אף שורת עסקה. לא להמציא שורות. לא לכלול שורות סיכום.
+${data?"\nהנתונים:\n"+data:""}`}
+function fileKind(f){const n=f.name.toLowerCase();if(/\.(xlsx|xls)$/.test(n))return"xlsx";if(/\.csv$/.test(n)||f.type==="text/csv")return"csv";if(/\.pdf$/.test(n)||f.type==="application/pdf")return"pdf";if(f.type.startsWith("image/")||/\.(jpe?g|png|webp|heic|gif)$/.test(n))return"img";return"other"}
+async function pdfToImages(file,max){
+  if(!window.pdfjsLib)throw{code:"pdf"};pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  const doc=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;const out=[];
+  for(let i=1;i<=Math.min(doc.numPages,max);i++){const pg=await doc.getPage(i);const vp=pg.getViewport({scale:1.7});const c=document.createElement("canvas");c.width=vp.width;c.height=vp.height;await pg.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;out.push(await new Promise(r=>c.toBlob(r,"image/jpeg",0.88)))}
+  return out}
+async function sheetToCsv(file){if(!window.XLSX)throw{code:"xlsx"};const wb=XLSX.read(await file.arrayBuffer(),{type:"array"});return wb.SheetNames.map(n=>"### גיליון: "+n+"\n"+XLSX.utils.sheet_to_csv(wb.Sheets[n],{blankrows:false})).join("\n\n")}
+function chunkText(t,size){if(t.length<=size)return[t];const lines=t.split("\n");const head=lines.slice(0,6).join("\n");const out=[];let cur="";for(const l of lines){if((cur+l).length>size){out.push(cur);cur=head+"\n(המשך)\n"}cur+=l+"\n"}if(cur.trim())out.push(cur);return out}
+function stopBtn(){const b=$("stopUp");if(b)b.onclick=()=>S.ctl&&S.ctl.abort()}
+async function handleFiles(files){
+  if(S.busy)return;
+  if(!S.sample){const person=S.upPerson;const results=[],errs=[];S.busy=true;
+    for(const f of files){const k=fileKind(f);if(k==="xlsx"||k==="csv"){status(`<span class="spin"></span> קורא את ${esc(f.name)}…`);try{const r=await localParse(f);if(r.rows.length)results.push(r);else errs.push(f.name+": לא זיהיתי עמודות של תאריך, בית עסק וסכום. אפשר לנסות את קובץ היצוא המקורי מהאתר.")}catch(e){errs.push(f.name+": הקובץ לא נפתח. אם אין חיבור לאינטרנט, קובצי Excel לא נקראים.")}}
+      else if(k==="img"||k==="pdf")errs.push(f.name+": צילומים ו-PDF נקראים רק כשפותחים את הדף מתוך Claude. כאן אפשר להעלות קובץ Excel או CSV מאתר הבנק או חברת האשראי, או להוסיף ידנית.");else errs.push(f.name+": סוג קובץ לא נתמך")}
+    S.busy=false;finishResults(results,errs,person);return}
+  S.busy=true;S.ctl=new AbortController();const sig=S.ctl.signal;const person=S.upPerson;
+  const maxImg=(S.limits&&S.limits.images&&S.limits.images.maxCount)||0;
+  const imgs=files.filter(f=>fileKind(f)==="img"),pdfs=files.filter(f=>fileKind(f)==="pdf"),sheets=files.filter(f=>["xlsx","csv"].includes(fileKind(f))),bad=files.filter(f=>fileKind(f)==="other");
+  const jobs=[];
+  if(imgs.length){if(!maxImg){S.busy=false;status(esc(sampleErr({code:"images_unavailable"})),"err");return}for(let i=0;i<imgs.length;i+=maxImg)jobs.push({type:"img",blobs:imgs.slice(i,i+maxImg),label:imgs.length>1?imgs.length+" תמונות":imgs[0].name})}
+  for(const p of pdfs)jobs.push({type:"pdf",file:p,label:p.name});
+  for(const s of sheets)jobs.push({type:"sheet",file:s,label:s.name});
+  const results=[];const errs=bad.map(f=>f.name+": סוג קובץ לא נתמך");
+  try{
+    for(let j=0;j<jobs.length;j++){
+      const job=jobs[j];const step=jobs.length>1?`(${j+1}/${jobs.length}) `:"";
+      status(`<span class="spin"></span> ${step}Claude קורא את ${esc(job.label)}… זה יכול לקחת עד דקה. <button class="ghost" id="stopUp">עצירה</button>`);stopBtn();
+      try{
+        if(job.type==="img"){results.push(await S.sample.json(extractPrompt("מצורפות תמונות של מסמך אחד (פירוט כרטיס אשראי, דף בנק או קבלה). אם יש כמה תמונות, הן עמודים של אותו מסמך, וייתכן שחלקן חופפות: אל תכפיל/י שורות שמופיעות פעמיים.",""),{images:job.blobs,signal:sig,modelTier:"default"}))}
+        else if(job.type==="pdf"){if(!maxImg)throw{code:"images_unavailable"};const b=await pdfToImages(job.file,maxImg);results.push(await S.sample.json(extractPrompt("מצורפים עמודי PDF של מסמך אחד (פירוט אשראי, דף בנק או קבלה).",""),{images:b,signal:sig,modelTier:"default"}))}
+        else{const csv=await sheetToCsv(job.file);const parts=chunkText(csv,38000);const merged={docType:"other",title:job.label,statementTotal:null,rows:[]};
+          for(let k=0;k<parts.length;k++){if(parts.length>1){status(`<span class="spin"></span> ${step}קורא את ${esc(job.label)}, חלק ${k+1} מתוך ${parts.length}… <button class="ghost" id="stopUp">עצירה</button>`);stopBtn()}
+            const r=await S.sample.json(extractPrompt("זה יצוא טבלאי (CSV) מאתר של בנק או חברת אשראי"+(parts.length>1?`, חלק ${k+1} מתוך ${parts.length}`:"")+".",parts[k]),{signal:sig,modelTier:"default"});
+            if(r&&Array.isArray(r.rows)){merged.rows.push(...r.rows);if(r.docType)merged.docType=r.docType;if(r.title)merged.title=r.title;if(r.statementTotal!=null&&parts.length===1)merged.statementTotal=r.statementTotal}}
+          results.push(merged)}
+      }catch(e){if(e&&e.code==="cancelled")throw e;if(["not_granted","sampling_disabled","rate_limited","session_expired"].includes(e&&e.code))throw e;errs.push(job.label+": "+(e&&e.code==="pdf"?"קובץ ה-PDF לא נפתח כאן. אפשר לצלם מסך ולהעלות כתמונה.":e&&e.code==="xlsx"?"קובץ ה-Excel לא נפתח כאן.":sampleErr(e)))}
+    }
+  }catch(e){S.busy=false;status(esc(sampleErr(e)),e.code==="cancelled"?"info":"err");return}
+  S.busy=false;finishResults(results,errs,person)}
+function finishResults(results,errs,person){
+  const existing=new Set(allTx().map(dupKey));
+  const docs=results.filter(r=>r&&Array.isArray(r.rows)).map(r=>({title:String(r.title||"מסמך").slice(0,80),docType:r.docType,statementTotal:typeof r.statementTotal==="number"?r.statementTotal:null,rows:r.rows.map(x=>cleanRow(x,person)).filter(Boolean).map(x=>{const dup=existing.has(dupKey(x));return Object.assign(x,{dup,keep:!dup&&(!EXCL.includes(x.category)||x.category==="הכנסה")})})})).filter(d=>d.rows.length);
+  if(!docs.length){status(errs.length?esc(errs.join(" · ")):"לא נמצאו תנועות בקבצים. כדאי לנסות צילום חד יותר או קובץ יצוא.","err");return}
+  S.pending={person,docs};status(errs.length?esc(errs.join(" · ")):"","warn");renderReview();
+  $("review").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth",block:"start"});
+}
+function cleanRow(x,person){if(!x)return null;let a=typeof x.amount==="number"?x.amount:parseFloat(String(x.amount||"").replace(/[^\d.\-]/g,""));if(!isFinite(a)||a===0)return null;let d=String(x.date||"").slice(0,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(d))d="";let m=String(x.month||"").slice(0,7);if(!/^\d{4}-\d{2}$/.test(m))m=d?d.slice(0,7):S.month;const c=ALLCATS.includes(x.category)?x.category:"שונות";return{id:uid(),date:d||m+"-01",month:m,merchant:String(x.merchant||"לא ידוע").slice(0,80),amount:Math.round(a*100)/100,category:c,fixed:!!x.fixed,note:String(x.note||"").slice(0,60),person}}
+function dupKey(t){return[t.person,t.date,Number(t.amount).toFixed(2),norm(t.merchant).slice(0,6)].join("|")}
+function renderReview(){
+  const el=$("review");const P=S.pending;if(!P){el.innerHTML="";return}
+  const catOpts=c=>ALLCATS.map(k=>`<option ${k===c?"selected":""}>${esc(k)}</option>`).join("");
+  el.innerHTML=P.docs.map((d,di)=>{
+    const kept=d.rows.filter(r=>r.keep);const sumAll=d.rows.filter(r=>!EXCL.includes(r.category)).reduce((a,r)=>a+r.amount,0);const sumKept=kept.filter(r=>!EXCL.includes(r.category)).reduce((a,r)=>a+r.amount,0);
+    let check="";if(d.statementTotal!=null){const ok=Math.abs(sumAll-d.statementTotal)<1;check=`<div class="banner ${ok?"ok":"warn"}">${ok?`✓ סכום השורות (${ils(sumAll,2)}) תואם לסה"כ במסמך.`:`סכום השורות ${ils(sumAll,2)} לעומת ${ils(d.statementTotal,2)} במסמך. כדאי לעבור על השורות לפני שמירה.`}</div>`}
+    const dups=d.rows.filter(r=>r.dup).length;
+    return`<div class="card" style="padding:12px;background:var(--surface2)">
+      <div class="card-h"><h3>${esc(d.title)}</h3><span class="chip grey">${esc(personName(P.person))} · ${d.rows.length} שורות</span></div>
+      ${check}${dups?`<div class="banner info">${dups} שורות כבר קיימות במערכת ולא סומנו לשמירה.</div>`:""}
+      <div class="scroll"><table><thead><tr><th></th><th>תאריך</th><th>בית עסק</th><th>סכום</th><th>קטגוריה</th><th>קבוע</th></tr></thead><tbody>
+      ${d.rows.map((r,ri)=>`<tr class="${r.dup?"dup":""}"><td><input type="checkbox" data-d="${di}" data-r="${ri}" data-f="keep" ${r.keep?"checked":""} aria-label="לשמור"></td><td class="num">${ddmm(r.date)}</td><td>${esc(r.merchant)}${r.note?`<div class="muted small">${esc(r.note)}</div>`:""}${r.dup?`<div class="small" style="color:var(--warn)">כבר קיים</div>`:""}</td><td class="num" style="font-weight:700">${ils(r.amount,2)}</td><td><select data-d="${di}" data-r="${ri}" data-f="category" aria-label="קטגוריה">${catOpts(r.category)}</select></td><td><input type="checkbox" data-d="${di}" data-r="${ri}" data-f="fixed" ${r.fixed?"checked":""} aria-label="קבוע"></td></tr>`).join("")}
+      </tbody></table></div>
+      <div class="muted small">מסומנות לשמירה: ${kept.length} שורות · ${ils(sumKept,2)} בהוצאות</div>
+    </div>`}).join("")+`<div class="row" style="justify-content:flex-end"><button class="ghost" id="revCancel">ביטול</button><button class="primary" id="revSave">שמירה</button></div><div id="revMsg" class="small"></div>`;
+  el.querySelectorAll("[data-f]").forEach(inp=>inp.onchange=()=>{const r=P.docs[+inp.dataset.d].rows[+inp.dataset.r];const f=inp.dataset.f;r[f]=inp.type==="checkbox"?inp.checked:inp.value;if(f!=="fixed")renderReview()});
+  $("revCancel").onclick=()=>{S.pending=null;status("");renderReview()};
+  $("revSave").onclick=savePending;
+}
+async function savePending(){
+  const P=S.pending;if(!P)return;const btn=$("revSave");btn.disabled=true;let saved=0;const months=new Set();
+  try{for(const d of P.docs){const items=d.rows.filter(r=>r.keep).map(r=>{const o=Object.assign({},r);delete o.keep;delete o.dup;months.add(o.month);return o});if(!items.length)continue;
+      const b={person:P.person,source:d.title,month:items[0].month,createdAt:new Date().toISOString(),statementTotal:d.statementTotal,items};
+      if(S.db)await S.db.collection("batches").doc("b"+uid()).set(b);else S.batches.push(Object.assign({id:"local"+uid()},b));saved+=items.length}
+    S.pending=null;const ms=[...months].sort();if(ms.length){S.month=ms[ms.length-1];S.monthTouched=true}
+    status(`✓ נשמרו ${saved} תנועות.`,"ok");renderAll();
+  }catch(e){btn.disabled=false;$("revMsg").innerHTML=`<span style="color:var(--danger)">${esc(dbErrMsg(e))}</span>`}
+}
+$("manForm").addEventListener("submit",async e=>{e.preventDefault();const msg=$("manMsg");
+  const a=parseFloat($("mAmt").value);const d=$("mDate").value;const desc=$("mDesc").value.trim();
+  if(!d||!desc||!isFinite(a)||a===0){msg.innerHTML='<span style="color:var(--danger)">צריך למלא תאריך, סכום ותיאור.</span>';return}
+  const cat=$("mCat").value;const it={id:uid(),date:d,month:d.slice(0,7),merchant:desc.slice(0,80),amount:cat==="הכנסה"?Math.abs(a):Math.round(a*100)/100,category:cat,fixed:$("mFixed").checked,note:"הוזן ידנית",person:$("mPerson").value};
+  const b={person:it.person,source:"הוספה ידנית",month:it.month,createdAt:new Date().toISOString(),statementTotal:null,items:[it]};
+  try{if(S.db)await S.db.collection("batches").doc("m"+uid()).set(b);else{S.batches.push(Object.assign({id:"local"+uid()},b));renderAll()}
+    msg.innerHTML=`<span style="color:var(--ok)">✓ נוסף: ${esc(desc)} · ${ils(it.amount,2)}</span>`;$("mAmt").value="";$("mDesc").value="";$("mFixed").checked=false}
+  catch(err){msg.innerHTML=`<span style="color:var(--danger)">${esc(dbErrMsg(err))}</span>`}});
+
+/* ---------- transactions ---------- */
+function renderTx(){
+  $("fPerson").innerHTML=`<option value="all">כולם</option>`+persons().map(([k,n])=>`<option value="${esc(k)}">${esc(n)}</option>`).join("");$("fPerson").value=S.fPerson;if(!$("fPerson").value){S.fPerson="all";$("fPerson").value="all"}
+  const tx=txOf(S.month);const cs=[...new Set(tx.map(t=>t.category))].sort();
+  $("fCat").innerHTML=`<option value="all">הכול</option><option value="__fixed">רק קבועות</option><option value="__var">רק משתנות</option>`+cs.map(c=>`<option>${esc(c)}</option>`).join("");$("fCat").value=cs.includes(S.fCat)||S.fCat.startsWith("__")?S.fCat:"all";
+  let list=tx.filter(t=>S.fPerson==="all"||t.person===S.fPerson);
+  const fc=$("fCat").value;if(fc==="__fixed")list=list.filter(isFixed);else if(fc==="__var")list=list.filter(t=>!isFixed(t));else if(fc!=="all")list=list.filter(t=>t.category===fc);
+  list.sort((a,b)=>b.date.localeCompare(a.date)||b.amount-a.amount);
+  const sum=list.filter(t=>!isExcl(t)).reduce((a,t)=>a+t.amount,0);
+  $("txCount").textContent=list.length+" תנועות · "+ils(sum,2);
+  if(!list.length){$("txList").innerHTML='<p class="muted">אין תנועות להצגה.</p>';return}
+  let h="",last="";for(const t of list){if(t.date!==last){h+=`<div class="txday num">${ddmm(t.date)}${t.date.slice(0,7)!==S.month?"/"+t.date.slice(2,4):""}</div>`;last=t.date}
+    const armed=S.delArm===t.batchId+"/"+t.id;
+    h+=`<div class="tx"><div class="m">${esc(t.merchant)}<small>${esc(t.category)} · ${esc(personName(t.person))}${t.note?" · "+esc(t.note):""}</small></div><div class="row" style="gap:6px">${isExcl(t)?'<span class="chip grey">לא נספר</span>':isFixed(t)?'<span class="chip fx">קבוע</span>':""}<span class="a num ${t.amount<0?"neg":""}">${ils(t.amount,2)}</span></div><button class="ghost ${armed?"danger":""}" data-del="${esc(t.batchId)}" data-id="${esc(t.id)}" aria-label="מחיקה">${armed?"למחוק?":"✕"}</button></div>`}
+  $("txList").innerHTML=h;
+  $("txList").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>delTx(b.dataset.del,b.dataset.id));
+}
+$("fPerson").onchange=e=>{S.fPerson=e.target.value;renderTx()};
+$("fCat").onchange=e=>{S.fCat=e.target.value;renderTx()};
+async function delTx(bid,id){const key=bid+"/"+id;if(S.delArm!==key){S.delArm=key;renderTx();return}S.delArm=null;
+  const b=S.batches.find(x=>x.id===bid);if(!b)return;const items=(b.items||[]).filter(i=>i.id!==id);
+  try{if(S.db){if(items.length)await S.db.doc("batches/"+bid).update({items});else await S.db.doc("batches/"+bid).delete()}else{b.items=items;renderAll()}}catch(e){dbErr(e)}}
+
+/* ---------- fixed ---------- */
+function renderFixed(){
+  const tot=S.fixed.reduce((a,f)=>a+f.amount/(+f.cycle||1),0);$("fxTotal").textContent=S.fixed.length?"כ-"+ils(tot)+" בחודש":"";
+  if(!S.fixed.length){$("fxList").innerHTML='<p class="muted">עוד אין הוצאות קבועות.</p>';return}
+  $("fxList").innerHTML=S.fixed.slice().sort((a,b)=>b.amount-a.amount).map(f=>`<div class="fxrow"><div class="n">${esc(f.name)}<small>${esc(f.category)} · מזוהה לפי "${esc(f.keyword)}"${f.person&&f.person!=="any"?" · "+esc(personName(f.person)):""}${(+f.cycle||1)===2?" · כל חודשיים":(+f.cycle||1)===12?" · שנתי":""}${f.note?" · "+esc(f.note):""}</small></div><div class="a num">${ils(f.amount,f.amount%1?2:0)}</div><div class="row" style="gap:2px"><button class="ghost" data-edit="${esc(f.id)}">עריכה</button><button class="ghost ${S.delArm==="fx/"+f.id?"danger":""}" data-fxdel="${esc(f.id)}" aria-label="מחיקה">${S.delArm==="fx/"+f.id?"למחוק?":"✕"}</button></div></div>`).join("");
+  $("fxList").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>editFx(b.dataset.edit));
+  $("fxList").querySelectorAll("[data-fxdel]").forEach(b=>b.onclick=()=>delFx(b.dataset.fxdel));
+}
+function editFx(id){const f=S.fixed.find(x=>x.id===id);if(!f)return;S.editFx=id;$("xName").value=f.name;$("xAmt").value=f.amount;$("xKey").value=f.keyword;$("xCat").value=f.category;$("xPerson").value=f.person||"any";$("xCycle").value=String(f.cycle||1);$("fxFormTitle").textContent="עריכת "+f.name;$("fxCancel").hidden=false;$("xName").focus()}
+function resetFx(){S.editFx=null;$("fxForm").reset();$("fxFormTitle").textContent="הוצאה קבועה חדשה";$("fxCancel").hidden=true;renderUploadBits()}
+$("fxCancel").onclick=resetFx;
+$("fxForm").addEventListener("submit",async e=>{e.preventDefault();const msg=$("fxMsg");const a=parseFloat($("xAmt").value);
+  const f={name:$("xName").value.trim(),amount:Math.round(a*100)/100,keyword:$("xKey").value.trim(),category:$("xCat").value,person:$("xPerson").value,cycle:+$("xCycle").value};
+  if(!f.name||!f.keyword||!isFinite(a)){msg.innerHTML='<span style="color:var(--danger)">צריך למלא שם, סכום ומילת חיפוש.</span>';return}
+  const id=S.editFx||"f"+uid();const prev=S.fixed.find(x=>x.id===id);if(prev&&prev.note)f.note=prev.note;
+  try{if(S.db)await S.db.doc("fixed/"+id).set(f);else{S.fixed=S.fixed.filter(x=>x.id!==id).concat([Object.assign({id},f)]);renderAll()}msg.innerHTML=`<span style="color:var(--ok)">✓ נשמר: ${esc(f.name)}</span>`;resetFx()}
+  catch(err){msg.innerHTML=`<span style="color:var(--danger)">${esc(dbErrMsg(err))}</span>`}});
+async function delFx(id){const key="fx/"+id;if(S.delArm!==key){S.delArm=key;renderFixed();return}S.delArm=null;try{if(S.db)await S.db.doc("fixed/"+id).delete();else{S.fixed=S.fixed.filter(x=>x.id!==id);renderAll()}}catch(e){dbErr(e)}}
+
+/* ---------- shopping ---------- */
+function renderShop(){
+  const items=S.shop;const open=items.filter(i=>!i.done).length;$("shopCount").textContent=items.length?`${open} נשארו מתוך ${items.length}`:"";
+  const list=items.slice().sort((a,b)=>(a.done-b.done)||(a.at||0)-(b.at||0));
+  $("shopList").innerHTML=list.length?list.map(i=>`<div class="shop ${i.done?"done":""}"><input type="checkbox" data-sdone="${esc(i.id)}" ${i.done?"checked":""} aria-label="נקנה"><span class="nm">${esc(i.name)}</span><input type="number" min="1" step="1" value="${+i.qty||1}" data-sqty="${esc(i.id)}" aria-label="כמות"><button class="ghost" data-sdel="${esc(i.id)}" aria-label="הסרה">✕</button></div>`).join(""):'<p class="muted">הרשימה ריקה. מוסיפים פריט למעלה, וכל בני הבית רואים את אותה רשימה.</p>';
+  $("shopActions").hidden=!items.length;
+  $("shopList").querySelectorAll("[data-sdone]").forEach(c=>c.onchange=()=>saveShop(S.shop.map(i=>i.id===c.dataset.sdone?Object.assign({},i,{done:c.checked}):i)));
+  $("shopList").querySelectorAll("[data-sqty]").forEach(c=>c.onchange=()=>{const q=Math.max(1,Math.round(+c.value||1));saveShop(S.shop.map(i=>i.id===c.dataset.sqty?Object.assign({},i,{qty:q}):i))});
+  $("shopList").querySelectorAll("[data-sdel]").forEach(b=>b.onclick=()=>saveShop(S.shop.filter(i=>i.id!==b.dataset.sdel)));
+  $("shopLinks").innerHTML=linkHtml(["chp","pricez"]).replace(/^<div class="links">|<\/div>$/g,"");
+  $("shopTips").disabled=!S.sample||!items.length;
+}
+let shopSaving=Promise.resolve();
+function saveShop(items){S.shop=items;renderShop();if(!S.db){persistLocal();return}shopSaving=shopSaving.then(()=>S.db.doc("shopping/list").set({items})).catch(e=>dbErr(e))}
+$("shopForm").addEventListener("submit",e=>{e.preventDefault();const v=$("shopIn").value.trim();if(!v)return;const now=Date.now();const add=v.split(/[,،\n]/).map(s=>s.trim()).filter(Boolean).map((n,i)=>({id:uid(),name:n.slice(0,60),qty:1,done:false,at:now+i}));$("shopIn").value="";saveShop(S.shop.concat(add))});
+$("shopClear").onclick=()=>saveShop(S.shop.filter(i=>!i.done));
+$("shopCopy").onclick=async()=>{const txt=S.shop.filter(i=>!i.done).map(i=>(i.qty>1?i.qty+" × ":"")+i.name).join("\n");const m=$("shopMsg");try{await navigator.clipboard.writeText(txt);m.textContent="הרשימה הועתקה"}catch(e){m.textContent="לא הצלחתי להעתיק. אפשר לסמן את הרשימה ולהעתיק ידנית."}setTimeout(()=>m.textContent="",3000)};
+$("shopTips").onclick=async()=>{if(!S.sample)return;const out=$("shopTipsOut");S.shopCtl=new AbortController();$("shopStop").hidden=false;$("shopStop").onclick=()=>S.shopCtl.abort();out.innerHTML='<p class="muted"><span class="spin"></span> חושב…</p>';
+  const list=S.shop.filter(i=>!i.done).map(i=>(i.qty>1?i.qty+" ":"")+i.name).join(", ");
+  try{const r=await S.sample(`זו רשימת קניות לסופר של משפחה בישראל: ${list}.
+תן/י 3-5 רעיונות קצרים ומעשיים לחסוך בסל הזה: מותג פרטי מול מותג, אריזה חסכונית, מוצרים שכדאי לקנות בשוק או באונליין, מה לקנות במבצע. בלי מחירים ספציפיים (אין לך מחירים עדכניים). עברית פשוטה, כל רעיון בשורה שמתחילה ב"• ", בלי markdown, עד 90 מילים.`,{signal:S.shopCtl.signal,modelTier:"quick",onText:({text})=>{out.innerHTML=`<p style="white-space:pre-wrap">${esc(text)}</p>`}});out.innerHTML=`<p style="white-space:pre-wrap">${esc(r.text)}</p>`}
+  catch(e){out.innerHTML=e.code==="cancelled"?"":`<div class="banner err">${esc(sampleErr(e))}</div>`}$("shopStop").hidden=true};
+
+/* ---------- home: members + theme ---------- */
+function renderHome(){renderBackup();
+  const ppl=people();const counts={};for(const t of allTx())counts[t.person]=(counts[t.person]||0)+1;
+  $("members").innerHTML=ppl.map(p=>`<div class="member"><i class="dot" style="background:${personColor(p.id)};width:14px;height:14px"></i><input type="text" value="${esc(p.name)}" data-mem="${esc(p.id)}" aria-label="שם"><span class="muted small num" style="min-width:64px">${counts[p.id]||0} תנועות</span><button class="ghost ${S.delArm==="mem/"+p.id?"danger":""}" data-memdel="${esc(p.id)}" aria-label="הסרה">${S.delArm==="mem/"+p.id?"להסיר?":"✕"}</button></div>`).join("");
+  $("members").querySelectorAll("[data-mem]").forEach(inp=>inp.onchange=()=>{const n=inp.value.trim();if(!n)return;saveSettings({people:people().map(p=>p.id===inp.dataset.mem?{id:p.id,name:n.slice(0,30)}:p)})});
+  $("members").querySelectorAll("[data-memdel]").forEach(b=>b.onclick=()=>{const id=b.dataset.memdel;const msg=$("memMsg");
+    if(people().length<=1){msg.innerHTML='<span style="color:var(--danger)">צריך להשאיר לפחות בן בית אחד.</span>';return}
+    if(counts[id]){msg.innerHTML=`<span style="color:var(--danger)">ל${esc(personName(id))} יש ${counts[id]} תנועות. כדי להסיר, צריך קודם למחוק או להעביר אותן.</span>`;return}
+    if(S.delArm!=="mem/"+id){S.delArm="mem/"+id;renderHome();return}S.delArm=null;saveSettings({people:people().filter(p=>p.id!==id)})});
+  $("swatches").innerHTML=Object.entries(THEMES).map(([k,t])=>`<button type="button" class="swatch" data-theme-k="${k}" aria-pressed="${(S.settings.theme||"max")===k}"><i><span style="background:${t.accent}"></span><span style="background:${t.soft}"></span><span style="background:${t.var}"></span></i><span class="small">${esc(t.label)}</span></button>`).join("");
+  $("swatches").querySelectorAll("[data-theme-k]").forEach(b=>b.onclick=()=>saveSettings({theme:b.dataset.themeK}));
+}
+$("bkExport").onclick=exportBackup;
+$("bkImport").onclick=()=>$("bkFile").click();
+$("bkFile").addEventListener("change",e=>{const f=e.target.files[0];e.target.value="";if(f)importBackup(f)});
+function renderBackup(){const local=S.dbState==="local";$("bkExport").hidden=!local;
+  $("bkText").textContent=local?"במצב מקומי הנתונים נמצאים רק בדפדפן הזה. אם מנקים את היסטוריית הדפדפן או מחליפים מחשב, הם נמחקים. קובץ גיבוי שומר הכול כקובץ במחשב, ואפשר לטעון אותו בחזרה או במכשיר אחר.":"הנתונים נשמרים בענן של Claude. אם יש לך קובץ גיבוי מהגרסה המקומית של הדף, אפשר לטעון אותו לכאן.";}
+$("addMember").addEventListener("submit",e=>{e.preventDefault();const n=$("newMember").value.trim();if(!n)return;if(people().length>=8){$("memMsg").innerHTML='<span style="color:var(--danger)">אפשר עד 8 בני בית.</span>';return}$("newMember").value="";saveSettings({people:people().concat([{id:"p"+uid().slice(-6),name:n.slice(0,30)}])});$("memMsg").innerHTML=`<span style="color:var(--ok)">✓ ${esc(n)} נוסף/ה. אפשר לשייך אליו/ה הוצאות בהעלאה ובהוספה הידנית.</span>`});
+async function saveSettings(patch){const s={people:people(),theme:S.settings.theme||"max"};Object.assign(s,patch);S.settings=s;renderAll();if(S.db){try{await S.db.doc("settings/main").set(s)}catch(e){dbErr(e)}}}
+
+/* ---------- shell ---------- */
+function setTab(t){document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.tab===t)));["overview","upload","tx","fixed","shop","home"].forEach(k=>$("tab-"+k).hidden=k!==t);try{localStorage.setItem("hb-tab",t)}catch(e){}window.scrollTo({top:0})}
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+$("prevM").onclick=()=>{S.month=addM(S.month,-1);S.monthTouched=true;S.delArm=null;renderAll()};
+$("nextM").onclick=()=>{S.month=addM(S.month,1);S.monthTouched=true;S.delArm=null;renderAll()};
+function dbErrMsg(e){const c=e&&e.code;if(c==="invalid_argument"){S.dbState="readonly";banner();return"אין הרשאה לשמור. צריך הרשאת עריכה לדף."}if(c==="quota_exceeded")return"נגמר המקום לנתונים בדף. אפשר למחוק חודשים ישנים.";if(c==="revoked")return"הגישה לדף השתנתה. כדאי לרענן.";return"השמירה נכשלה. כדאי לנסות שוב."}
+function dbErr(e){const t=dbErrMsg(e);$("banner").innerHTML=`<div class="banner err">${esc(t)}</div>`;setTimeout(banner,6000)}
+
+try{const t=localStorage.getItem("hb-tab");if(t&&$("tab-"+t))setTab(t)}catch(e){}
+renderAll();
+
+if(!window.claude){S.dbState="local";loadLocal();renderAll()}
+(async()=>{
+  const cl=window.claude;if(!cl)return;
+  const [db,sample]=await Promise.all([cl&&cl.use?cl.use("db").catch(()=>null):null,cl&&cl.use?cl.use("sample").catch(()=>null):null]);
+  S.sample=sample||null;if(S.sample){try{S.limits=await S.sample.limits()}catch(e){S.limits=null}}
+  if(!db){S.dbState="local";loadLocal();renderAll();return}
+  S.db=db;let got=0;const ready=()=>{if(++got>=2&&S.dbState==="loading")S.dbState="ok";renderAll()};
+  const onErr=e=>{if(e&&e.code==="revoked")S.dbState="none";renderAll()};
+  db.collection("batches").onSnapshot(s=>{S.batches=s.docs.map(d=>Object.assign({id:d.id},d.data()));ready()},onErr);
+  db.collection("fixed").onSnapshot(s=>{S.fixed=s.docs.map(d=>Object.assign({id:d.id},d.data()));ready()},onErr);
+  db.doc("settings/main").onSnapshot(s=>{if(s.exists)S.settings=Object.assign({},s.data());renderAll()},onErr);
+  db.doc("shopping/list").onSnapshot(s=>{S.shop=s.exists&&Array.isArray(s.data().items)?s.data().items:[];renderShop()},onErr);
+  db.collection("analyses").onSnapshot(s=>{const a={};s.docs.forEach(d=>a[d.id]=d.data());S.analyses=a;if(!S.anBusy)renderOverview()},onErr);
+})();
+})();
+</script>
+
+</body>
+</html>
