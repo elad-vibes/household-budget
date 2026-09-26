@@ -98,9 +98,9 @@ export function renderJoin(): SafeHtml {
   const info = a.invite as { household_name: string; role: string; person_name: string | null } | null;
   if (a.inviteError) return html`<div class="auth">${logo}<h1>הזמנה</h1>${banner(a.inviteError, "err")}<p><a href="#/">למסך הכניסה</a></p></div>`;
   if (!info) return html`<div class="auth">${logo}<p class="muted"><span class="spin"></span> בודק את ההזמנה…</p></div>`;
-  const role = { owner: "בעלים", member: "חבר/ה", viewer: "צפייה בלבד" }[info.role] ?? info.role;
+  const role = { owner: "מנהל/ת משק הבית", member: "חבר/ה", viewer: "צפייה בלבד" }[info.role] ?? info.role;
   return html`<div class="auth">${logo}<h1>הוזמנתם ל"${info.household_name}"</h1>
-    <p class="muted">הרשאה: ${role}. ${info.role === "owner" ? "לבעלים נדרש גם אימות דו-שלבי עם אפליקציית אימות — נגדיר אותו מיד אחרי הכניסה." : ""}</p>
+    <p class="muted">הרשאה: ${role}. ${info.role === "owner" ? "למנהל/ת נדרש גם אימות דו-שלבי עם אפליקציית אימות — נגדיר אותו מיד אחרי הכניסה." : ""}</p>
     ${a.msg ? banner(a.msg, a.msgKind ?? "err") : ""}
     <form class="card" data-submit="join-submit">
       <label class="f">איך לקרוא לך באפליקציה?<input type="text" id="joinName" maxlength="30" required value="${a.joinName ?? info.person_name ?? ""}"></label>

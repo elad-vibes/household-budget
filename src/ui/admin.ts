@@ -51,13 +51,13 @@ export function renderAdmin(): SafeHtml {
         <input type="number" name="qa" min="0" value="${r.quota_analyses}" aria-label="מכסת ניתוחים">
         <input type="number" name="qu" min="0" step="0.5" value="${r.quota_usd}" aria-label="תקרת דולר">
         <button type="submit">שמירה</button></form></td>
-      <td>${r.members === 0 ? html`<button class="ghost" data-click="adm-owner-invite" data-id="${r.household_id}">קישור לבעלים</button>` : ""}
+      <td>${r.members === 0 ? html`<button class="ghost" data-click="adm-owner-invite" data-id="${r.household_id}">קישור למנהל/ת</button>` : ""}
         <button class="ghost ${isArmed("adm-del/" + r.household_id) ? "danger" : ""}" data-click="adm-delete" data-id="${r.household_id}">${isArmed("adm-del/" + r.household_id) ? "למחוק הכול?" : "מחיקה"}</button></td>
     </tr>`)}
     </tbody></table></div>
   </div>
   <div class="card admin"><h2>משק בית חדש</h2>
-    <p class="muted small">יוצר משק בית ריק וקישור הזמנה חד-פעמי לבעלים (תקף 7 ימים). שולחים את הקישור למשפחה.</p>
+    <p class="muted small">יוצר משק בית ריק וקישור הזמנה חד-פעמי למנהל/ת משק הבית (תקף 7 ימים). שולחים את הקישור למשפחה.</p>
     <form class="row" style="flex-wrap:nowrap" data-submit="adm-create"><input type="text" id="admName" maxlength="60" required placeholder="שם משק הבית"><button class="primary" type="submit">יצירה</button></form>
     ${x.link ? html`<div class="banner ok"><div class="secret">${x.link}</div><button data-click="adm-copy">העתקת הקישור</button></div>` : ""}
   </div>`;

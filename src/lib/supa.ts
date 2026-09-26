@@ -43,7 +43,9 @@ export async function invoke<T = any>(name: string, body: unknown): Promise<T> {
 export function dbMessage(e: any): string {
   const m = String(e?.message ?? "");
   if (/not_owner/.test(m)) return "רק בעלי משק הבית יכולים לעשות את זה (ואחרי אימות דו-שלבי).";
-  if (/last_owner/.test(m)) return "צריך להשאיר לפחות בעלים אחד במשק הבית.";
+  if (/last_owner|use_transfer/.test(m)) return "צריך קודם להעביר את הניהול (בכרטיס \"העברת ניהול\").";
+  if (/owner_invite/.test(m)) return "למשק בית יש מנהל/ת אחד/ת. אפשר להזמין חברים או צפייה בלבד.";
+  if (/household_has_owner/.test(m)) return "למשק הבית כבר יש מנהל/ת, ולכן ההזמנה הזאת לא בתוקף.";
   if (/use_delete_household/.test(m)) return "אתם האחרונים במשק הבית. אפשר למחוק את משק הבית במקום לעזוב.";
   if (/too_many_invites/.test(m)) return "יש יותר מדי הזמנות פתוחות. אפשר לבטל חלק מהן.";
   if (/invite_used/.test(m)) return "ההזמנה כבר שימשה להצטרפות.";

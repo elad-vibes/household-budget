@@ -18,7 +18,7 @@ export function createDeleteAccountHandler(deps: Deps) {
     const prep = await deps.rpc<any>("svc_prepare_account_deletion", { p_user: claims.sub });
     if (!prep?.ok) {
       throw new HttpError(409, "last_owner",
-        "אתם הבעלים היחידים של משק בית שיש בו עוד אנשים. צריך קודם להפוך מישהו אחר לבעלים, או למחוק את משק הבית.",
+        "אתם מנהלי משק בית שיש בו עוד אנשים. צריך קודם להעביר את הניהול (בכרטיס \"העברת ניהול\"), או למחוק את משק הבית.",
         { households: prep?.blocked ?? [] });
     }
     await deps.admin.deleteUser(claims.sub);
@@ -51,7 +51,7 @@ export function createMfaResetHandler(deps: Deps) {
     const can = await deps.rpc<boolean>("svc_can_reset_mfa", {
       p_household: body.household_id, p_caller: claims.sub, p_target: body.user_id,
     });
-    if (!can) throw new HttpError(403, "not_allowed", "אפשר לאפס אימות רק לבני בית שאינם בעלים.");
+    if (!can) throw new HttpError(403, "not_allowed", "אפשר לאפס אימות רק לבני בית שאינם המנהל/ת.");
     for (const id of await deps.admin.listFactorIds(body.user_id)) await deps.admin.deleteFactor(body.user_id, id);
     await deps.rpc("svc_clear_recovery_codes", { p_user: body.user_id });
     deps.log("mfa_reset", {});

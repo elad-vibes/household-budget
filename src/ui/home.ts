@@ -8,7 +8,7 @@ import { activePeople } from "../domain/calc.ts";
 import { canWrite, ctx, flash, household, isOwner, rerender, S } from "../state.ts";
 import {
   addPerson, chooseHousehold, createInvite, deleteHousehold, deletePerson, fn, removeMember, renameHousehold,
-  revokeInvite, setMyName, setRequireMfa, setRole, updatePerson, updateSettings,
+  revokeInvite, setMyName, setRequireMfa, setRole, transferOwnership, updatePerson, updateSettings,
 } from "../data.ts";
 import { appUrl, dbMessage, sb } from "../lib/supa.ts";
 import { exportExcel, exportJson, importBackup, legacyCount, legacyData } from "../importer.ts";
@@ -17,7 +17,7 @@ import { banner, copyText } from "./common.ts";
 /** Phase 2 cards (notifications…) register here. */
 export const homeCards: (() => SafeHtml)[] = [];
 
-const ROLE: Record<string, string> = { owner: "בעלים", member: "חבר/ה", viewer: "צפייה בלבד" };
+const ROLE: Record<string, string> = { owner: "מנהל/ת", member: "חבר/ה", viewer: "צפייה בלבד" };
 
 export function renderHome(): SafeHtml {
   return html`${householdCard()}${peopleCard()}${membersCard()}${receiptSettingsCard()}${securityCard()}
@@ -62,20 +62,36 @@ function membersCard(): SafeHtml {
       const me = m.user_id === S.user?.id;
       const armed = isArmed("member/" + m.user_id);
       return html`<div class="member"><div class="who">${m.display_name || "ללא שם"}${me ? " (את/ה)" : ""}<small>${ROLE[m.role]} · הצטרפות ${fmtDate(m.joined_at)}</small></div>
-        ${own && !me ? html`<select data-change="member-role" data-id="${m.user_id}" aria-label="תפקיד">${(["owner", "member", "viewer"] as const).map((r) => html`<option value="${r}" ${attr(m.role === r, "selected")}>${ROLE[r]}</option>`)}</select>` : ""}
+        ${own && !me ? html`<select data-change="member-role" data-id="${m.user_id}" aria-label="תפקיד">${(["member", "viewer"] as const).map((r) => html`<option value="${r}" ${attr(m.role === r, "selected")}>${ROLE[r]}</option>`)}</select>` : ""}
         ${own && !me && m.role !== "owner" ? html`<button class="ghost" data-click="member-mfa-reset" data-id="${m.user_id}" title="איפוס אימות דו-שלבי">איפוס 2FA</button>` : ""}
         ${(own && !me) ? html`<button class="ghost ${armed ? "danger" : ""}" data-click="member-remove" data-id="${m.user_id}">${armed ? "להסיר?" : "הסרה"}</button>` : ""}</div>`;
     })}</div>
     ${own ? html`<h3>הזמנת בן בית</h3>
-      <p class="muted small">הקישור מתאים לאדם אחד, תקף 7 ימים, ונקשר לכתובת המייל הראשונה שמשתמשת בו. בעלים צריכים אימות דו-שלבי.</p>
+      <p class="muted small">הקישור מתאים לאדם אחד, תקף 7 ימים, ונקשר לכתובת המייל הראשונה שמשתמשת בו. למשק הבית יש מנהל/ת אחד/ת, שחייב/ת אימות דו-שלבי.</p>
       <form class="grid2" data-submit="invite-create">
         <label class="f">שם (לא חובה)<input type="text" id="invName" maxlength="30" placeholder="למשל: סבתא"></label>
-        <label class="f">הרשאה<select id="invRole"><option value="member">חבר/ה – מוסיפים ועורכים</option><option value="viewer">צפייה בלבד</option><option value="owner">בעלים נוסף</option></select></label>
+        <label class="f">הרשאה<select id="invRole"><option value="member">חבר/ה – מוסיפים ועורכים</option><option value="viewer">צפייה בלבד</option></select></label>
         <div class="row end" style="grid-column:1/-1"><button class="primary" type="submit">יצירת קישור הזמנה</button></div>
       </form>
       ${link ? html`<div class="banner ok"><div>הקישור מוכן. אפשר לשלוח אותו בוואטסאפ:</div><div class="secret" style="margin:8px 0">${link}</div>
         <div class="row"><button data-click="invite-copy">העתקה</button>${"share" in navigator ? html`<button data-click="invite-share">שיתוף</button>` : ""}</div></div>` : ""}
       ${pending.length ? html`<div>${pending.map((i) => html`<div class="fxrow"><div class="n">${i.person_name || "הזמנה"} · ${ROLE[i.role]}<small>${i.claimed_email ? "נקשרה ל-" + i.claimed_email : "עוד לא נפתחה"} · עד ${fmtDate(i.expires_at)}</small></div><span></span><button class="ghost" data-click="invite-revoke" data-id="${i.id}">ביטול</button></div>`)}</div>` : ""}` : ""}
+  </div>${transferCard()}`;
+}
+
+/** Owner only: hand the household to another member (roles swap in one step). */
+function transferCard(): SafeHtml {
+  const others = S.members.filter((m) => m.user_id !== S.user?.id);
+  if (!isOwner() || !others.length) return html``;
+  const pick: string = S.extra.transferTo ?? "";
+  const who = others.find((m) => m.user_id === pick);
+  const armed = !!who && isArmed("transfer/" + pick);
+  return html`<div class="card">
+    <h2>העברת ניהול</h2>
+    <p class="muted small">למשק הבית יש מנהל/ת אחד/ת. אחרי ההעברה את/ה נשאר/ת כחבר/ה, והמנהל/ת החדש/ה יתבקש/תתבקש להגדיר אימות דו-שלבי. כדי לעזוב את משק הבית או למחוק את החשבון, קודם מעבירים את הניהול.</p>
+    <label class="f">למי להעביר<select id="trTo" data-change="transfer-pick"><option value="">בחירה…</option>${others.map((m) => html`<option value="${m.user_id}" ${attr(m.user_id === pick, "selected")}>${m.display_name || "ללא שם"} (${ROLE[m.role]})</option>`)}</select></label>
+    ${armed ? html`<div class="banner warn">${who!.display_name || "ללא שם"} יהיה/תהיה המנהל/ת, ואת/ה תהיה/תהיה חבר/ה. ללחוץ שוב לאישור.</div>` : ""}
+    <div class="row end"><button class="${armed ? "danger" : ""}" data-click="transfer" ${attr(!who, "disabled")}>${armed ? "כן, להעביר את הניהול" : "העברת ניהול"}</button></div>
   </div>`;
 }
 
@@ -141,13 +157,14 @@ function accountCard(): SafeHtml {
   const armedHH = isArmed("hh-delete");
   return html`<div class="card"><h2>חשבון</h2>
     <div class="row"><button data-click="go" data-to="install">התקנה למסך הבית</button>${S.isAdmin ? html`<button data-click="go" data-to="admin">ניהול מערכת</button>` : ""}<button data-click="signout">יציאה</button><button class="ghost" data-click="signout-all">יציאה מכל המכשירים</button></div>
-    ${S.members.length > 1 && !(isOwner() && S.members.filter((m) => m.role === "owner").length === 1) ? html`<button class="ghost danger" data-click="leave">עזיבת משק הבית</button>` : ""}
+    ${S.members.length > 1 && !isOwner() ? html`<button class="ghost danger" data-click="leave">עזיבת משק הבית</button>` : ""}
+    ${S.members.length > 1 && isOwner() ? html`<p class="muted small">כדי לעזוב את משק הבית, קודם מעבירים את הניהול למישהו אחר.</p>` : ""}
     ${isOwner() ? html`<details><summary class="small">מחיקת משק הבית וכל הנתונים שלו</summary>
       <p class="small">כל התנועות, הקבועות, הקניות והניתוחים של "${household()?.name ?? ""}" יימחקו לצמיתות, לכל בני הבית.</p>
       <label class="f">כדי לאשר, הקלידו את שם משק הבית<input type="text" id="hhDelName"></label>
       <button class="danger ${armedHH ? "primary" : ""}" data-click="hh-delete">${armedHH ? "ללחוץ שוב למחיקה סופית" : "מחיקת משק הבית"}</button></details>` : ""}
     <details><summary class="small">מחיקת החשבון שלי</summary>
-      <p class="small">החשבון נמחק. משקי בית שאתם היחידים בהם נמחקים עם כל הנתונים. אם אתם הבעלים היחידים של משק בית עם אנשים נוספים, צריך קודם להעביר בעלות.</p>
+      <p class="small">החשבון נמחק. משקי בית שאתם היחידים בהם נמחקים עם כל הנתונים. אם אתם מנהלי משק בית שיש בו אנשים נוספים, צריך קודם להעביר את הניהול.</p>
       <label class="f">כדי לאשר, הקלידו: מחיקה<input type="text" id="accDel"></label>
       <button class="danger" data-click="acc-delete">מחיקת החשבון</button></details>
   </div>`;
@@ -179,6 +196,12 @@ on("submit", "person-add", () => {
   run(() => addPerson(n), `✓ ${n} נוסף/ה. אפשר לשייך אליו/ה הוצאות.`);
 });
 on("change", "member-role", (el) => run(() => setRole(el.dataset.id!, (el as HTMLSelectElement).value), "✓ ההרשאה עודכנה"));
+on("change", "transfer-pick", (el) => { S.extra.transferTo = (el as HTMLSelectElement).value; rerender(); });
+on("click", "transfer", () => {
+  const to: string = S.extra.transferTo ?? "";
+  if (!to || !armed2("transfer/" + to, rerender)) return;
+  run(async () => { await transferOwnership(to); S.extra.transferTo = undefined; location.reload(); }, "✓ הניהול הועבר");
+});
 on("click", "member-remove", (el) => { if (armed2("member/" + el.dataset.id, rerender)) run(() => removeMember(el.dataset.id!), "✓ הוסר/ה ממשק הבית"); });
 on("click", "member-mfa-reset", (el) => run(() => fn.mfaReset(el.dataset.id!), "✓ האימות הדו-שלבי אופס. בכניסה הבאה יוגדר מחדש."));
 on("submit", "invite-create", () => run(async () => {

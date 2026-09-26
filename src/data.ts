@@ -221,6 +221,10 @@ export async function setRole(userId: string, role: string) {
   check(await sb.rpc("set_member_role", { p_household: S.hh, p_user: userId, p_role: role }));
   S.members = S.members.map((m) => (m.user_id === userId ? { ...m, role: role as Member["role"] } : m));
 }
+/** Owner → member, target → owner, in one transaction (0007). Needs a reload: my role changed. */
+export async function transferOwnership(userId: string) {
+  check(await sb.rpc("transfer_ownership", { p_household: S.hh, p_new_owner: userId }));
+}
 export async function removeMember(userId: string) {
   check(await sb.rpc("remove_member", { p_household: S.hh, p_user: userId }));
   S.members = S.members.filter((m) => m.user_id !== userId);

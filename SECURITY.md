@@ -39,7 +39,7 @@ payload-free logging (tested: logs never contain file data or merchant names).
 | submit-receipts | member/owner | ≤10 images, magic bytes, ≤5MB, unique client ids | images inline in one Message Batch; **not stored** server-side |
 | poll-batches | cron secret (constant-time compare) | — | results sanitized; batch **deleted at Anthropic** after saving |
 | analyze-month | member/owner | month format, summary ≤14k chars | summary wrapped as data; links limited to the whitelist by schema **and** sanitizer |
-| delete-account | signed in (+aal2 if a factor exists) | confirm word | refuses if last owner of a shared household |
+| delete-account | signed in (+aal2 if a factor exists) | confirm word | refuses if owner of a shared household (transfer first) |
 | mfa-recover | signed in | code length | 5/hour; hashed single-use codes; removes lost factors → re-enroll |
 | mfa-reset | owner at aal2 | uuids | only non-owner members of the same household, never the super-admin |
 | notify | cron secret / signed-in (test) | — | pushes only to known push services |

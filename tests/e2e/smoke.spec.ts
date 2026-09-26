@@ -112,6 +112,11 @@ test.describe("owner and two-factor", () => {
     await expect(page.getByRole("heading", { name: "הזמנת בן בית" })).toBeVisible({ timeout: 20_000 });
     await page.getByRole("button", { name: "יצירת קישור הזמנה" }).click();
     await expect(page.locator(".secret")).toContainText("#/join/");
+    // one owner per household: no owner invites, promotion only through "העברת ניהול"
+    await expect(page.locator("#invRole option")).toHaveText(["חבר/ה – מוסיפים ועורכים", "צפייה בלבד"]);
+    await expect(page.getByRole("heading", { name: "העברת ניהול" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "העברת ניהול" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "עזיבת משק הבית" })).toHaveCount(0);
     await noHorizontalScroll(page);
   });
 });
