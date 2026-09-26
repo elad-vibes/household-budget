@@ -114,6 +114,9 @@ export function createPollBatchesHandler(deps: Deps) {
           completed++;
           done.push({ household_id: out.household_id, submitted_by: out.submitted_by, parsed: out.parsed });
         }
+        // Data minimization: the results are in our DB now; don't leave the
+        // receipt images/results stored at Anthropic for 29 days.
+        await deps.anthropic.messages.batches.delete(job.batch_id).catch(() => deps.log("batch_delete_failed", { job: job.id }));
       } catch (e) {
         const status = (e as any)?.status ?? 0;
         deps.log("poll_error", { job: job.id, status });

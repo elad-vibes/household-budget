@@ -78,7 +78,14 @@ export async function release(deps: Deps, id: string) {
   }
 }
 
+/**
+ * The caller's IP for rate limiting. cf-connecting-ip is set by the edge proxy;
+ * otherwise the LAST x-forwarded-for hop (the one added by our proxy) — the
+ * first entries can be supplied by the client and must not be trusted.
+ */
 export function clientIp(req: Request): string {
-  const xf = req.headers.get("x-forwarded-for") ?? "";
-  return xf.split(",")[0].trim() || req.headers.get("cf-connecting-ip") || "unknown";
+  const cf = req.headers.get("cf-connecting-ip");
+  if (cf) return cf.trim();
+  const hops = (req.headers.get("x-forwarded-for") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  return hops[hops.length - 1] || "unknown";
 }

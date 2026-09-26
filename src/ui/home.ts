@@ -140,7 +140,7 @@ function backupCard(): SafeHtml {
 function accountCard(): SafeHtml {
   const armedHH = isArmed("hh-delete");
   return html`<div class="card"><h2>חשבון</h2>
-    <div class="row"><button data-click="go" data-to="install">התקנה למסך הבית</button>${S.isAdmin ? html`<button data-click="go" data-to="admin">ניהול מערכת</button>` : ""}<button data-click="signout">יציאה</button></div>
+    <div class="row"><button data-click="go" data-to="install">התקנה למסך הבית</button>${S.isAdmin ? html`<button data-click="go" data-to="admin">ניהול מערכת</button>` : ""}<button data-click="signout">יציאה</button><button class="ghost" data-click="signout-all">יציאה מכל המכשירים</button></div>
     ${S.members.length > 1 && !(isOwner() && S.members.filter((m) => m.role === "owner").length === 1) ? html`<button class="ghost danger" data-click="leave">עזיבת משק הבית</button>` : ""}
     ${isOwner() ? html`<details><summary class="small">מחיקת משק הבית וכל הנתונים שלו</summary>
       <p class="small">כל התנועות, הקבועות, הקניות והניתוחים של "${household()?.name ?? ""}" יימחקו לצמיתות, לכל בני הבית.</p>
@@ -218,6 +218,8 @@ on("click", "bk-legacy", async () => {
   rerender();
 });
 on("click", "signout", async () => { await sb.auth.signOut(); location.hash = ""; location.reload(); });
+// e.g. a lost phone: ends every session of this account on every device
+on("click", "signout-all", async () => { await sb.auth.signOut({ scope: "global" }); location.hash = ""; location.reload(); });
 on("click", "leave", () => { if (armed2("leave", rerender)) run(async () => { await removeMember(S.user!.id); location.reload(); }); });
 on("click", "hh-delete", () => {
   const typed = ($("hhDelName") as HTMLInputElement | null)?.value.trim();

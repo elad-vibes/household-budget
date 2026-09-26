@@ -103,6 +103,10 @@ export function makeDeps(over: Partial<FakeState> = {}) {
           if (s.retrieveError) throw s.retrieveError;
           return { id, ...s.batch };
         },
+        delete: async (id: string) => {
+          s.anthropicCalls.push({ kind: "delete", params: id });
+          return { id, type: "message_batch_deleted" };
+        },
         results: async (id: string) => {
           s.anthropicCalls.push({ kind: "results", params: id });
           return (async function* () { for (const r of s.batchResults) yield r; })();

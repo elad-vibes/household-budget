@@ -234,6 +234,8 @@ describe("poll-batches (cron)", () => {
     // Haiku $1/$5 per MTok, batch −50%: (4000×1 + 450×5)/1e6 × 0.5
     expect(done.p_usd).toBeCloseTo(0.003125, 4); // stored as numeric(10,5)
     expect(s.ready).toEqual([{ household_id: HH, submitted_by: expect.any(String), parsed: 1 }]);
+    // results saved → the batch is deleted at Anthropic (data minimization)
+    expect(s.anthropicCalls.filter((c) => c.kind === "delete").map((c) => c.params)).toEqual(["msgbatch_1"]);
   });
 
   it("fails a job whose batch no longer exists", async () => {
@@ -291,6 +293,12 @@ describe("invite-signin", () => {
     expect(r.status).toBe(410);
     expect(s.admin).toHaveLength(0);
   });
+  it("rate limits by the proxy-added IP, not a client-supplied one", async () => {
+    const { deps, s } = makeDeps();
+    await call(createInviteHandler(deps), req({ action: "info", token }, { headers: { "x-forwarded-for": "6.6.6.6, 203.0.113.9" } }));
+    expect(s.rpcCalls.find((c) => c.fn === "svc_rate_limit" && c.args.p_bucket === "invite")!.args.p_key).toBe("ip:203.0.113.9");
+  });
+
   it("validates token and e-mail, and rate limits by IP", async () => {
     const { deps } = makeDeps();
     const h = createInviteHandler(deps);
