@@ -61,3 +61,4 @@ token*.json
 !/.env.example
 !/public/icons/*.png
 !/tests/fixtures/**
+!/docs/design-pass/**

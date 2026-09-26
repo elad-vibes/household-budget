@@ -28,3 +28,4 @@ Decisions made during the autonomous build, with the reason. Newest at the botto
 | 22 | Real-name denylist is local (`.scan-denylist.txt`, built from the live DB by `npm run scan:names`) | Names of real families must never be written into the repo, not even into the scanner's list. `scan-ok` on a line = reviewed synthetic example. |
 | 23 | Import aliases per issuer + a "signed amount" mode (Discount's single "זכות/חובה" column) | Loud column checks need explicit aliases; the signed column is how Discount exports look. |
 | 24 | Commit messages in Hebrew from here on (מה שונה · למה · מה נבדק) | Mirrors hub AGENTS.md. Earlier commits stay in English. |
+| 25 | `docs/design-pass/**` added to the `.gitignore` allow-list (PNG screenshots) | Requested by design-brief.md (before/after at 390px). Screenshots come only from `tests/e2e/screens.spec.ts` on the synthetic live fixture (`example.test` users, invented merchants) — never real family data. |
