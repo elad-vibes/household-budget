@@ -4,13 +4,14 @@ import { readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
 const root = join(process.cwd(), "supabase", "functions");
-const deno = join(process.cwd(), "node_modules", ".bin", process.platform === "win32" ? "deno.cmd" : "deno");
+// Run the launcher with node directly (no shell: the project path contains spaces and Hebrew).
+const launcher = join(process.cwd(), "node_modules", "deno", "bin.cjs");
 let failed = 0;
 for (const name of readdirSync(root)) {
   const dir = join(root, name);
   if (name.startsWith("_") || !existsSync(join(dir, "index.ts"))) continue;
   try {
-    execFileSync(deno, ["check", "--quiet", "index.ts"], { cwd: dir, stdio: "pipe", shell: process.platform === "win32" });
+    execFileSync(process.execPath, [launcher, "check", "--quiet", "index.ts"], { cwd: dir, stdio: "pipe" });
     console.log(`ok   ${name}`);
   } catch (e) {
     failed++;
