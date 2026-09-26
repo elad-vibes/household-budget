@@ -49,7 +49,9 @@ export const RULES: [RegExp, string, boolean][] = [
   [/איקאה|ikea|הום סנטר|אייס|ace |טמבור|מחסני חשמל|ksp|באג|עמינח/i, "בית ותחזוקה", false],
   [/סינמה|קולנוע|יס פלאנט|הופעה|תיאטרון|eventim|לאן/i, "בילויים ופנאי", false],
   [/מלון|booking|airbnb|אל על|el al|ישראייר|ארקיע|wizz|ryanair/i, "חופשות ונסיעות", false],
-  [/\bbit\b|ביט|paybox|פייבוקס|משיכת מזומן|כספומט|\batm\b/i, "העברות ומזומן", false],
+  // ATM = money moved to cash, not an expense (payment-methods.md); bit/PayBox stay transfers
+  [/משיכת מזומן|משיכה מכספומט|כספומט|\batm\b/i, "משיכת מזומן", false],
+  [/\bbit\b|ביט|paybox|פייבוקס/i, "העברות ומזומן", false],
   [/הלוואה/i, "הלוואות", true],
   [/עמלה|דמי כרטיס|ריבית|דמי ניהול/i, "עמלות וריבית", false],
   [/פרחים|מתנה/i, "מתנות ואירועים", false],

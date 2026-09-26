@@ -4,6 +4,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { sb, invoke } from "./lib/supa.ts";
 import { S, rerender, mfaNeeded } from "./state.ts";
 import type { Analysis, Fixed, Household, Invite, Member, Person, Settings, ShopItem, Tx, Usage } from "./domain/types.ts";
+import type { PaymentMethod } from "./domain/match.ts";
 
 const HH_KEY = "hb2-hh";
 const num = (v: unknown) => (v === null || v === undefined ? 0 : Number(v));
@@ -64,7 +65,7 @@ async function fetchAll<T>(table: string, order: string, map: (r: any) => T = (r
 export async function loadHousehold() {
   if (!S.hh) return;
   const hh = S.hh;
-  const [people, tx, fixed, shop, analyses, members, profiles] = await Promise.all([
+  const [people, tx, fixed, shop, analyses, members, profiles, methods] = await Promise.all([
     fetchAll<Person>("people", "sort"),
     fetchAll<Tx>("transactions", "date", normTx),
     fetchAll<Fixed>("fixed_expenses", "created_at", normFixed),
@@ -72,12 +73,14 @@ export async function loadHousehold() {
     fetchAll<any>("analyses", "month"),
     sb.from("household_members").select("user_id, role, joined_at").eq("household_id", hh),
     sb.from("profiles").select("user_id, display_name"),
+    fetchAll<PaymentMethod>("payment_methods", "sort"),
   ]);
   if (S.hh !== hh) return; // switched meanwhile
   S.people = people;
   S.tx = tx;
   S.fixed = fixed;
   S.shop = shop;
+  S.methods = methods;
   S.analyses = Object.fromEntries(analyses.map((a: any) => [a.month, { month: a.month, data: a.data, created_at: a.created_at, model: a.model } as Analysis]));
   const names = new Map((profiles.data ?? []).map((p: any) => [p.user_id, p.display_name]));
   S.members = (members.data ?? []).map((m: any) => ({ ...m, display_name: names.get(m.user_id) || "" })) as Member[];
@@ -150,6 +153,35 @@ export async function updateTx(id: string, patch: Partial<Tx>) {
 export async function deleteTx(id: string) {
   check(await sb.from("transactions").delete().eq("id", id));
   S.tx = S.tx.filter((t) => t.id !== id);
+}
+
+// ------------------------------------------------------ payment methods
+export async function savePaymentMethod(m: Partial<PaymentMethod> & { id?: string }) {
+  const { id, household_id: _h, ...patch } = m;
+  const data = id
+    ? check(await sb.from("payment_methods").update(patch).eq("id", id).select("*").single())
+    : check(await sb.from("payment_methods").insert({ ...patch, household_id: S.hh }).select("*").single());
+  S.methods = [...S.methods.filter((x) => x.id !== (data as PaymentMethod).id), data as PaymentMethod];
+  return data as PaymentMethod;
+}
+export async function deletePaymentMethod(id: string) {
+  check(await sb.from("payment_methods").delete().eq("id", id));
+  S.methods = S.methods.filter((x) => x.id !== id);
+}
+/** One statement import in one transaction: insert new rows, merge waiting rows, flag leftovers (0008). */
+export async function applyStatement(methodId: string | null, rows: unknown[], merges: { id: string; date: string; month: string; amount: number }[], leftovers: string[]) {
+  const r = check(await sb.rpc("apply_statement", { p_household: S.hh, p_method: methodId, p_rows: rows, p_merges: merges, p_leftovers: leftovers })) as
+    { inserted: number; merged: number; unmatched: number };
+  await reloadTx();
+  return r;
+}
+/** Statement imported first: the logged row takes over the statement row. */
+export async function mergeStatementRow(keepId: string, statementId: string) {
+  check(await sb.rpc("merge_statement_row", { p_keep: keepId, p_statement: statementId }));
+  await reloadTx();
+}
+export async function reloadTx() {
+  S.tx = await fetchAll<Tx>("transactions", "date", normTx);
 }
 
 export async function saveFixed(f: Partial<Fixed> & { id?: string }) {

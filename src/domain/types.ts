@@ -40,6 +40,11 @@ export interface Tx {
   receipt_client_id?: string | null;
   created_by?: string | null;
   created_at?: string;
+  // payment methods (0008): card/bit/transfer items wait for the statement and are merged, never counted twice
+  payment_method_id?: string | null;
+  match_status?: "none" | "awaiting_statement" | "matched" | "unmatched_after_statement";
+  matched_transaction_id?: string | null;
+  payment_hint?: string;
 }
 
 export interface Fixed {
@@ -53,6 +58,7 @@ export interface Fixed {
   cycle: 1 | 2 | 12;
   due_day: number | null;
   note: string;
+  payment_method_id?: string | null;
 }
 
 export interface ShopItem { id: string; household_id: string; name: string; qty: number; done: boolean; sort: number }
@@ -91,4 +97,10 @@ export interface DraftDoc {
   statementTotal: number | null;
   source: "import" | "statement";
   rows: DraftRow[];
+  /** which payment method this statement belongs to ("" = not chosen yet, "none" = don't match) */
+  methodId: string;
+  /** text used to auto-detect the method (file name, header lines with last 4 digits / issuer) */
+  hint: string;
+  /** user's answers for ambiguous rows: row id → waiting transaction id ("" = none of them) */
+  choices: Record<string, string>;
 }

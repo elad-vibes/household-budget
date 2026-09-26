@@ -8,6 +8,7 @@ import { canWrite, ctx, flash, rerender, S } from "../state.ts";
 import { deleteFixed, saveFixed } from "../data.ts";
 import { dbMessage } from "../lib/supa.ts";
 import { catOptions, personOptionsHtml } from "./common.ts";
+import { methodById, methodLabel, methodSelect } from "../payments.ts";
 
 /** Phase 2 (fixed-expense suggestions) renders above the list. */
 export const fixedTop: (() => SafeHtml)[] = [];
@@ -23,7 +24,7 @@ export function renderFixed(): SafeHtml {
     <p class="muted small">כל הוצאה כאן מזוהה אוטומטית בתנועות לפי מילת החיפוש, ובסקירה רואים אם היא ירדה החודש ובאיזה סכום.</p>
     <div>${S.fixed.length ? S.fixed.slice().sort((a, b) => b.amount - a.amount).map((f) => {
       const armed = isArmed("fx/" + f.id);
-      return html`<div class="fxrow"><div class="n">${f.name}<small>${f.category} · מזוהה לפי "${f.keyword}"${f.person_id ? " · " + personName(c, f.person_id) : ""}${f.cycle === 2 ? " · כל חודשיים" : f.cycle === 12 ? " · שנתי" : ""}${f.due_day ? ` · יורד ב-${f.due_day} לחודש` : ""}</small></div>
+      return html`<div class="fxrow"><div class="n">${f.name}<small>${f.category} · מזוהה לפי "${f.keyword}"${f.person_id ? " · " + personName(c, f.person_id) : ""}${f.cycle === 2 ? " · כל חודשיים" : f.cycle === 12 ? " · שנתי" : ""}${f.due_day ? ` · יורד ב-${f.due_day} לחודש` : ""}${f.payment_method_id ? " · " + methodLabel(methodById(f.payment_method_id)) : ""}</small></div>
         <div class="a num">${ils2(f.amount)}</div>
         ${w ? html`<div class="row" style="gap:2px"><button class="ghost" data-click="fx-edit" data-id="${f.id}">עריכה</button><button class="ghost ${armed ? "danger" : ""}" data-click="fx-del" data-id="${f.id}" aria-label="מחיקה">${armed ? "למחוק?" : "✕"}</button></div>` : html`<span></span>`}</div>`;
     }) : html`<p class="muted">עוד אין הוצאות קבועות.</p>`}</div>
@@ -41,6 +42,7 @@ export function renderFixed(): SafeHtml {
         <option value="2" ${attr(edit?.cycle === 2, "selected")}>כל חודשיים</option>
         <option value="12" ${attr(edit?.cycle === 12, "selected")}>פעם בשנה</option></select></label>
       <label class="f">יום חיוב בחודש (לתזכורות, לא חובה)<input type="number" id="xDue" min="1" max="31" inputmode="numeric" value="${edit?.due_day ?? ""}"></label>
+      <label class="f">איך משולם (למשל הוראת קבע בבנק)${methodSelect("xMethod", edit?.payment_method_id)}</label>
       <div class="row end" style="grid-column:1/-1">
         ${edit ? html`<button type="button" class="ghost" data-click="fx-edit" data-id="">ביטול</button>` : ""}
         <button class="primary" type="submit">שמירה</button>
@@ -67,7 +69,7 @@ on("submit", "fx-save", async () => {
     await saveFixed({
       id: S.editFx ?? undefined, name, amount: Math.round(a * 100) / 100, keyword, category: val("xCat"),
       person_id: person === "any" || person === "" ? null : person, cycle: +val("xCycle") as 1 | 2 | 12,
-      due_day: due >= 1 && due <= 31 ? due : null,
+      due_day: due >= 1 && due <= 31 ? due : null, payment_method_id: val("xMethod") || null,
     });
     flash(`✓ נשמר: ${name}`, "ok");
     S.editFx = null;

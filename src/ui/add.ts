@@ -14,6 +14,8 @@ import { capture, removeReceipt, sendQueued, updateReceipt } from "../receipts.t
 import { banner, catOptions, personOptionsHtml, personSelect } from "./common.ts";
 import { renderReview } from "./review.ts";
 import { I } from "./icons.ts";
+import { chipValue, guessStatementMethod, lastMethod, methodById, methodChips, rememberMethod, settle } from "../payments.ts";
+import { initialStatus, isAtmRow } from "../domain/match.ts";
 
 export function renderAdd(): SafeHtml {
   if (!canWrite()) return banner("יש לך הרשאת צפייה בלבד, אז אי אפשר להוסיף הוצאות.", "warn");
@@ -39,6 +41,7 @@ export function renderAdd(): SafeHtml {
         <label class="f" style="grid-column:1/-1">על מה<input type="text" id="mDesc" required maxlength="80" placeholder="למשל: שוק, מתנה ליום הולדת, מזומן לבייביסיטר"></label>
         <label class="f">קטגוריה<select id="mCat">${catOptions("סופר ומכולת", false)}</select></label>
         <label class="f">של מי${personSelect("mPerson", S.upPerson || null)}</label>
+        <div class="f" style="grid-column:1/-1"><span id="mPmL">איך שילמת?</span>${methodChips("manual", chipValue("manual", lastMethod(S.upPerson || null)))}</div>
         <div class="row between" style="grid-column:1/-1">
           <label class="chk"><input type="checkbox" id="mFixed"> הוצאה קבועה</label>
           <button class="primary" type="submit">הוספה</button>
@@ -194,15 +197,20 @@ on("change", "st-files", async (el) => {
   stStatus(errs.length ? errs.join(" · ") : null, "warn");
 });
 
-function toDraft(r: { title: string; docType: string; statementTotal: number | null; rows: any[] }, source: "import" | "statement"): DraftDoc {
+function toDraft(r: { title: string; docType: string; statementTotal: number | null; rows: any[]; hint?: string }, source: "import" | "statement"): DraftDoc {
   const person = S.upPerson || null;
   const existing = new Set(S.tx.map((t) => dupKey(t)));
+  const title = String(r.title || "מסמך").slice(0, 80);
+  const hint = String(r.hint || title);
   return {
-    title: String(r.title || "מסמך").slice(0, 80), docType: r.docType, statementTotal: typeof r.statementTotal === "number" ? r.statementTotal : null, source,
+    title, docType: r.docType, statementTotal: typeof r.statementTotal === "number" ? r.statementTotal : null, source,
+    methodId: guessStatementMethod({ title, hint }), hint, choices: {},
     rows: r.rows.map((x) => {
       const dup = existing.has(dupKey({ person_id: person, date: x.date, amount: x.amount, merchant: x.merchant }));
-      const excl = (EXCL as readonly string[]).includes(x.category) && x.category !== "הכנסה";
-      return { id: uid(), date: x.date, month: x.month, merchant: x.merchant, amount: x.amount, category: x.category, fixed: !!x.fixed, note: x.note ?? "", dup, keep: !dup && !excl };
+      // ATM = cash moved, not spent: saved (for the cash card) but never counted
+      const category = isAtmRow(x.merchant) ? "משיכת מזומן" : x.category;
+      const excl = (EXCL as readonly string[]).includes(category) && category !== "הכנסה" && category !== "משיכת מזומן";
+      return { id: uid(), date: x.date, month: x.month, merchant: x.merchant, amount: x.amount, category, fixed: !!x.fixed, note: x.note ?? "", dup, keep: !dup && !excl };
     }),
   };
 }
@@ -214,15 +222,21 @@ on("submit", "manual", async () => {
   const desc = ($("mDesc") as HTMLInputElement).value.trim();
   if (!d || !desc || !isFinite(a) || a === 0) { flash("צריך למלא תאריך, סכום ותיאור.", "err"); return; }
   const cat = ($("mCat") as HTMLSelectElement).value;
+  const person = ($("mPerson") as HTMLSelectElement).value || null;
+  const pm = chipValue("manual", lastMethod(S.upPerson || null));
+  if (S.methods.length && !methodById(pm)) { flash("צריך לבחור איך שילמת.", "err"); return; }
   try {
-    await insertTx([{
+    const [row] = await insertTx([{
       date: d, month: d.slice(0, 7), merchant: desc.slice(0, 80), amount: cat === "הכנסה" ? Math.abs(a) : Math.round(a * 100) / 100,
       category: cat, is_fixed: ($("mFixed") as HTMLInputElement).checked, note: "הוזן ידנית",
-      person_id: ($("mPerson") as HTMLSelectElement).value || null, source: "manual", source_title: "הוספה ידנית", status: "saved",
+      person_id: person, source: "manual", source_title: "הוספה ידנית", status: "saved",
+      payment_method_id: pm || null, match_status: cat === "הכנסה" ? "none" : initialStatus(methodById(pm)),
     }]);
+    if (pm) rememberMethod(person, pm);
+    const merged = row && cat !== "הכנסה" ? await settle(row) : null;
     ($("mAmt") as HTMLInputElement).value = "";
     ($("mDesc") as HTMLInputElement).value = "";
-    flash(`✓ נוסף: ${desc} · ${ils(a, 2)}`, "ok");
+    flash(`✓ נוסף: ${desc} · ${ils(a, 2)}${merged ? " · " + merged : ""}`, "ok");
   } catch (e: any) {
     const { dbMessage } = await import("../lib/supa.ts");
     flash(dbMessage(e), "err");

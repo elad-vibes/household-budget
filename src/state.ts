@@ -2,6 +2,7 @@
 import type { Ctx } from "./domain/calc.ts";
 import type { Analysis, DraftDoc, Fixed, Household, Invite, Member, Person, Role, Settings, ShopItem, Tx, Usage } from "./domain/types.ts";
 import type { QueuedReceipt } from "./lib/idb.ts";
+import type { PaymentMethod } from "./domain/match.ts";
 import { curMonth } from "./lib/format.ts";
 
 export type View =
@@ -25,6 +26,7 @@ export const S = {
   tx: [] as Tx[],
   fixed: [] as Fixed[],
   shop: [] as ShopItem[],
+  methods: [] as PaymentMethod[],     // payment methods of the household (0008)
   analyses: {} as Record<string, Analysis>,
   invites: [] as Invite[],
   usage: null as Usage | null,

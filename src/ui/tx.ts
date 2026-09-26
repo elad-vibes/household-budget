@@ -9,6 +9,8 @@ import { deleteTx, updateTx } from "../data.ts";
 import { dbMessage } from "../lib/supa.ts";
 import { catOptions, personOptionsHtml } from "./common.ts";
 import { renderReceiptReview } from "./review.ts";
+import { matchBadge, methodById, methodLabel, methodSelect, settle } from "../payments.ts";
+import { initialStatus } from "../domain/match.ts";
 
 export function renderTx(): SafeHtml {
   const c = ctx();
@@ -33,14 +35,15 @@ export function renderTx(): SafeHtml {
     }
     const armed = isArmed("tx/" + t.id);
     rows.push(html`<div class="tx">
-      <div class="m" data-click="${w ? "tx-edit" : ""}" data-id="${t.id}">${t.merchant}<small>${t.category} · ${personName(c, t.person_id)}${t.note ? " · " + t.note : ""}</small></div>
-      <div class="row" style="gap:6px">${isExcl(t) ? html`<span class="chip grey">לא נספר</span>` : isFixed(c, t) ? html`<span class="chip fx">קבוע</span>` : ""}<span class="a num ${t.amount < 0 ? "neg" : ""}">${ils(t.amount, 2)}</span></div>
+      <div class="m" data-click="${w ? "tx-edit" : ""}" data-id="${t.id}">${t.merchant}<small>${t.category} · ${personName(c, t.person_id)}${t.payment_method_id ? " · " + methodLabel(methodById(t.payment_method_id)) : ""}${t.note ? " · " + t.note : ""}</small></div>
+      <div class="row" style="gap:6px">${matchBadge(t)}${isExcl(t) ? html`<span class="chip grey">לא נספר</span>` : isFixed(c, t) ? html`<span class="chip fx">קבוע</span>` : ""}<span class="a num ${t.amount < 0 ? "neg" : ""}">${ils(t.amount, 2)}</span></div>
       ${w ? html`<button class="ghost ${armed ? "danger" : ""}" data-click="tx-del" data-id="${t.id}" aria-label="מחיקה">${armed ? "למחוק?" : "✕"}</button>` : html`<span></span>`}
       ${editing === t.id ? html`<form class="txedit" data-submit="tx-save" data-id="${t.id}">
         <label class="f">בית עסק<input type="text" id="eMerchant" maxlength="80" value="${t.merchant}"></label>
         <label class="f">סכום<input type="number" id="eAmount" step="0.01" inputmode="decimal" value="${t.amount}"></label>
         <label class="f">קטגוריה<select id="eCat">${catOptions(t.category)}</select></label>
         <label class="f">של מי<select id="ePerson">${personOptionsHtml(t.person_id)}</select></label>
+        <label class="f">איך שולם${methodSelect("eMethod", t.payment_method_id)}</label>
         <label class="chk"><input type="checkbox" id="eFixed" ${attr(t.is_fixed, "checked")}> הוצאה קבועה</label>
         <div class="row end"><button type="button" class="ghost" data-click="tx-edit" data-id="">ביטול</button><button class="primary" type="submit">שמירה</button></div>
       </form>` : ""}
@@ -72,13 +75,21 @@ on("submit", "tx-save", async (el) => {
   const v = (sel: string) => (el.querySelector(sel) as HTMLInputElement).value;
   const amount = parseFloat(v("#eAmount"));
   if (!isFinite(amount) || amount === 0 || !v("#eMerchant").trim()) { flash("צריך סכום ותיאור.", "err"); return; }
+  const before = S.tx.find((t) => t.id === id);
+  const pm = v("#eMethod") || null;
+  // a new method on a logged expense (not a statement row) re-decides whether it waits for a statement
+  const logged = before && before.source !== "import" && before.source !== "statement" && before.match_status !== "matched";
+  const methodChanged = logged && (before!.payment_method_id ?? null) !== pm;
   try {
     await updateTx(id, {
       merchant: v("#eMerchant").trim().slice(0, 80), amount: Math.round(amount * 100) / 100, category: v("#eCat"),
       person_id: v("#ePerson") || null, is_fixed: (el.querySelector("#eFixed") as HTMLInputElement).checked,
+      payment_method_id: pm, ...(methodChanged ? { match_status: initialStatus(methodById(pm)) } : {}),
     });
+    const after = S.tx.find((t) => t.id === id);
+    const msg = methodChanged && after ? await settle(after) : null;
     S.extra.editTx = null;
-    flash("✓ נשמר", "ok");
+    flash(msg ? "✓ " + msg : "✓ נשמר", "ok");
   } catch (e) { flash(dbMessage(e), "err"); }
   rerender();
 });

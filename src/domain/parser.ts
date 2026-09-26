@@ -12,7 +12,8 @@ import { headerComplete, mapHeader, missingColumnsError, missingOf, noRowsError 
 export { ImportError } from "./columns.ts";
 
 export interface ParsedRow { date: string; month: string; merchant: string; amount: number; category: string; fixed: boolean; note: string }
-export interface ParseResult { docType: "bank" | "credit_card"; title: string; statementTotal: null; rows: ParsedRow[] }
+/** hint = file name + the lines above the header (card last 4 digits, issuer) — to guess the payment method; stays on the device. */
+export interface ParseResult { docType: "bank" | "credit_card"; title: string; statementTotal: null; rows: ParsedRow[]; hint: string }
 
 type Cell = string | number | Date | boolean | null | undefined;
 export type Sheet = Cell[][];
@@ -61,6 +62,7 @@ export function parseSheets(sheets: Sheet[], title: string): ParseResult {
   const rows: ParsedRow[] = [];
   let bankMode = false, headerFound = false, skipped = 0;
   let found: string[] = [];
+  const pre: string[] = [];
   let best = { score: -1, cells: [] as string[], missing: missingOf({ date: -1, merchant: -1, amount: -1, debit: -1, credit: -1, signed: -1, note: -1 }) };
   for (const data of sheets) {
     for (let i = 0; i < Math.min(data.length, 40); i++) {
@@ -68,6 +70,7 @@ export function parseSheets(sheets: Sheet[], title: string): ParseResult {
       const cells = raw.map((x) => String(x ?? "").trim()).filter(Boolean);
       const m = mapHeader(raw);
       if (!headerComplete(m)) {
+        if (!headerFound && pre.length < 60) pre.push(...cells.slice(0, 6));
         const score = (m.date >= 0 ? 1 : 0) + (m.merchant >= 0 ? 1 : 0) + (m.amount >= 0 || m.debit >= 0 || m.signed >= 0 ? 1 : 0);
         if (cells.length >= 2 && score > best.score) best = { score, cells: cells.slice(0, 20), missing: missingOf(m) };
         continue;
@@ -121,7 +124,7 @@ export function parseSheets(sheets: Sheet[], title: string): ParseResult {
       if (r.month !== main && (/תשלום/.test(r.note) || r.month < addM(main, -1))) r.month = main;
     });
   }
-  return { docType: bankMode ? "bank" : "credit_card", title, statementTotal: null, rows };
+  return { docType: bankMode ? "bank" : "credit_card", title, statementTotal: null, rows, hint: [title, ...pre].join(" ").slice(0, 400) };
 }
 
 export function fileKind(f: { name: string; type: string }): "xlsx" | "csv" | "pdf" | "img" | "other" {

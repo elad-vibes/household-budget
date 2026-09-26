@@ -9,7 +9,7 @@ export const CATS = [
 ] as const;
 
 /** Not counted as expenses. */
-export const EXCL = ["הכנסה", "חיוב אשראי מרוכז", "העברה בין חשבונות"] as const;
+export const EXCL = ["הכנסה", "חיוב אשראי מרוכז", "העברה בין חשבונות", "משיכת מזומן"] as const;
 
 export const ALLCATS: readonly string[] = [...CATS, ...EXCL];
 

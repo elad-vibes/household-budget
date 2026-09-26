@@ -213,7 +213,7 @@ describe("poll-batches (cron)", () => {
   });
 
   it("turns results into review transactions and bills at the batch price", async () => {
-    const good = message({ is_receipt: true, merchant: "מכולת השכונה", date: "2026-09-20", total: 87.5, category: "סופר ומכולת", note: "",
+    const good = message({ is_receipt: true, merchant: "מכולת השכונה", date: "2026-09-20", total: 87.5, category: "סופר ומכולת", note: "", payment: "אשראי 98761234",
       items: [{ name: "חלב 3%", qty: 2, unit_price: 6.9, total: 13.8 }] }, { usage: { input_tokens: 2000, output_tokens: 400 } });
     const blurry = message({ is_receipt: false, merchant: "", date: "", total: 0, category: "שונות", note: "", items: [] },
       { usage: { input_tokens: 2000, output_tokens: 50 } });
@@ -228,7 +228,7 @@ describe("poll-batches (cron)", () => {
     const r = await call(createPollBatchesHandler(deps), req({}, { origin: null, headers: cron }));
     expect(r.body.completed).toBe(1);
     const done = s.rpcCalls.find((c) => c.fn === "svc_complete_receipt_job")!.args;
-    expect(done.p_results[0]).toMatchObject({ client_id: "r1", ok: true, receipt: { total: 87.5, items: [{ name: "חלב 3%" }] } });
+    expect(done.p_results[0]).toMatchObject({ client_id: "r1", ok: true, receipt: { total: 87.5, items: [{ name: "חלב 3%" }], payment: "אשראי ****1234" } }); // never a full card number
     expect(done.p_results[1]).toEqual({ client_id: "r2", ok: false, reason: "unreadable" });
     expect(done.p_results[2]).toEqual({ client_id: "r3", ok: false, reason: "failed" });
     // Haiku $1/$5 per MTok, batch −50%: (4000×1 + 450×5)/1e6 × 0.5

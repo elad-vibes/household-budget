@@ -72,7 +72,7 @@ export function sanitizeStatement(raw: any): StatementDoc {
 
 // ----------------------------------------------------------------- receipts
 export interface ReceiptItem { name: string; qty: number; unit_price: number | null; total: number | null }
-export interface Receipt { merchant: string; date: string; total: number; category: string; note: string; items: ReceiptItem[] }
+export interface Receipt { merchant: string; date: string; total: number; category: string; note: string; items: ReceiptItem[]; payment: string }
 
 export function sanitizeReceipt(raw: any): { ok: true; receipt: Receipt } | { ok: false; reason: string } {
   if (!raw || raw.is_receipt === false) return { ok: false, reason: "unreadable" };
@@ -95,6 +95,8 @@ export function sanitizeReceipt(raw: any): { ok: true; receipt: Receipt } | { ok
       category: (CATS as readonly string[]).includes(raw.category) ? raw.category : "שונות",
       note: str(raw.note, 60),
       items,
+      // never more than the last 4 digits of a card number
+      payment: str(raw.payment, 40).replace(/\d{5,}/g, (d) => "****" + d.slice(-4)),
     },
   };
 }

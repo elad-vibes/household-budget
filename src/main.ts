@@ -24,6 +24,7 @@ import { legacyData } from "./importer.ts";
 import { I } from "./ui/icons.ts";
 import { renderPlan } from "./ui/plan.ts";
 import { loadPhase2 } from "./phase2.ts";
+import "./payments.ts"; // payment methods: cards + handlers register themselves
 
 /** Tabs; Phase 2 adds "plan" through registerTab(). */
 const TAB_RENDER: Partial<Record<Tab, () => SafeHtml>> = {

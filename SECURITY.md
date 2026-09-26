@@ -19,6 +19,7 @@ Proven by 92 RLS tests that run both on PGlite and on the **live** database (`te
 | receipt_jobs, usage_ledger | on | members | service role only | all | |
 | budgets, annual_expenses, savings_goals, suggestion_dismissals | on | members | owner/member | all | |
 | goal_deposits | on | members | owner/member, `created_by = auth.uid()` | all | composite FK to goals |
+| payment_methods | on | members | owner/member (column grants on update) | all | `last4` only (`^[0-9]{4}$`), never a full card number; composite FK to people; tx/fixed reference it by composite FK |
 | receipt_items, budget_alerts | on | members | service/trigger (delete for items) | all | |
 | push_subscriptions, notification_prefs | on | own rows | own rows; subscribing needs aal2 if you have a factor | — | |
 | notification_queue, app_admins, app_config, rate_limits, mfa_recovery_codes | on | **nobody** | service / definer RPCs | — | |
@@ -40,6 +41,7 @@ payload-free logging (tested: logs never contain file data or merchant names).
 | poll-batches | cron secret (constant-time compare) | — | results sanitized; batch **deleted at Anthropic** after saving |
 | analyze-month | member/owner | month format, summary ≤14k chars | summary wrapped as data; links limited to the whitelist by schema **and** sanitizer |
 | delete-account | signed in (+aal2 if a factor exists) | confirm word | refuses if owner of a shared household (transfer first) |
+| (RPC) apply_statement, merge_statement_row | writer of the household (security invoker: RLS + column grants apply) | method must belong to the household; merges only waiting rows, else `match_stale` rolls back everything | one transaction |
 | mfa-recover | signed in | code length | 5/hour; hashed single-use codes; removes lost factors → re-enroll |
 | mfa-reset | owner at aal2 | uuids | only non-owner members of the same household, never the super-admin |
 | notify | cron secret / signed-in (test) | — | pushes only to known push services |

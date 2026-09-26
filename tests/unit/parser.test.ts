@@ -78,7 +78,7 @@ describe("bank statement (windows-1255 CSV with debit/credit)", () => {
     expect(by["משכורת"]).toMatchObject({ category: "הכנסה", amount: 14500 });
     expect(by["חיוב ישראכרט"].category).toBe("חיוב אשראי מרוכז");
     expect(by["חברת החשמל"]).toMatchObject({ category: "חשבונות בית", fixed: true, amount: 412.3 });
-    expect(by["משיכת מזומן כספומט"].category).toBe("העברות ומזומן");
+    expect(by["משיכת מזומן כספומט"].category).toBe("משיכת מזומן"); // excluded: cash moved, not spent
     // bank statements keep each row in its own month
     expect(r.rows.every((x) => x.month === "2026-08")).toBe(true);
   });
