@@ -1,0 +1,26 @@
+# Supabase CLI config (functions only; the DB is migrated by scripts/db.mjs).
+project_id = "household-budget"
+
+[functions.invite-signin]
+verify_jwt = false  # the JWT is verified inside the function (asymmetric keys, public invite, cron)
+
+[functions.extract-statement]
+verify_jwt = false  # the JWT is verified inside the function (asymmetric keys, public invite, cron)
+
+[functions.submit-receipts]
+verify_jwt = false  # the JWT is verified inside the function (asymmetric keys, public invite, cron)
+
+[functions.poll-batches]
+verify_jwt = false  # the JWT is verified inside the function (asymmetric keys, public invite, cron)
+
+[functions.analyze-month]
+verify_jwt = false  # the JWT is verified inside the function (asymmetric keys, public invite, cron)
+
+[functions.delete-account]
+verify_jwt = false  # the JWT is verified inside the function (asymmetric keys, public invite, cron)
+
+[functions.mfa-recover]
+verify_jwt = false  # the JWT is verified inside the function (asymmetric keys, public invite, cron)
+
+[functions.mfa-reset]
+verify_jwt = false  # the JWT is verified inside the function (asymmetric keys, public invite, cron)

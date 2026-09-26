@@ -10,12 +10,15 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:rls": "vitest run tests/rls",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "check:functions": "node scripts/check-functions.mjs"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
     "@electric-sql/pglite": "^0.5.8",
     "@types/node": "^26.6.3",
     "@types/pg": "^8.23.1",
+    "deno": "^2.9.6",
     "pg": "^8.23.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.1",
