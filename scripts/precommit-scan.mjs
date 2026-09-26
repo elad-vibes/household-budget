@@ -94,7 +94,7 @@ export function scanText(text, opts = {}) {
       if (variety(m[0]) >= 4 && israeliId(m[0])) add("מספר ת\"ז אפשרי", mask(m[0]));
     }
     for (const m of line.matchAll(/(?<![\d])(?:\+972[- ]?|0)5\d[- ]?\d{3}[- ]?\d{4}(?!\d)/g)) add("מספר טלפון", mask(m[0].replace(/\D/g, "")));
-    for (const m of line.matchAll(/[\w.+-]+@[\w-]+(?:\.[\w-]+)*\.[A-Za-z]{2,}/g)) { // letter TLD: "pkg@1.2.3" is not an address
+    for (const m of line.matchAll(/[\w.+-]+@[\w-]+(?:\.[\w-]+)*\.[A-Za-z]{2,}(?![w.-])/g)) { // letter TLD: "pkg@1.2.3" is not an address
       if (!ALLOWED_EMAIL_DOMAINS.test(m[0])) add("כתובת מייל", m[0].replace(/^(.).*@/, "$1***@"));
     }
     for (const n of opts.names ?? []) {
