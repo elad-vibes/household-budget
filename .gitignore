@@ -1,0 +1,11 @@
+.env.local
+.env*.local
+.env
+node_modules/
+dist/
+scratch/
+test-results/
+playwright-report/
+supabase/.temp/
+supabase/.branches/
+*.log

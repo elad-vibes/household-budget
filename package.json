@@ -1,0 +1,21 @@
+{
+  "name": "household-budget",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:rls": "vitest run tests/rls",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2"
+  }
+}
