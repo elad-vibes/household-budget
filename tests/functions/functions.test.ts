@@ -149,6 +149,17 @@ describe("extract-statement", () => {
     expect(all).not.toContain(JPEG.slice(0, 20));
     expect(all).not.toContain("שופרסל");
   });
+
+  // bugs.md, 2026-09-30: a statement read without "today" in the prompt landed a September
+  // 2026 upload as June 2025. deps.now() here is fixed to 2026-09-26T10:00:00Z (fakes.ts).
+  it("tells the model today's date and the Israeli DD/MM / two-digit-year rules", async () => {
+    const { deps, s } = makeDeps({ message: message(STATEMENT_JSON) });
+    await call(createStatementHandler(deps), req({ household_id: HH, files: [{ media_type: "image/jpeg", data: JPEG }] }, { token: "tok-aal1" }));
+    const text = s.anthropicCalls[0].params.messages[0].content.at(-1).text as string;
+    expect(text).toContain("היום בישראל הוא 2026-09-26");
+    expect(text).toMatch(/יום\/חודש\/שנה/);
+    expect(text).toMatch(/עסקאות אחרונות/); // the document type behind the actual incident
+  });
 });
 
 describe("submit-receipts (Message Batches)", () => {
@@ -192,6 +203,14 @@ describe("submit-receipts (Message Batches)", () => {
     expect(r.status).toBe(502);
     expect(s.rpcCalls.map((c) => c.fn)).toContain("svc_release_usage");
     expect(s.rpcCalls.map((c) => c.fn)).not.toContain("svc_record_receipt_job");
+  });
+
+  it("tells the model today's date and the Israeli date rules, same as extract-statement", async () => {
+    const { deps, s } = makeDeps();
+    await call(createSubmitReceiptsHandler(deps), req({ household_id: HH, receipts: [receipt(1)] }, { token: "tok-aal1" }));
+    const text = s.anthropicCalls.find((c) => c.kind === "batch")!.params.requests[0].params.messages[0].content.at(-1).text as string;
+    expect(text).toContain("היום בישראל הוא 2026-09-26");
+    expect(text).toMatch(/יום\/חודש\/שנה/);
   });
 });
 

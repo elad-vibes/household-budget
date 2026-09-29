@@ -45,6 +45,9 @@ export interface Tx {
   match_status?: "none" | "awaiting_statement" | "matched" | "unmatched_after_statement";
   matched_transaction_id?: string | null;
   payment_hint?: string;
+  // 0009: an AI-read date more than 2 days in the future or 60 days before the upload is kept
+  // as given (never silently changed) but flagged, instead of hiding as a normal-looking date.
+  date_uncertain?: boolean;
 }
 
 export interface Fixed {

@@ -41,10 +41,12 @@ export function renderTx(): SafeHtml {
     rows.push(html`<div class="tx" ${w ? html`data-swipe="${t.id}"` : ""}>
       ${avatar(t.merchant, t.category)}
       <div class="m" data-click="${w ? "tx-edit" : ""}" data-id="${t.id}">${t.merchant}<small>${t.category} · ${personName(c, t.person_id)}${t.payment_method_id ? " · " + methodLabel(methodById(t.payment_method_id)) : ""}${t.note ? " · " + t.note : ""}</small></div>
-      <div class="row" style="gap:6px">${matchBadge(t)}${isExcl(t) ? html`<span class="chip grey">לא נספר</span>` : isFixed(c, t) ? html`<span class="chip fx">קבוע</span>` : ""}<span class="a num ${t.amount < 0 ? "neg" : ""}">${ils(t.amount, 2)}</span></div>
+      <div class="row" style="gap:6px">${matchBadge(t)}${t.date_uncertain ? html`<span class="chip warn" title="התאריך שהתקבל מהקריאה האוטומטית נראה לא סביר (עתידי, או רחוק מתאריך ההעלאה). אפשר לתקן בעריכת התנועה.">לבדוק תאריך</span>` : ""}${isExcl(t) ? html`<span class="chip grey">לא נספר</span>` : isFixed(c, t) ? html`<span class="chip fx">קבוע</span>` : ""}<span class="a num ${t.amount < 0 ? "neg" : ""}">${ils(t.amount, 2)}</span></div>
       ${w ? html`<button class="ghost ${armed ? "danger" : ""}" data-click="tx-del" data-id="${t.id}" aria-label="מחיקה">${armed ? "למחוק?" : "✕"}</button>` : html`<span></span>`}
       ${editing === t.id ? html`<form class="txedit" data-submit="tx-save" data-id="${t.id}">
+        ${t.date_uncertain ? html`<p class="muted small">⚠ התאריך הזה התקבל אוטומטית ונראה לא סביר. אפשר לתקן אותו כאן.</p>` : ""}
         <label class="f">בית עסק<input type="text" id="eMerchant" maxlength="80" value="${t.merchant}"></label>
+        <label class="f">תאריך<input type="date" id="eDate" value="${t.date}"></label>
         <label class="f">סכום<input type="number" id="eAmount" step="0.01" inputmode="decimal" value="${t.amount}"></label>
         <label class="f">קטגוריה<select id="eCat">${catOptions(t.category)}</select></label>
         <label class="f">של מי<select id="ePerson">${personOptionsHtml(t.person_id)}</select></label>
@@ -109,7 +111,8 @@ on("submit", "tx-save", async (el) => {
   const id = el.dataset.id!;
   const v = (sel: string) => (el.querySelector(sel) as HTMLInputElement).value;
   const amount = parseFloat(v("#eAmount"));
-  if (!isFinite(amount) || amount === 0 || !v("#eMerchant").trim()) { flash("צריך סכום ותיאור.", "err"); return; }
+  const date = v("#eDate");
+  if (!isFinite(amount) || amount === 0 || !v("#eMerchant").trim() || !date) { flash("צריך תאריך, סכום ותיאור.", "err"); return; }
   const before = S.tx.find((t) => t.id === id);
   const pm = v("#eMethod") || null;
   // a new method on a logged expense (not a statement row) re-decides whether it waits for a statement
@@ -118,6 +121,7 @@ on("submit", "tx-save", async (el) => {
   try {
     await updateTx(id, {
       merchant: v("#eMerchant").trim().slice(0, 80), amount: Math.round(amount * 100) / 100, category: v("#eCat"),
+      date, month: date.slice(0, 7), date_uncertain: false,   // confirmed by hand: no longer "needs checking"
       person_id: v("#ePerson") || null, is_fixed: (el.querySelector("#eFixed") as HTMLInputElement).checked,
       payment_method_id: pm, ...(methodChanged ? { match_status: initialStatus(methodById(pm)) } : {}),
     });

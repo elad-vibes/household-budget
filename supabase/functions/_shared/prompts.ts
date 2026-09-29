@@ -1,6 +1,22 @@
 // Prompts and JSON schemas (structured outputs). Ported from the prototype.
 import { ALLCATS, CATS, LINKS, LINK_IDS } from "./catalog.ts";
 
+/** "today" in Israel, YYYY-MM-DD — the model gets no other way to know the current date or year. */
+export function israelDateStr(d: Date): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+}
+
+// Shared by both prompts below: a bug (2026-09-30) showed a receipt/statement date landing more
+// than a year off (2026 read as 2025, September as June) with nothing to say what went wrong —
+// the model was never told what day it is, and Israeli dates (DD/MM, often a 2-digit year, and a
+// bank app's "recent transactions" screen usually has no year at all) are genuinely ambiguous
+// without that anchor. The database still catches an implausible date after this (0009), but a
+// correct read is much better than a caught mistake.
+const DATE_RULES = (today: string) => `תאריכים: היום בישראל הוא ${today}. תאריכים בישראל נכתבים יום/חודש/שנה (כמו 05/09/26) —
+לעולם לא כאמריקאית חודש/יום. שנה בת שתי ספרות היא 20XX של השנה הקרובה להיום, לא שנה ישנה. אם מוצג רק יום וחודש בלי שנה
+(כמו במסך "עסקאות אחרונות" של אפליקציית בנק), ההנחה היא השנה של היום — ורק אם זה יוצא תאריך עתידי, השנה הקודמת.
+לעולם אל תמציא/י תאריך רחוק מהיום כשלא בטוח/ה; אם התאריך לא קריא בכלל, מחרוזת ריקה עדיפה על ניחוש.`;
+
 // ------------------------------------------------------------------ receipts
 export const RECEIPT_SCHEMA = {
   type: "object",
@@ -31,7 +47,8 @@ export const RECEIPT_SCHEMA = {
   },
 } as const;
 
-export const RECEIPT_PROMPT = `את/ה קורא/ת קבלה מצולמת של משק בית בישראל ומחלץ/ת ממנה נתונים למערכת תקציב.
+export function receiptPrompt(today: string): string {
+  return `את/ה קורא/ת קבלה מצולמת של משק בית בישראל ומחלץ/ת ממנה נתונים למערכת תקציב.
 כללים:
 - merchant: שם העסק כפי שמופיע בראש הקבלה, בלי מספר עוסק, כתובת או טלפון.
 - date: תאריך הקנייה בפורמט YYYY-MM-DD. אם לא רואים תאריך, מחרוזת ריקה.
@@ -41,7 +58,9 @@ export const RECEIPT_PROMPT = `את/ה קורא/ת קבלה מצולמת של מ
 - payment: איך שילמו, כפי שמודפס בקבלה: "מזומן", "אשראי ****1234" (רק 4 הספרות האחרונות, לעולם לא מספר כרטיס מלא), "ויזה", "ביט". אם לא רואים, מחרוזת ריקה.
 - note: הערה קצרה רק אם יש משהו חשוב (למשל "תשלום 1 מתוך 3", "החזרה"), אחרת ריק.
 - אם התמונה אינה קבלה או שאי אפשר לקרוא אותה: is_receipt=false ו-total=0.
-- אל תמציא/י נתונים שלא מופיעים בתמונה.`;
+- אל תמציא/י נתונים שלא מופיעים בתמונה.
+${DATE_RULES(today)}`;
+}
 
 // ---------------------------------------------------------------- statements
 export const STATEMENT_SCHEMA = {
@@ -72,7 +91,7 @@ export const STATEMENT_SCHEMA = {
   },
 } as const;
 
-export function statementPrompt(kindDesc: string, fixedHints: { name: string; keyword: string }[]): string {
+export function statementPrompt(kindDesc: string, fixedHints: { name: string; keyword: string }[], today: string): string {
   const fx = fixedHints.map((f) => `${f.name} : ${f.keyword}`).join(" ; ") || "אין";
   return `את/ה מחלץ/ת תנועות כספיות למערכת תקציב של משק בית בישראל. ${kindDesc}
 כללים:
@@ -83,9 +102,10 @@ export function statementPrompt(kindDesc: string, fixedHints: { name: string; ke
 - fixed=true להוצאות קבועות וחוזרות: ביטוחים, חשמל, מים, גז, ארנונה, ועד בית, שכירות, משכנתא, הלוואות, סלולר, אינטרנט, טלוויזיה, חוגים וגנים, הוראות קבע.
 - הוצאות קבועות שכבר מוגדרות אצלנו (שם : מילת חיפוש): ${fx}.
 - statementTotal: סכום "סה"כ לחיוב" שמופיע במסמך (אם יש כמה סכומים, הסכום הכולל של ארץ וחו"ל). אם אין, null.
-- title: תיאור קצר של המסמך, למשל: פירוט מקס חיוב 02/09/26.
+- title: תיאור קצר של המסמך, למשל: פירוט מקס חיוב 02/09/26. אם המסמך הוא רשימת "עסקאות אחרונות" בלי תאריך חיוב מסודר, אפשר לכתוב זאת בכותרת כפי שזה — אל תמציא/י תאריך חיוב שלא מופיע.
 - merchant כפי שמופיע במסמך, בלי מספרי כרטיס או חשבון.
-- לא לדלג על אף שורת עסקה. לא להמציא שורות. לא לכלול שורות סיכום.`;
+- לא לדלג על אף שורת עסקה. לא להמציא שורות. לא לכלול שורות סיכום.
+${DATE_RULES(today)}`;
 }
 
 // ------------------------------------------------------------------ analysis

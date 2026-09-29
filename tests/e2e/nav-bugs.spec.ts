@@ -1,6 +1,8 @@
-// Regression tests for bugs.md (2026-09-27), live Supabase with the synthetic fixture:
-//  1. invite page after "already used": "למסך הכניסה" must lead to the sign-in screen
-//  2. admin screen: "חזרה לאפליקציה" must show the app, not stay on admin
+// Regression tests for bugs.md, live Supabase with the synthetic fixture:
+//  1. (2026-09-27) invite page after "already used": "למסך הכניסה" must lead to the sign-in screen
+//  2. (2026-09-27) admin screen: "חזרה לאפליקציה" must show the app, not stay on admin
+//  3. (2026-09-30) a transaction with an implausible AI-read date shows a "לבדוק תאריך" chip and its
+//     date is editable by hand; the floating camera button no longer covers the last row's ✕
 import { createClient } from "@supabase/supabase-js";
 import { expect, test } from "@playwright/test";
 import { createHash, randomBytes } from "node:crypto";
@@ -56,6 +58,79 @@ test.describe("bugs.md regressions (live Supabase, synthetic data)", () => {
       await expect(page.getByRole("heading", { name: "משק הבית", exact: true })).toBeVisible();
     } finally {
       await a.from("app_admins").delete().eq("user_id", ownerId);
+    }
+  });
+
+  test("date_uncertain: the 'לבדוק תאריך' chip shows, the date is editable, and the fab no longer hides the last row's ✕", async ({ page }) => {
+    const f = fixture()!;
+    const a = admin();
+    // date_uncertain is set directly (not derived from apply_statement/svc_complete_receipt_job — those are
+    // covered by the RLS suite with mutation testing); this only proves the UI surfaces and clears the flag.
+    // The date itself stays in the CURRENT month so the row needs no month navigation to be visible — it is
+    // exactly the kind of wrong-but-plausible-looking day a bad AI read produces (bugs.md's actual case was
+    // 2025-06 instead of 2026-09; the day-of-month here is what would have been asked for).
+    const now = new Date();
+    const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const merchant = `בדיקת תאריך ${Date.now().toString(36)}`;   // unique per run: never collides with the seeded rows
+    const badDate = `${thisMonth}-03`;
+    const ins = await a.from("transactions").insert({
+      household_id: f.householdId, date: badDate, month: thisMonth, merchant, amount: 42,
+      category: "שונות", source: "manual", status: "saved", created_by: f.userIds[0], person_id: null,
+      date_uncertain: true,
+    }).select("id").single();
+    expect(ins.error).toBeNull();
+    const txId = ins.data!.id as string;
+    try {
+      await page.addInitScript((s) => {
+        localStorage.setItem("hb2-auth", s as string);
+        localStorage.setItem("hb2-onboarded", "1");
+      }, JSON.stringify(f.member));
+      await page.goto("./#/tx");
+      await expect(page.getByRole("heading", { name: "תנועות החודש" })).toBeVisible({ timeout: 20_000 });
+      const row = page.locator(".tx", { hasText: merchant });
+      await expect(row).toBeVisible({ timeout: 20_000 });
+      await expect(row.locator(".chip.warn", { hasText: "לבדוק תאריך" })).toBeVisible();
+
+      // the floating camera button must not overlap the last transaction row's delete button (visual bug #4)
+      const fab = await page.locator(".fab").boundingBox();
+      const lastX = await page.locator(".tx button.ghost", { hasText: "✕" }).last().boundingBox();
+      expect(fab).toBeTruthy();
+      expect(lastX).toBeTruthy();
+      const overlaps = fab!.y < lastX!.y + lastX!.height && fab!.y + fab!.height > lastX!.y
+        && fab!.x < lastX!.x + lastX!.width && fab!.x + fab!.width > lastX!.x;
+      expect(overlaps, "the fab must not cover the last row's ✕ button").toBe(false);
+      await page.screenshot({ path: "scratch/date-fix-list-light.png" });
+
+      // dark mode: same checks, just a visual look (manual review — see scratch/, gitignored)
+      await page.locator(".bnav").getByRole("button", { name: "עוד" }).click();
+      await page.getByRole("menu").getByRole("button", { name: /הבית והגדרות/ }).click();
+      await page.getByRole("button", { name: "כהה", exact: true }).click();
+      await expect(page.locator("html")).toHaveAttribute("data-dark", "1");
+      await page.goto("./#/tx");
+      await expect(row.locator(".chip.warn")).toBeVisible();
+      await page.screenshot({ path: "scratch/date-fix-list-dark.png" });
+      await page.locator(".bnav").getByRole("button", { name: "עוד" }).click();
+      await page.getByRole("menu").getByRole("button", { name: /הבית והגדרות/ }).click();
+      await page.getByRole("button", { name: "בהיר", exact: true }).click();
+      await page.goto("./#/tx");
+
+      // edit: the date field exists, is pre-filled with the (kept, uncorrected) AI date, and saving a fix clears the chip
+      await row.locator(".m").click();
+      const form = page.locator("form.txedit");
+      await expect(form).toBeVisible();
+      const dateInput = form.locator("#eDate");
+      await expect(dateInput).toHaveValue(badDate);
+      await expect(form.getByText("התאריך הזה התקבל אוטומטית")).toBeVisible();
+      await page.screenshot({ path: "scratch/date-fix-edit-light.png" });
+      const fixedDate = `${thisMonth}-20`;
+      await dateInput.fill(fixedDate);
+      await form.getByRole("button", { name: "שמירה" }).click();
+      await expect(page.locator(".flash")).toContainText("נשמר");
+      await expect(page.locator(".tx", { hasText: merchant }).locator(".chip.warn")).toHaveCount(0);
+      expect((await a.from("transactions").select("date, date_uncertain").eq("id", txId).single()).data)
+        .toEqual({ date: fixedDate, date_uncertain: false });
+    } finally {
+      await a.from("transactions").delete().eq("id", txId);
     }
   });
 });

@@ -16,7 +16,9 @@
 [hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
-  padding:calc(env(safe-area-inset-top,0px) + 14px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + var(--nav-h) + 24px) max(16px,env(safe-area-inset-left,0px));
+  /* bottom padding clears the floating camera button (.fab: 62px tall, sitting 16px above the nav) so the
+     last row of a list (e.g. the ✕ delete button in "תנועות") is never hidden behind it — bugs.md */
+  padding:calc(env(safe-area-inset-top,0px) + 14px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + var(--nav-h) + 96px) max(16px,env(safe-area-inset-left,0px));
   overflow-x:hidden}
 body.noapp{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 24px)}
 .wrap{max-width:780px;margin:0 auto;display:flex;flex-direction:column;gap:16px}

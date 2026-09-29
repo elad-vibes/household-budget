@@ -8,7 +8,7 @@ import { checkFile, IMAGE_TYPES } from "../files.ts";
 import { caller, isUuid, rateLimit, release, requireAccess, reserve } from "../guard.ts";
 import { endpoint, HttpError, safeEqual } from "../http.ts";
 import { parseJson, sanitizeReceipt, textOf } from "../ai.ts";
-import { RECEIPT_PROMPT, RECEIPT_SCHEMA } from "../prompts.ts";
+import { israelDateStr, receiptPrompt, RECEIPT_SCHEMA } from "../prompts.ts";
 
 const CLIENT_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
@@ -36,6 +36,7 @@ export function createSubmitReceiptsHandler(deps: Deps) {
     const reservation = await reserve(deps, body.household_id, claims.sub, "receipt",
       receipts.length, ESTIMATE_USD.receipt * receipts.length, model);
 
+    const prompt = receiptPrompt(israelDateStr(deps.now()));
     let batch: Anthropic.Messages.MessageBatch;
     try {
       batch = await deps.anthropic.messages.batches.create({
@@ -49,7 +50,7 @@ export function createSubmitReceiptsHandler(deps: Deps) {
               role: "user",
               content: [
                 { type: "image", source: { type: "base64", media_type: r.file.media_type as "image/jpeg", data: r.file.data } },
-                { type: "text", text: RECEIPT_PROMPT },
+                { type: "text", text: prompt },
               ],
             }],
           },

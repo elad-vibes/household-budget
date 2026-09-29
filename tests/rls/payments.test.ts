@@ -95,6 +95,63 @@ describe("apply_statement: import a card statement", () => {
   });
 });
 
+// bugs.md, 2026-09-30: a statement screenshot with no year printed ("עסקאות אחרונות") was saved
+// 15 months off. 0009 does not silently correct or reject an implausible date — it keeps exactly
+// what came back and flags the row, so it is visible in the app instead of hiding as normal.
+describe("apply_statement: an implausible date is kept and flagged, not silently fixed (0009)", () => {
+  const addDays = (n: number) => { const d = new Date(today); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  let today: string;
+  beforeAll(async () => { today = (await db.sql(`select current_date::text as d`))[0].d; });
+
+  it("a normal date inserts unflagged; a future date and a date >60 days old insert flagged — with THEIR OWN date, not substituted", async () => {
+    const rows = [
+      { date: addDays(-10), month: addDays(-10).slice(0, 7), merchant: "רגיל", amount: 20, category: "סופר ומכולת", source: "statement", source_title: "עסקאות אחרונות" },
+      { date: addDays(5), month: addDays(5).slice(0, 7), merchant: "עתידי", amount: 21, category: "סופר ומכולת", source: "statement", source_title: "עסקאות אחרונות" },
+      { date: addDays(-90), month: addDays(-90).slice(0, 7), merchant: "ישן", amount: 22, category: "סופר ומכולת", source: "statement", source_title: "עסקאות אחרונות" },
+    ];
+    await db.as(as.memberA, `select public.apply_statement($1, null, $2::jsonb, '[]', '{}')`, [H.A, JSON.stringify(rows)]);
+    const saved = await db.sql(`select merchant, date::text as date, date_uncertain from public.transactions where source_title = 'עסקאות אחרונות' order by merchant`);
+    expect(saved).toEqual([
+      { merchant: "ישן", date: addDays(-90), date_uncertain: true },
+      { merchant: "עתידי", date: addDays(5), date_uncertain: true },
+      { merchant: "רגיל", date: addDays(-10), date_uncertain: false },
+    ]);
+  });
+
+  it("exactly 60 days old is still fine; 61 is flagged (boundary)", async () => {
+    const rows = [
+      { date: addDays(-60), month: addDays(-60).slice(0, 7), merchant: "גבול60", amount: 1, category: "שונות", source: "statement" },
+      { date: addDays(-61), month: addDays(-61).slice(0, 7), merchant: "גבול61", amount: 1, category: "שונות", source: "statement" },
+    ];
+    await db.as(as.memberA, `select public.apply_statement($1, null, $2::jsonb, '[]', '{}')`, [H.A, JSON.stringify(rows)]);
+    expect((await db.sql(`select date_uncertain from public.transactions where merchant = 'גבול60'`))[0].date_uncertain).toBe(false);
+    expect((await db.sql(`select date_uncertain from public.transactions where merchant = 'גבול61'`))[0].date_uncertain).toBe(true);
+  });
+
+  it("a merged row is flagged the same way (a statement can also overwrite a waiting row's date badly)", async () => {
+    const waiting = await addTx("ציפייה לפירוט", 30, addDays(-8), null, "awaiting_statement");
+    await db.as(as.memberA, `select public.apply_statement($1, null, '[]', $2::jsonb, '{}')`, [H.A, JSON.stringify([{ id: waiting, date: addDays(-90), month: addDays(-90).slice(0, 7), amount: 30 }])]);
+    const got = await tx(waiting);
+    expect(got.date.toISOString().slice(0, 10)).toBe(addDays(-90));
+    expect(got).toMatchObject({ match_status: "matched", date_uncertain: true });
+  });
+
+  it("editing the transaction by hand (updateTx's column set) can clear the flag", async () => {
+    const [row] = await db.sql(`select id from public.transactions where merchant = 'עתידי'`);
+    await db.as(as.memberA, `update public.transactions set date = $2, month = $3, date_uncertain = false where id = $1`, [row.id, today, today.slice(0, 7)]);
+    const got = await tx(row.id);
+    expect(got.date.toISOString().slice(0, 10)).toBe(today);
+    expect(got.date_uncertain).toBe(false);
+  });
+
+  it("a viewer can't clear it: RLS filters the row out, so the update touches nothing (same as every other column)", async () => {
+    const [row] = await db.sql(`select id from public.transactions where merchant = 'ישן'`);
+    const { affected } = await db.as(as.viewerA, `update public.transactions set date_uncertain = false where id = $1`, [row.id]);
+    expect(affected).toBe(0);
+    expect((await tx(row.id)).date_uncertain).toBe(true);   // unchanged
+  });
+});
+
 describe("merge_statement_row: statement first, receipt later", () => {
   it("the receipt takes the statement row's amount/date; the statement row is removed", async () => {
     const st = await addTx("מאפיית הכיכר", 42, "2026-08-14", card, "none", "import");

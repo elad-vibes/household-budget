@@ -8,7 +8,7 @@ import { type CheckedFile, checkFile, IMAGE_TYPES, PDF_TYPE } from "../files.ts"
 import { caller, finalize, rateLimit, release, requireAccess, reserve } from "../guard.ts";
 import { endpoint, HttpError } from "../http.ts";
 import { parseJson, sanitizeStatement, textOf } from "../ai.ts";
-import { STATEMENT_SCHEMA, statementPrompt } from "../prompts.ts";
+import { israelDateStr, STATEMENT_SCHEMA, statementPrompt } from "../prompts.ts";
 
 export function createStatementHandler(deps: Deps) {
   return endpoint(deps, "extract-statement", async (req, body) => {
@@ -42,7 +42,7 @@ export function createStatementHandler(deps: Deps) {
         ? { type: "document", source: { type: "base64", media_type: PDF_TYPE, data: f.data } }
         : { type: "image", source: { type: "base64", media_type: f.media_type as "image/jpeg", data: f.data } },
     );
-    content.push({ type: "text", text: statementPrompt(kind, hints) });
+    content.push({ type: "text", text: statementPrompt(kind, hints, israelDateStr(deps.now())) });
 
     let msg: Anthropic.Message;
     try {

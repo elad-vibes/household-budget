@@ -333,6 +333,64 @@ describe("receipt batch completion", () => {
   });
 });
 
+// bugs.md, 2026-09-30: this is the exact failure — a receipt read without "today" in the prompt
+// could return a date over a year off. 0009 keeps a readable-but-implausible date exactly as
+// given and flags the transaction (never silently swaps it); only an UNREADABLE date falls back
+// to the upload day, because the column can't be left empty — and that guess is flagged too.
+describe("svc_complete_receipt_job: an implausible date is kept and flagged, not silently fixed (0009)", () => {
+  async function job(createdAt: string, results: Record<string, unknown>[]) {
+    const res = (await db.as(as.service, `select public.svc_reserve_usage($1, $2, 'receipt', $3, 0.001) as r`, [H.A, U.memberA, results.length])).rows[0].r;
+    const id = (await db.as(as.service,
+      `select public.svc_record_receipt_job($1, $2, 'msgbatch_date', 'claude-haiku-4-5', $3::jsonb, $4) as id`,
+      [H.A, U.memberA, JSON.stringify(results.map((r) => ({ client_id: r.client_id }))), res.reservation_id])).rows[0].id;
+    await db.sql(`update public.receipt_jobs set created_at = $2 where id = $1`, [id, createdAt]);
+    await db.as(as.service, `select public.svc_complete_receipt_job($1, $2::jsonb, 10, 10, 0.0001)`, [id, JSON.stringify(results)]);
+    return id;
+  }
+  const row = (jobId: string, client: string) =>
+    db.sql(`select date::text as date, date_uncertain from public.transactions where receipt_job_id = $1 and receipt_client_id = $2`, [jobId, client])
+      .then((r) => r[0]);
+
+  it("this exact bug: uploaded 2026-09-27, the model reads 2025-06-03 — the transaction keeps 2025-06-03, flagged", async () => {
+    const id = await job("2026-09-27T08:00:00+03:00", [
+      { client_id: "c1", ok: true, receipt: { merchant: "Street Market", date: "2025-06-03", total: 99.9, category: "אוכל בחוץ ומשלוחים", note: "", items: [] } },
+    ]);
+    expect(await row(id, "c1")).toEqual({ date: "2025-06-03", date_uncertain: true });
+  });
+
+  it("a normal, recent date is not flagged", async () => {
+    const id = await job("2026-09-27T08:00:00+03:00", [
+      { client_id: "c1", ok: true, receipt: { merchant: "סופר השכונה", date: "2026-09-25", total: 50, category: "סופר ומכולת", note: "", items: [] } },
+    ]);
+    expect(await row(id, "c1")).toEqual({ date: "2026-09-25", date_uncertain: false });
+  });
+
+  it("a date 2 days in the future is fine (printing lag); 3 days is flagged", async () => {
+    const id = await job("2026-09-27T08:00:00+03:00", [
+      { client_id: "c1", ok: true, receipt: { merchant: "גבול+2", date: "2026-09-29", total: 5, category: "שונות", note: "", items: [] } },
+      { client_id: "c2", ok: true, receipt: { merchant: "גבול+3", date: "2026-09-30", total: 5, category: "שונות", note: "", items: [] } },
+    ]);
+    expect(await row(id, "c1")).toEqual({ date: "2026-09-29", date_uncertain: false });
+    expect(await row(id, "c2")).toEqual({ date: "2026-09-30", date_uncertain: true });
+  });
+
+  it("a date the AI can't produce at all falls back to the upload day — and is flagged, not silent", async () => {
+    const id = await job("2026-09-27T08:00:00+03:00", [
+      { client_id: "c1", ok: true, receipt: { merchant: "לא ברור", date: "not-a-real-date", total: 15, category: "שונות", note: "", items: [] } },
+    ]);
+    expect(await row(id, "c1")).toEqual({ date: "2026-09-27", date_uncertain: true });
+  });
+
+  it("a household member sees the flag through the normal select; another household never sees the row at all", async () => {
+    const id = await job("2026-09-27T08:00:00+03:00", [
+      { client_id: "c1", ok: true, receipt: { merchant: "לבדיקה", date: "2025-01-01", total: 8, category: "שונות", note: "", items: [] } },
+    ]);
+    const seen = (await db.as(as.memberA, `select date_uncertain from public.transactions where receipt_job_id = $1`, [id])).rows;
+    expect(seen).toEqual([{ date_uncertain: true }]);
+    expect((await db.as(as.ownerB, `select * from public.transactions where receipt_job_id = $1`, [id])).rows).toHaveLength(0);
+  });
+});
+
 describe("deleting data", () => {
   it("account deletion is refused while you are the last owner of a shared household", async () => {
     const r = (await db.as(as.service, `select public.svc_prepare_account_deletion($1) as r`, [U.ownerA])).rows[0].r;
