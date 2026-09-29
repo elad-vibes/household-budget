@@ -4,7 +4,7 @@
 //   * parsed receipts waiting for approval (status 'review')
 import { attr, html, type SafeHtml } from "../lib/html.ts";
 import { on } from "../lib/events.ts";
-import { ddmm, ils } from "../lib/format.ts";
+import { ddmm, ils, mLabel } from "../lib/format.ts";
 import { EXCL } from "../domain/categories.ts";
 import { personName, reviewTx } from "../domain/calc.ts";
 import { canWrite, ctx, flash, rerender, S } from "../state.ts";
@@ -32,6 +32,7 @@ export function renderReview(): SafeHtml {
       check = banner(ok ? `✓ סכום השורות (${ils(sumAll, 2)}) תואם לסה"כ במסמך.` : `סכום השורות ${ils(sumAll, 2)} לעומת ${ils(d.statementTotal, 2)} במסמך. כדאי לעבור על השורות לפני שמירה.`, ok ? "ok" : "warn");
     }
     const dups = d.rows.filter((r) => r.dup).length;
+    const unresolved = kept.filter((r) => r.monthMismatch && !r.mismatchAck);
     const res = draftMatch(d);
     const summary = res ? matchSummary(res, d) : "";
     const merged = new Set(res?.merges.map((m) => m.rowKey) ?? []);
@@ -53,10 +54,17 @@ export function renderReview(): SafeHtml {
           </select></label>`;
         })}</div>` : ""}
       ${check}${dups ? banner(`${dups} שורות כבר קיימות במערכת ולא סומנו לשמירה.`, "info") : ""}
+      ${unresolved.length ? banner(html`<b>${unresolved.length === 1 ? "שורה אחת" : `${unresolved.length} שורות`} בתאריך שלא מתאים לחודש שבחרת (${mLabel(d.declaredMonth)}).</b> לתקן את התאריך בשורה או ללחוץ "נכון בכל זאת", לפני שמירה.`, "err") : ""}
       <div class="scroll"><table><thead><tr><th></th><th>תאריך</th><th>בית עסק</th><th>סכום</th><th>קטגוריה</th><th>קבוע</th></tr></thead><tbody>
-      ${d.rows.map((r, ri) => html`<tr class="${r.dup ? "dup" : ""}">
+      ${d.rows.map((r, ri) => html`<tr class="${r.dup ? "dup" : ""}${r.monthMismatch && !r.mismatchAck ? " mismatch" : ""}">
         <td><input type="checkbox" data-change="rv-field" data-d="${di}" data-r="${ri}" data-f="keep" ${attr(r.keep, "checked")} aria-label="לשמור"></td>
-        <td class="num">${ddmm(r.date)}</td>
+        <td class="num">
+          <input type="date" value="${r.date}" data-change="rv-field" data-d="${di}" data-r="${ri}" data-f="date" style="width:9.5em" aria-label="תאריך">
+          ${r.monthMismatch ? (r.mismatchAck
+              ? html`<div class="small muted">✓ אושר</div>`
+              : html`<div class="small" style="color:var(--warn)">לא ${mLabel(d.declaredMonth)}<br><button type="button" class="ghost" style="padding:2px 8px;margin-top:2px" data-click="rv-ack" data-d="${di}" data-r="${ri}">נכון בכל זאת</button></div>`)
+            : ""}
+        </td>
         <td>${r.merchant}${r.note ? html`<div class="muted small">${r.note}</div>` : ""}${r.dup ? html`<div class="small" style="color:var(--warn)">כבר קיים</div>` : ""}${merged.has(r.id) || (d.choices[r.id] && res?.ambiguous.some((a) => a.rowKey === r.id)) ? html`<div class="small" style="color:var(--ok)">מתאחד עם הוצאה שנרשמה</div>` : ""}</td>
         <td class="num" style="font-weight:700">${ils(r.amount, 2)}</td>
         <td><span class="cat">${catIcon(r.category, "s")}<select data-change="rv-field" data-d="${di}" data-r="${ri}" data-f="category" aria-label="קטגוריה">${catOptions(r.category)}</select></span></td>
@@ -72,12 +80,27 @@ export function renderReview(): SafeHtml {
 on("change", "rv-field", (el) => {
   const P = S.pending;
   if (!P) return;
-  const r = P.docs[+el.dataset.d!].rows[+el.dataset.r!];
+  const d = P.docs[+el.dataset.d!];
+  const r = d.rows[+el.dataset.r!];
   const f = el.dataset.f!;
   if (f === "keep") r.keep = (el as HTMLInputElement).checked;
   else if (f === "fixed") r.fixed = (el as HTMLInputElement).checked;
   else if (f === "category") r.category = (el as HTMLSelectElement).value;
+  else if (f === "date") {
+    const v = (el as HTMLInputElement).value;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return;
+    r.date = v;
+    r.month = v.slice(0, 7);
+    r.monthMismatch = r.month !== d.declaredMonth;
+    r.mismatchAck = false;   // a new date needs its own check, an old ack doesn't carry over
+  }
   if (f !== "fixed") rerender();
+});
+on("click", "rv-ack", (el) => {
+  const d = S.pending?.docs[+el.dataset.d!];
+  if (!d) return;
+  d.rows[+el.dataset.r!].mismatchAck = true;
+  rerender();
 });
 on("change", "rv-method", (el) => {
   const d = S.pending?.docs[+el.dataset.d!];
@@ -97,6 +120,10 @@ on("click", "rv-save", async () => {
   const P = S.pending;
   if (!P || S.busy) return;
   if (P.docs.some((d) => !d.methodId)) { flash("צריך לבחור לכל פירוט של איזה כרטיס או חשבון הוא.", "err"); return; }
+  if (P.docs.some((d) => d.rows.some((r) => r.keep && r.monthMismatch && !r.mismatchAck))) {
+    flash("יש שורות עם תאריך שלא מתאים לחודש שנבחר. לתקן את התאריך או ללחוץ \"נכון בכל זאת\" לפני שמירה.", "err");
+    return;
+  }
   S.busy = true;
   rerender();
   let saved = 0, merged = 0, unmatched = 0;

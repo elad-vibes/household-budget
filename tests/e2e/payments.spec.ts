@@ -69,6 +69,7 @@ test.describe("payment methods (live Supabase, synthetic data)", () => {
       `${dmy(20)},חניון העירייה,18.00`,
     ].join("\n");
     await page.locator(".bnav").getByRole("button", { name: "הוספה" }).click();
+    await page.locator('select[data-change="st-month"]').selectOption(ym);
     await page.locator("#stFiles").setInputFiles({ name: "max-1111.csv", mimeType: "text/csv", buffer: Buffer.from(csv, "utf8") });
     await expect(page.locator('select[data-change="rv-method"]')).toHaveValue(/.+/);
     await expect(page.getByText("✓ קבלה אחת הותאמה לפירוט.")).toBeVisible();
@@ -86,5 +87,53 @@ test.describe("payment methods (live Supabase, synthetic data)", () => {
     await expect(page.getByRole("heading", { name: "לפי אמצעי תשלום" })).toBeVisible();
     const { sw, cw } = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }));
     expect(sw).toBeLessThanOrEqual(cw);
+  });
+
+  test("statement upload: a row whose date disagrees with the declared month is flagged and blocks save until resolved (bugs.md)", async ({ page }) => {
+    const f = fixture()!;
+    await page.addInitScript((s) => {
+      localStorage.setItem("hb2-auth", s as string);
+      localStorage.setItem("hb2-onboarded", "1");
+    }, JSON.stringify(f.member));
+    await page.goto("./#/add");
+    await expect(page.locator('select[data-change="st-month"]')).toBeVisible({ timeout: 20_000 });
+
+    // the row's real date is last month, but the uploader (wrongly, or the AI reads it wrong) declares THIS month
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 15);
+    const pym = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
+    const pdmy = `15/${pym.slice(5, 7)}/${pym.slice(0, 4)}`;
+    const merchant = `בדיקת אי-התאמה ${Date.now().toString(36)}`;
+    const csv = ["תאריך עסקה,שם בית העסק,סכום חיוב", `${pdmy},${merchant},77.00`].join("\n");
+
+    // the file input stays disabled until a month is declared
+    await expect(page.locator("#stFiles")).toBeDisabled();
+    await page.locator('select[data-change="st-month"]').selectOption(ym);
+    await expect(page.locator("#stFiles")).toBeEnabled();
+    await page.locator("#stFiles").setInputFiles({ name: "mismatch.csv", mimeType: "text/csv", buffer: Buffer.from(csv, "utf8") });
+
+    const row = page.locator("tr", { hasText: merchant });
+    await expect(row).toHaveClass(/mismatch/);
+    await expect(page.getByText(/בתאריך שלא מתאים לחודש שבחרת/)).toBeVisible();
+    await expect(row.getByRole("button", { name: "נכון בכל זאת" })).toBeVisible(); // the other resolution path (not exercised here)
+    await page.locator('select[data-change="rv-method"]').selectOption("none");
+
+    // blocked: nothing is saved while the row is unresolved
+    await page.getByRole("button", { name: "שמירה", exact: true }).click();
+    await expect(page.getByText(/יש שורות עם תאריך שלא מתאים/)).toBeVisible();
+
+    // resolved by fixing the date to actually fall in the declared month
+    await row.locator('input[type="date"]').fill(`${ym}-15`);
+    await expect(row).not.toHaveClass(/mismatch/);
+    await page.getByRole("button", { name: "שמירה", exact: true }).click();
+    await expect(page.getByText(/✓ נשמרו 1 תנועות/)).toBeVisible();
+
+    await page.locator(".bnav").getByRole("button", { name: "תנועות" }).click();
+    await expect(page.locator(".tx", { hasText: merchant })).toContainText("₪77.00");
+
+    const { createClient } = await import("@supabase/supabase-js");
+    const { loadEnv } = await import("../../scripts/lib/env.mjs");
+    const env = loadEnv();
+    const admin = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+    await admin.from("transactions").delete().eq("household_id", f.householdId).eq("merchant", merchant);
   });
 });

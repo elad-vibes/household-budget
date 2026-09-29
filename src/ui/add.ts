@@ -1,7 +1,7 @@
 // הוספה — receipts (queue), statements/Excel (review first), manual entry.
 import { attr, html, type SafeHtml, $ } from "../lib/html.ts";
 import { on } from "../lib/events.ts";
-import { ils, today, uid } from "../lib/format.ts";
+import { addM, curMonth, ils, mLabel, today, uid } from "../lib/format.ts";
 import { blobToBase64, prepareImage, STATEMENT_MAX_PIXELS, MAX_UPLOAD_BYTES } from "../lib/image.ts";
 import { fileKind, ImportError, localParse } from "../domain/parser.ts";
 import { describeNext } from "../domain/schedule.ts";
@@ -26,8 +26,13 @@ export function renderAdd(): SafeHtml {
     <div class="card">
       <h2>העלאת פירוט אשראי או בנק</h2>
       <p class="muted small">קובץ Excel או CSV מאתר הבנק או חברת האשראי נקרא כאן במכשיר, בלי הגבלה. צילום מסך או PDF של פירוט נקרא על ידי Claude. אחרי הקריאה כל השורות מוצגות לבדיקה לפני שמירה.</p>
+      <label class="f">לאיזה חודש הפירוט?<select data-change="st-month">
+        <option value="" ${attr(!S.extra.stMonth, "selected")}>בחירה…</option>
+        ${stMonthOptions().map((m) => html`<option value="${m}" ${attr(S.extra.stMonth === m, "selected")}>${mLabel(m)}</option>`)}
+      </select></label>
+      ${!S.extra.stMonth ? html`<p class="muted small">קודם לבחור חודש — כך אפשר לבדוק שהתאריכים שנקראים מהקובץ באמת מתאימים.</p>` : ""}
       <label class="drop">
-        <input type="file" id="stFiles" data-change="st-files" multiple accept="image/*,.pdf,.xlsx,.xls,.csv">
+        <input type="file" id="stFiles" data-change="st-files" multiple accept="image/*,.pdf,.xlsx,.xls,.csv" ${attr(!S.extra.stMonth, "disabled")}>
         <b>לבחור קובץ פירוט</b>
         <span class="muted small">Excel, CSV, PDF או צילומי מסך של אותו פירוט</span>
       </label>
@@ -145,11 +150,26 @@ function stStatus(text: string | SafeHtml | null, kind: "info" | "warn" | "err" 
   rerender();
 }
 
+/** last 13 months, current first — a statement is always for a past or the current month. */
+function stMonthOptions(): string[] {
+  const out: string[] = [];
+  let m = curMonth();
+  for (let i = 0; i < 13; i++) { out.push(m); m = addM(m, -1); }
+  return out;
+}
+
+on("change", "st-month", (el) => {
+  S.extra.stMonth = (el as HTMLSelectElement).value;
+  rerender();
+});
+
 on("change", "st-files", async (el) => {
   const input = el as HTMLInputElement;
   const files = [...(input.files ?? [])];
   input.value = "";
   if (!files.length || S.busy) return;
+  const declaredMonth = S.extra.stMonth as string | undefined;
+  if (!declaredMonth) { stStatus("קודם צריך לבחור לאיזה חודש הפירוט.", "err"); return; }
   S.busy = true;
   const docs: DraftDoc[] = [];
   const errs: string[] = [];
@@ -161,7 +181,7 @@ on("change", "st-files", async (el) => {
     for (const f of sheets) {
       stStatus(html`<span class="spin"></span> קורא את ${f.name}…`);
       try {
-        docs.push(toDraft(await localParse(f), "import"));
+        docs.push(toDraft(await localParse(f), "import", declaredMonth));
       } catch (e) {
         // ImportError carries the loud message: which columns are missing / which were found
         errs.push(e instanceof ImportError ? e.message : `${f.name}: הקובץ לא נפתח. אולי הוא פגום או מוגן בסיסמה.`);
@@ -185,7 +205,7 @@ on("change", "st-files", async (el) => {
       stStatus(html`<span class="spin"></span> ${step}Claude קורא את ${jobs[j].label}… זה יכול לקחת עד דקה.`);
       try {
         const r = await fn.statement(jobs[j].files, hints);
-        if (r.doc?.rows?.length) docs.push(toDraft(r.doc, "statement"));
+        if (r.doc?.rows?.length) docs.push(toDraft(r.doc, "statement", declaredMonth));
         else errs.push(`${jobs[j].label}: לא נמצאו תנועות. כדאי לנסות צילום חד יותר או קובץ יצוא.`);
       } catch (e: any) {
         errs.push(`${jobs[j].label}: ${e?.message ?? "הקריאה נכשלה"}`);
@@ -199,20 +219,23 @@ on("change", "st-files", async (el) => {
   stStatus(errs.length ? errs.join(" · ") : null, "warn");
 });
 
-function toDraft(r: { title: string; docType: string; statementTotal: number | null; rows: any[]; hint?: string }, source: "import" | "statement"): DraftDoc {
+function toDraft(r: { title: string; docType: string; statementTotal: number | null; rows: any[]; hint?: string }, source: "import" | "statement", declaredMonth: string): DraftDoc {
   const person = S.upPerson || null;
   const existing = new Set(S.tx.map((t) => dupKey(t)));
   const title = String(r.title || "מסמך").slice(0, 80);
   const hint = String(r.hint || title);
   return {
     title, docType: r.docType, statementTotal: typeof r.statementTotal === "number" ? r.statementTotal : null, source,
-    methodId: guessStatementMethod({ title, hint }), hint, choices: {},
+    methodId: guessStatementMethod({ title, hint }), hint, choices: {}, declaredMonth,
     rows: r.rows.map((x) => {
       const dup = existing.has(dupKey({ person_id: person, date: x.date, amount: x.amount, merchant: x.merchant }));
       // ATM = cash moved, not spent: saved (for the cash card) but never counted
       const category = isAtmRow(x.merchant) ? "משיכת מזומן" : x.category;
       const excl = (EXCL as readonly string[]).includes(category) && category !== "הכנסה" && category !== "משיכת מזומן";
-      return { id: uid(), date: x.date, month: x.month, merchant: x.merchant, amount: x.amount, category, fixed: !!x.fixed, note: x.note ?? "", dup, keep: !dup && !excl };
+      // the read date's month disagreeing with what the uploader declared is exactly the shape of bug this guards against —
+      // never silently trust either side, surface it and let the review screen force a resolution
+      const monthMismatch = x.month !== declaredMonth;
+      return { id: uid(), date: x.date, month: x.month, merchant: x.merchant, amount: x.amount, category, fixed: !!x.fixed, note: x.note ?? "", dup, keep: !dup && !excl, monthMismatch, mismatchAck: false };
     }),
   };
 }

@@ -92,6 +92,10 @@ export interface DraftRow {
   note: string;
   keep: boolean;
   dup: boolean;
+  /** this row's month doesn't match the month the uploader declared for the whole document */
+  monthMismatch: boolean;
+  /** uploader confirmed the date is right despite monthMismatch */
+  mismatchAck: boolean;
 }
 
 export interface DraftDoc {
@@ -106,4 +110,6 @@ export interface DraftDoc {
   hint: string;
   /** user's answers for ambiguous rows: row id → waiting transaction id ("" = none of them) */
   choices: Record<string, string>;
+  /** month the uploader said this document covers ("YYYY-MM"), used to flag rows whose date disagrees */
+  declaredMonth: string;
 }

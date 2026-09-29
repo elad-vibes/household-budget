@@ -115,6 +115,7 @@ th{font-size:12px;color:var(--muted);font-weight:600;text-align:right;padding:6p
 td{padding:6px;border-bottom:1px solid var(--line);vertical-align:middle}
 td select{padding:5px 6px;font-size:14px;min-width:120px;min-height:40px}
 tr.dup td{opacity:.55}
+tr.mismatch td{background:var(--warn-soft)}
 .txday{font-size:13px;color:var(--muted);font-weight:700;padding:10px 0 2px}
 .tx{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
 .tx .m{font-weight:600;overflow-wrap:anywhere;cursor:pointer} .tx .m small{display:block;color:var(--muted);font-weight:400;font-size:13px}
