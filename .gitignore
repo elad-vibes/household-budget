@@ -19,6 +19,7 @@
 !/src/**
 !/scripts/**/*.mjs
 !/scripts/**/*.mts
+!/scripts/stats/*.sh
 !/tools-git/*
 !/tests/**/*.ts
 !/public/**

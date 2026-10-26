@@ -86,3 +86,21 @@ node scripts/setup-remote.mjs
 6. גוף הבקשה **JSON**: `kind` = `wallet`, `amount` = סכום, `merchant` = סוחר, `card` = כרטיס (בוחרים את המשתנים מהאוטומציה).
 7. **סיום**. משלמים פעם אחת ב-Apple Pay ובודקים ב"מה נקלט ומתי".
 אם הטלפון אבד: באפליקציה **ביטול הקוד** — קיצור הדרך מפסיק לעבוד מיד.
+
+## לוח ניהול (רק לאלעד, בשרת)
+דף אחד עם מספרים כלליים בלבד: משפחות ומשתמשים פעילים, עלות AI מול המכסות, קבלות/דפי חשבון שהצליחו או נכשלו,
+האם המשימות האוטומטיות רצו, מתי האתר עלה לאחרונה. **אין בו** סכומי קניות, חנויות, פריטים, שמות או מיילים.
+כתובת: `https://95-217-135-115.sslip.io/bayit-admin/` (משתמש `elad` + סיסמה). מתעדכן כל 5 דקות בשרת.
+
+הקמה (פעם אחת; כל שלב אפשר להריץ שוב):
+1. ב-Windows, בתיקיית הפרויקט: `node scripts/db.mjs migrate` (מיגרציה 0012), `node scripts/stats/role.mjs`
+   (סיסמה לתפקיד hb_stats, נשמרת ב-.env.local), `npm run stats:bundle`.
+2. בגשר (לינוקס): `bash ~/mnt/brain/documents/"פרויקטים אישיים"/"הכסף של הבית"/scripts/stats/install-server.sh`
+   — בסוף מודפסת **פעם אחת** הסיסמה לדף. שומרים אותה מיד.
+
+| מה רואים | מה עושים |
+|---|---|
+| פס אדום "הנתונים בדף ישנים" | בגשר: `$HOME/vs "cat /home/vibes/household-stats/last-run.log"` |
+| שכחתי את הסיסמה לדף | מריצים שוב את install-server.sh עם `--new-password` |
+| רוצים להחליף את סיסמת המסד | `node scripts/stats/role.mjs --rotate` ואז שוב install-server.sh |
+| להסיר הכול | בגשר: למחוק את שורת household-stats מ-crontab של vibes, את `/srv/tools/bayit-admin`, ואת 5 שורות `@hbadmin` מה-Caddyfile; ב-SQL: `alter role hb_stats nologin` |

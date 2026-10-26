@@ -23,6 +23,7 @@ Proven by 92 RLS tests that run both on PGlite and on the **live** database (`te
 | receipt_items, budget_alerts | on | members | service/trigger (delete for items) | all | |
 | push_subscriptions, notification_prefs | on | own rows | own rows; subscribing needs aal2 if you have a factor | — | |
 | notification_queue, app_admins, app_config, rate_limits, mfa_recovery_codes | on | **nobody** | service / definer RPCs | — | |
+| (RPC) stats_snapshot (0012) | — | role `hb_stats` only (not anon/authenticated/service/super-admin) | — | — | aggregates only (counts, USD, cron health); households by ordinal; `hb_stats` has no table privileges — proven by tests/rls/stats.test.ts |
 
 Other checks: `anon` has no table privileges at all; `authenticated` only explicit grants; all SECURITY DEFINER
 functions pin `search_path = ''`; `svc_*` executable by `service_role` only; admin RPCs require `app_admins` **and** aal2.
@@ -67,6 +68,12 @@ CSP meta (build): `default-src 'self'; script-src 'self'`; `connect-src` only th
 scripts or event handlers (event delegation); every template value escaped by default (`html```), AI links rendered
 only from the whitelist and only `https`; `referrer no-referrer`; HTTPS only (GitHub Pages + `upgrade-insecure-requests`);
 the build refuses a secret key; CI checks the bundle for key patterns. Service worker precaches static files only — no API data.
+
+## 4b. Admin dashboard (server)
+`/srv/tools/bayit-admin/` on Elad's server, Caddy `basicauth` (bcrypt hash in the Caddyfile), `noindex`, `no-store`.
+Built every 5 min by the `vibes` user's crontab; its only secret is the `hb_stats` password in
+`/home/vibes/household-stats/.env` (chmod 600) — that role can call `stats_snapshot()` and nothing else.
+No Supabase API key, service-role key or session ever reaches the page or the server (DECISIONS #36).
 
 ## 5. Repository
 Allow-list `.gitignore`; pre-commit + commit-msg scan (secrets, card/ID/bank numbers, phones, e-mails, real names from a
