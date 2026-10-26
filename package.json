@@ -14,7 +14,10 @@
     "check:functions": "node scripts/check-functions.mjs",
     "prepare": "git config core.hooksPath tools-git || true",
     "scan": "node scripts/precommit-scan.mjs --all",
-    "scan:names": "node scripts/precommit-scan.mjs --refresh-names"
+    "scan:names": "node scripts/precommit-scan.mjs --refresh-names",
+    "stats:role": "node scripts/stats/role.mjs",
+    "stats:collect": "node scripts/stats/collect.mjs",
+    "stats:bundle": "node scripts/stats/bundle.mjs"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.128.0",
