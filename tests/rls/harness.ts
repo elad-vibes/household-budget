@@ -19,7 +19,11 @@ create role anon nologin noinherit;
 create role authenticated nologin noinherit;
 create role service_role nologin noinherit bypassrls;
 create schema auth;
-create table auth.users (id uuid primary key, email text unique, created_at timestamptz default now());
+create table auth.users (id uuid primary key, email text unique, created_at timestamptz default now(),
+  last_sign_in_at timestamptz);
+create table auth.sessions (id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  created_at timestamptz default now(), updated_at timestamptz default now(), refreshed_at timestamp);
 create table auth.mfa_factors (
   id uuid primary key, user_id uuid not null references auth.users (id) on delete cascade,
   friendly_name text, factor_type text not null, status text not null,
@@ -45,7 +49,7 @@ alter default privileges in schema public grant all on sequences to anon, authen
 `;
 
 export type Row = Record<string, any>;
-export type Actor = { role: "anon" | "authenticated" | "service_role"; uid?: string; aal?: "aal1" | "aal2" };
+export type Actor = { role: "anon" | "authenticated" | "service_role" | "hb_stats"; uid?: string; aal?: "aal1" | "aal2" };
 
 interface Driver {
   query(sql: string, params: unknown[]): Promise<{ rows: Row[]; affected: number }>;
@@ -201,6 +205,7 @@ export const as = {
   newbie: user(U.newbie),
   anon: { role: "anon" } as Actor,
   service: { role: "service_role" } as Actor,
+  stats: { role: "hb_stats" } as Actor,
 };
 
 /** Two households with members, people and a bit of data each. */
