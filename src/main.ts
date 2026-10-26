@@ -24,6 +24,7 @@ import { banner } from "./ui/common.ts";
 import { legacyData } from "./importer.ts";
 import { I } from "./ui/icons.ts";
 import { renderPlan } from "./ui/plan.ts";
+import { renderCaptureLog } from "./ui/capture-setup.ts";
 import { loadPhase2 } from "./phase2.ts";
 import "./payments.ts"; // payment methods: cards + handlers register themselves
 import { art, markArt, timeArt } from "./ui/art.ts";
@@ -34,10 +35,10 @@ import { flash } from "./state.ts";
 
 /** Tabs; Phase 2 adds "plan" through registerTab(). */
 const TAB_RENDER: Partial<Record<Tab, () => SafeHtml>> = {
-  overview: renderOverview, add: renderAdd, tx: renderTx, fixed: renderFixed, shop: renderShop, home: renderHome, plan: renderPlan,
+  overview: renderOverview, add: renderAdd, tx: renderTx, fixed: renderFixed, shop: renderShop, home: renderHome, plan: renderPlan, log: renderCaptureLog,
 };
 export function registerTab(tab: Tab, fn: () => SafeHtml) { TAB_RENDER[tab] = fn; }
-const TITLES: Record<Tab, string> = { overview: "סקירה", add: "הוספה", tx: "תנועות", fixed: "קבועות", plan: "תכנון", shop: "קניות", home: "הבית" };
+const TITLES: Record<Tab, string> = { overview: "סקירה", add: "הוספה", tx: "תנועות", fixed: "קבועות", plan: "תכנון", shop: "קניות", home: "הבית", log: "מה נקלט ומתי" };
 
 // ------------------------------------------------------------------ routing
 function readHash() {
@@ -235,7 +236,7 @@ function shell(): SafeHtml {
   const pending = reviewTx(ctx()).length;
   const monthTabs = tab === "overview" || tab === "tx";
   const legacy = S.tab === "overview" && !S.tx.length && legacyData();
-  const navBtn = (t: Tab | "more", icon: SafeHtml, label: string, badge = 0) => html`<button data-click="${t === "more" ? "more" : "go"}" data-to="${t}" aria-current="${t === tab || (t === "more" && ["fixed", "plan", "home"].includes(tab)) ? "page" : "false"}" class="${t === "add" ? "add" : ""}">${icon}<span>${label}</span>${badge ? html`<span class="badge">${badge}</span>` : ""}</button>`;
+  const navBtn = (t: Tab | "more", icon: SafeHtml, label: string, badge = 0) => html`<button data-click="${t === "more" ? "more" : "go"}" data-to="${t}" aria-current="${t === tab || (t === "more" && ["fixed", "plan", "home", "log"].includes(tab)) ? "page" : "false"}" class="${t === "add" ? "add" : ""}">${icon}<span>${label}</span>${badge ? html`<span class="badge">${badge}</span>` : ""}</button>`;
   return html`
   <div class="top">
     <div><button class="hhsw" data-click="go" data-to="home">${household()?.name ?? ""} ▾</button>${tab === "overview" ? greeting() : ""}<h1>${tab === "overview" ? "הכסף של הבית" : TITLES[tab]}</h1></div>
@@ -257,6 +258,7 @@ function shell(): SafeHtml {
   ${S.extra.more ? html`<div class="sheet-bg" data-click="more"></div><div class="sheet" role="menu">
     <button data-click="go" data-to="fixed">${I.fixed} קבועות</button>
     ${TAB_RENDER.plan ? html`<button data-click="go" data-to="plan">${I.plan} תכנון: תקציבים, שנתיות ויעדים</button>` : ""}
+    <button data-click="go" data-to="log">${I.tx} מה נקלט ומתי</button>
     <button data-click="go" data-to="home">${I.home} הבית והגדרות</button>
     <button data-click="go" data-to="install">${I.install} התקנה למסך הבית</button>
     ${S.isAdmin ? html`<button data-click="go" data-to="admin">${I.admin} ניהול מערכת</button>` : ""}

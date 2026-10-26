@@ -41,6 +41,8 @@ export const RATE: Record<string, [number, number]> = {
   account: [5, 3600],
   price: [10, 86400],       // per household: SuperMCP fair use (cached 6h, so a re-open is free)
   priceSimilar: [40, 86400],
+  capture: [60, 3600],      // per capture token (an automation firing per purchase)
+  captureIp: [120, 3600],
 };
 
 export interface TokenUsage {

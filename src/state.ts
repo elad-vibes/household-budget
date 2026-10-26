@@ -8,7 +8,7 @@ import { curMonth } from "./lib/format.ts";
 export type View =
   | "loading" | "noconfig" | "signin" | "join" | "mfa-challenge" | "mfa-enroll" | "nohousehold" | "app" | "admin" | "install";
 
-export type Tab = "overview" | "add" | "tx" | "fixed" | "plan" | "shop" | "home";
+export type Tab = "overview" | "add" | "tx" | "fixed" | "plan" | "shop" | "home" | "log";
 
 export const S = {
   view: "loading" as View,

@@ -36,7 +36,7 @@ export interface Tx {
   is_fixed: boolean;
   note: string;
   person_id: string | null;
-  source: "manual" | "import" | "statement" | "receipt" | "backup";
+  source: "manual" | "import" | "statement" | "receipt" | "backup" | "wallet" | "quick";
   source_title: string;
   status: "review" | "saved";
   receipt_job_id?: string | null;

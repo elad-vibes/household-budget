@@ -21,8 +21,8 @@ tests green, before/after at 390px in `docs/features/<n>-<name>/` (`SHOTS=before
 | # | Feature | Status |
 |---|---|---|
 | 1 | "איפה הכי זול?" (SuperMCP) | ✅ committed — migration 0010 **applied live**; Edge Function `price-compare` **NOT deployed** (token in .env.local is revoked → needs a new one) |
-| 2 | Apple Pay / Back Tap capture | next |
-| 3 | Budget month start + "כמה נשאר להיום" | — (regression-sensitive: month-boundary tests before AND after) |
+| 2 | Apple Pay / Back Tap capture | ✅ committed — migration 0011 **applied live**; Edge Function `capture` **NOT deployed** (same new token) |
+| 3 | Budget month start + "כמה נשאר להיום" | **NEXT** — regression-sensitive: write month-boundary tests against the CURRENT behavior first (commit them green), then change |
 | 4 | Vouchers wallet | — |
 | 5 | Trip mode / foreign currency | — |
 | 6 | "השכונה שלנו" | optional |
@@ -32,6 +32,15 @@ tests green, before/after at 390px in `docs/features/<n>-<name>/` (`SHOTS=before
 (links stay as fallback). Tests: functions/price (8, mocked ok/partial/down/cache/rate/need-city/similar), rls/price (2),
 e2e/price (2, function intercepted). Live check after deploy: `node scratch/smcp.mjs` style call through the function.
 Also from an earlier side session: 0009 date_sanity (live) + month-selection guard on statement upload (b78ec0d, 764a686).
+
+**Feature 2 notes:** per-user capture token `hbc_…` (shown once, sha256, rotate/revoke) → `svc_capture` scopes it to its
+user + household while they can write; 2-min dedup; card by label/issuer/last4 else default card (quick → cash); wallet rows
+`awaiting_statement` (merged by the statement import, RLS test proves it); category RULES moved to
+`supabase/functions/_shared/rules.ts` (app re-exports). Guide in Home ("קליטה אוטומטית באייפון") + SETUP.md; new tab
+"מה נקלט ומתי" (`capture_log`, 50 rows, any source). Hebrew iOS labels in the guide (ארנק, הפעלה מיידית…) were written from
+the English names — check them on the real iPhone and fix wording if Apple's Hebrew differs. DECISIONS #35, SECURITY row.
+Tests: rls/capture 8, functions/capture 7, e2e/capture 1 (cleans its rows — the smoke test counts exactly one review item).
+After deploying `capture`: create a code in the app and run one real Apple Pay payment → check "מה נקלט ומתי".
 
 **Waiting on Elad:** push `main`; a NEW Supabase access token (Full access) to deploy `price-compare` (and later `capture`), revoke after.
 **email-import.md** still waits for the domain. `backup.md` not requested.

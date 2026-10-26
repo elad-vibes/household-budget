@@ -146,3 +146,10 @@ body:not(.noapp) main.wrap{padding-bottom:72px} /* room for the floating camera 
 .prow{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:4px 0;border-top:1px solid var(--line);font-size:14px}
 .pmiss{margin-top:6px}
 .pmiss .prow button{min-height:36px;padding:2px 10px}
+
+/* ---- capture setup (feature 2) ---- */
+.copyrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;align-items:center;background:var(--surface2);border-radius:10px;padding:8px 10px;margin:6px 0}
+.copyrow span{grid-column:1/-1}
+.copyrow code{font-size:12px;overflow-wrap:anywhere;min-width:0}
+.copyrow button{min-height:36px;padding:4px 10px}
+#captureSetup details summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
