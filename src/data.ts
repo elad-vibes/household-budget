@@ -285,6 +285,8 @@ export const fn = {
   deleteAccount: () => invoke("delete-account", { confirm: "מחיקה" }),
   mfaRecover: (code: string) => invoke("mfa-recover", { code }),
   mfaReset: (userId: string) => invoke("mfa-reset", { household_id: S.hh, user_id: userId }),
+  priceCompare: () => invoke<{ cached: boolean; result: import("./ui/price.ts").PriceResult }>("price-compare", { household_id: S.hh }),
+  priceSimilar: (q: string) => invoke<{ similar: { name: string; brand: string }[] }>("price-compare", { household_id: S.hh, similar: q }),
 };
 
 /** After sign-in: load everything for the current household (or decide which gate to show). */

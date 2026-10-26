@@ -7,7 +7,8 @@ import type { Fixture } from "./live.ts";
 
 const SHOTS = process.env.SHOTS;
 const fixture = (): Fixture | null => JSON.parse(readFileSync("test-results/e2e-fixture.json", "utf8"));
-const dir = `docs/design-pass/${SHOTS}`;
+// SHOTS_DIR=docs/features/<n>-<name> keeps per-feature before/after apart from the design pass
+const dir = `${process.env.SHOTS_DIR ?? "docs/design-pass"}/${SHOTS}`;
 
 test.use({ deviceScaleFactor: 2 });
 test.skip(() => SHOTS !== "before" && SHOTS !== "after", "set SHOTS=before|after");

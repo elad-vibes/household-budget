@@ -12,6 +12,9 @@ export interface Settings {
   send_weekday: number;
   send_monthday: number;
   require_mfa: boolean;
+  /** "איפה הכי זול?" comparison location (0010) — the only location sent to SuperMCP */
+  price_city?: string | null;
+  price_street?: string | null;
   quota_images: number;
   quota_statements: number;
   quota_analyses: number;

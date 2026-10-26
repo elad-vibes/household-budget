@@ -4,7 +4,8 @@ import { on } from "../lib/events.ts";
 import { canWrite, flash, rerender, S } from "../state.ts";
 import { addShop, deleteShop, updateShop } from "../data.ts";
 import { dbMessage } from "../lib/supa.ts";
-import { copyText, linkHtml } from "./common.ts";
+import { copyText } from "./common.ts";
+import { priceCard } from "./price.ts";
 import { art } from "./art.ts";
 
 /** Phase 2: price history hints and the "our prices" card plug in here. */
@@ -31,12 +32,8 @@ export function renderShop(): SafeHtml {
       </div>`) : html`<div class="empty">${art.shopEmpty()}<p class="muted">הרשימה ריקה. מוסיפים פריט למעלה, וכל בני הבית רואים את אותה רשימה.</p></div>`}</div>
     ${items.length ? html`<div class="row"><button type="button" data-click="shop-copy">העתקת הרשימה</button>${w ? html`<button type="button" class="ghost" data-click="shop-clear">ניקוי מה שסומן</button>` : ""}</div>` : ""}
   </div>
-  ${shopExtras.cards.map((f) => f())}
-  <div class="card">
-    <h2>איפה הכי זול?</h2>
-    <p class="muted small">האתרים האלה משווים מחירים בין הרשתות לפי הסניפים ליד הבית. מוסיפים שם את המוצרים מהרשימה לסל, והם מראים איפה הסל כולו הכי זול.</p>
-    ${linkHtml(["chp", "pricez"])}
-  </div>`;
+  ${items.some((i) => !i.done) ? priceCard() : ""}
+  ${shopExtras.cards.map((f) => f())}`;
 }
 
 on("submit", "shop-add", async () => {

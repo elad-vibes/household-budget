@@ -14,22 +14,27 @@ Commit messages are in Hebrew (מה שונה · למה · מה נבדק); hooks 
 - **Then:** live check on an iPhone — sign in with the e-mail code, 2FA enrollment, admin → new household → invite,
   Excel import, receipt photo → weekly batch, push notification test.
 
-## ▶ HANDOFF (2026-09-27, session 2) — next session starts here
-Done this session (all committed on `main`, NOT pushed — push is Elad's):
-`ede2221` before-screenshots · `ea109e7` household-roles · `a6f5f9d` payment-methods · `87d99da` design pass ·
-`0940554` bugs.md fixes (invite "למסך הכניסה", admin "חזרה לאפליקציה" — E2E in `tests/e2e/nav-bugs.spec.ts`, fail on old code).
-Live DB: migrations **0007_single_owner** and **0008_payment_methods** applied. SMTP fixed — Elad confirmed the code e-mail arrived.
-**Edge Functions: all 9 redeployed (new token)** — every one answers (OPTIONS 204; no login → 401/400; poll-batches and
-notify with the cron secret → 200); delete-account returns the new "העברת ניהול" text (checked on the synthetic fixture, nothing deleted).
-The receipt `payment` hint / masked card numbers and the "משיכת מזומן" statement rule are live.
+## ▶ HANDOFF (2026-10-26, session 3 — next-features.md) — next session starts here
+Order: next-features.md §1 → 2 → 3 → 4 → 5 → (6 only if room). One feature = one commit, migrations from 0010,
+tests green, before/after at 390px in `docs/features/<n>-<name>/` (`SHOTS=before|after SHOTS_DIR=… npx playwright test screens -g …`).
 
-**Waiting on Elad**
-1. Push `main` → GitHub Actions deploys the frontend (roles UI, payment methods, design pass, bug fixes).
-2. Revoke the Supabase access token (Preset Full access) — deployment is done; any later function change needs a NEW token.
+| # | Feature | Status |
+|---|---|---|
+| 1 | "איפה הכי זול?" (SuperMCP) | ✅ committed — migration 0010 **applied live**; Edge Function `price-compare` **NOT deployed** (token in .env.local is revoked → needs a new one) |
+| 2 | Apple Pay / Back Tap capture | next |
+| 3 | Budget month start + "כמה נשאר להיום" | — (regression-sensitive: month-boundary tests before AND after) |
+| 4 | Vouchers wallet | — |
+| 5 | Trip mode / foreign currency | — |
+| 6 | "השכונה שלנו" | optional |
 
-**Next in line: `email-import.md`** (email forwarding + share-to-app, Expensify-style) — NOT started, waiting for Elad's
-domain (Cloudflare Email Routing needs MX records). Untracked file `email-import.md` names a Google no-reply address
-and is blocked by the pre-commit scan until that line gets `scan-ok`. `backup.md` still not requested.
+**Feature 1 notes:** REST API (`/openapi.json`), terms + privacy reviewed → DECISIONS #34 (credit shown, 10/day/household,
+6h cache, only item names + chosen city/street leave the server). UI `src/ui/price.ts` replaces the static links card
+(links stay as fallback). Tests: functions/price (8, mocked ok/partial/down/cache/rate/need-city/similar), rls/price (2),
+e2e/price (2, function intercepted). Live check after deploy: `node scratch/smcp.mjs` style call through the function.
+Also from an earlier side session: 0009 date_sanity (live) + month-selection guard on statement upload (b78ec0d, 764a686).
+
+**Waiting on Elad:** push `main`; a NEW Supabase access token (Full access) to deploy `price-compare` (and later `capture`), revoke after.
+**email-import.md** still waits for the domain. `backup.md` not requested.
 
 **What was built**
 - Roles: one owner per household (partial unique index), owner invites only by super-admin for empty households,

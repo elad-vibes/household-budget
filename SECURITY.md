@@ -41,6 +41,7 @@ payload-free logging (tested: logs never contain file data or merchant names).
 | poll-batches | cron secret (constant-time compare) | — | results sanitized; batch **deleted at Anthropic** after saving |
 | analyze-month | member/owner | month format, summary ≤14k chars | summary wrapped as data; links limited to the whitelist by schema **and** sanitizer |
 | delete-account | signed in (+aal2 if a factor exists) | confirm word | refuses if owner of a shared household (transfer first) |
+| price-compare | member (incl. viewer) at the household MFA level | household id; `similar` ≤60 chars | sends only item names/qty + chosen city/street to SuperMCP; 10/day/household (+40 similar), 6h cache, 20s timeout, https-only links in the result |
 | (RPC) apply_statement, merge_statement_row | writer of the household (security invoker: RLS + column grants apply) | method must belong to the household; merges only waiting rows, else `match_stale` rolls back everything | one transaction |
 | mfa-recover | signed in | code length | 5/hour; hashed single-use codes; removes lost factors → re-enroll |
 | mfa-reset | owner at aal2 | uuids | only non-owner members of the same household, never the super-admin |

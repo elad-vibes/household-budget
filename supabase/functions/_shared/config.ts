@@ -39,6 +39,8 @@ export const RATE: Record<string, [number, number]> = {
   recover: [5, 3600],
   reset: [10, 3600],
   account: [5, 3600],
+  price: [10, 86400],       // per household: SuperMCP fair use (cached 6h, so a re-open is free)
+  priceSimilar: [40, 86400],
 };
 
 export interface TokenUsage {
