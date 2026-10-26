@@ -14,7 +14,19 @@ Commit messages are in Hebrew (מה שונה · למה · מה נבדק); hooks 
 - **Then:** live check on an iPhone — sign in with the e-mail code, 2FA enrollment, admin → new household → invite,
   Excel import, receipt photo → weekly batch, push notification test.
 
-## ▶ HANDOFF (2026-10-26, session 3 — next-features.md) — next session starts here
+## ▶ Admin dashboard (2026-10-26, session 4) — branch `claude/admin-dashboard`
+Stacked on `claude/receipt-date-bug` (that branch is still unpushed) → push this branch; it contains both.
+Commits: f224a9f (0012 + RLS tests) · aaac85e (collector + page) · 91962f9 (server installer + docs). DECISIONS #36, SETUP "לוח ניהול".
+- Built: `stats_snapshot()` (aggregates only, role `hb_stats` only), `scripts/stats/*` (collect / render / role / bundle /
+  install-server.sh). Page: `https://95-217-135-115.sslip.io/bayit-admin/`, Caddy basicauth user `elad`, rebuilt every 5 min.
+- Checks: `npm test` 263 (new: rls/stats 7, unit/stats 11) · typecheck · scan · page checked in the browser with synthetic
+  data at desktop + 375px (light only — the pane renders local files light; dark tokens are in the CSS but unseen).
+- **NOT done yet (needs Elad):** ① `node scripts/db.mjs migrate` (0012 live — the auto-mode guard blocked me) ② `node scripts/stats/role.mjs`
+  ③ `npm run stats:bundle` ④ on the bridge: `scripts/stats/install-server.sh` (prints the page password once). Untested against the
+  live DB: custom-role sign-in through the pooler (`hb_stats.<ref>`) and the live `cron.job_run_details` query — role.mjs proves the first.
+- Elad first asked for a Claude Artifact dashboard, then chose his server instead → no Artifact was published.
+
+## ▶ HANDOFF (2026-10-26, session 3 — next-features.md)
 Order: next-features.md §1 → 2 → 3 → 4 → 5 → (6 only if room). One feature = one commit, migrations from 0010,
 tests green, before/after at 390px in `docs/features/<n>-<name>/` (`SHOTS=before|after SHOTS_DIR=… npx playwright test screens -g …`).
 
