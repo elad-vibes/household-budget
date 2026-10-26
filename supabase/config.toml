@@ -27,3 +27,9 @@ verify_jwt = false  # the JWT is verified inside the function (asymmetric keys, 
 
 [functions.notify]
 verify_jwt = false  # the JWT is verified inside the function (asymmetric keys, public invite, cron)
+
+[functions.price-compare]
+verify_jwt = false  # the JWT is verified inside the function (asymmetric keys, public invite, cron)
+
+[functions.capture]
+verify_jwt = false  # iPhone Shortcuts send a capture token, not a JWT — checked inside the function (svc_capture)

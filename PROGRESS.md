@@ -20,8 +20,8 @@ tests green, before/after at 390px in `docs/features/<n>-<name>/` (`SHOTS=before
 
 | # | Feature | Status |
 |---|---|---|
-| 1 | "איפה הכי זול?" (SuperMCP) | ✅ committed — migration 0010 **applied live**; Edge Function `price-compare` **NOT deployed** (token in .env.local is revoked → needs a new one) |
-| 2 | Apple Pay / Back Tap capture | ✅ committed — migration 0011 **applied live**; Edge Function `capture` **NOT deployed** (same new token) |
+| 1 | "איפה הכי זול?" (SuperMCP) | ✅ committed — migration 0010 **applied live**; Edge Function `price-compare` **deployed + checked live** (real SuperMCP answer, 8 stores, cache hit) |
+| 2 | Apple Pay / Back Tap capture | ✅ committed — migration 0011 **applied live**; Edge Function `capture` **deployed + checked live** (shortcut-style call → saved; repeat → duplicate) |
 | 3 | Budget month start + "כמה נשאר להיום" | **NEXT** — regression-sensitive: write month-boundary tests against the CURRENT behavior first (commit them green), then change |
 | 4 | Vouchers wallet | — |
 | 5 | Trip mode / foreign currency | — |
@@ -42,7 +42,10 @@ the English names — check them on the real iPhone and fix wording if Apple's H
 Tests: rls/capture 8, functions/capture 7, e2e/capture 1 (cleans its rows — the smoke test counts exactly one review item).
 After deploying `capture`: create a code in the app and run one real Apple Pay payment → check "מה נקלט ומתי".
 
-**Waiting on Elad:** push `main`; a NEW Supabase access token (Full access) to deploy `price-compare` (and later `capture`), revoke after.
+**Branch:** all of this is on `claude/receipt-date-bug` (4 commits ahead of `main`, fast-forward) — NOT on main. Push that branch → PR → merge.
+**All 11 Edge Functions deployed 2026-10-26** with Elad's new token (incl. the date-anchor prompts from 764a686). Lesson: a new function MUST get
+`[functions.<name>] verify_jwt = false` in `supabase/config.toml` (we verify inside) — otherwise the gateway answers 401 before our code runs.
+**Waiting on Elad:** push the branch + merge; revoke the Supabase token (deploy is done).
 **email-import.md** still waits for the domain. `backup.md` not requested.
 
 **What was built**
