@@ -75,6 +75,14 @@ export async function createFixture(): Promise<Fixture> {
   must(await a.from("transactions").insert(rows), "transactions");
   must(await a.from("fixed_expenses").insert({ household_id: householdId, name: "חשמל", amount: 400, keyword: "חברת החשמל", category: "חשבונות בית" }), "fixed");
   must(await a.from("shopping_items").insert([{ household_id: householdId, name: "חלב", qty: 2, created_by: member.id }, { household_id: householdId, name: "לחם", qty: 1, created_by: member.id }]), "shopping");
+  // budgets (Phase 2) so the budget card / "כמה נשאר להיום" (feature 3) have something to show
+  must(await a.from("budgets").insert([{ household_id: householdId, category: "סופר ומכולת", amount: 1000 },
+    { household_id: householdId, category: "תקשורת ומנויים", amount: 100 }]), "budgets");   // (smoke.spec adds the food budget itself)
+  // a voucher (feature 4, 0014) — skipped silently on a database without the wallet yet
+  const exp = new Date(now.getTime() + 12 * 86_400_000).toISOString().slice(0, 10);
+  const { data: v } = await a.from("vouchers").insert({ household_id: householdId, name: "תו קנייה", issuer: "רשת לדוגמה",
+    initial_amount: 300, expires_on: exp, code_last4: "4321", created_by: member.id }).select("id").maybeSingle();
+  if (v) await a.from("voucher_uses").insert({ household_id: householdId, voucher_id: v.id, amount: 120, note: "קנייה בסניף", created_by: member.id });
 
   const mem = await signIn(member.email, member.password);
   // Owner: enroll + verify TOTP so the session is aal2 (owners must use 2FA).

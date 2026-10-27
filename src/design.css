@@ -70,7 +70,8 @@ td .cat{display:flex;align-items:center;gap:6px}
 .allow b{font-size:28px;line-height:1.2}
 .rings .rb.low{background:var(--surface2);border-radius:12px;padding:6px 2px}
 .monthsw .mrange{display:block;font-size:11px;font-weight:400;color:var(--muted);line-height:1.1}
-.yr{overflow-x:auto;margin:0 -4px;border-radius:10px}
+/* width:0 + min-width:100% → fills the card but its 14-column table never widens the page (it scrolls inside) */
+.yr{overflow-x:auto;width:0;min-width:100%;border-radius:10px}
 .yr table{border-collapse:collapse;font-size:12px;min-width:100%}
 .yr th,.yr td{padding:6px 5px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:right}
 .yr td.num,.yr thead th.num{text-align:left}
