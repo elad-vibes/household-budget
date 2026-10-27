@@ -25,6 +25,24 @@ Commits: f224a9f (0012 + RLS tests) · aaac85e (collector + page) · 91962f9 (se
   Caddy basicauth); page live and green (screenshot from Elad 27.10). Nothing left here.
 - Elad first asked for a Claude Artifact dashboard, then chose his server instead → no Artifact was published.
 
+## ▶ HANDOFF (2026-10-27, session 7 — next-features §6 "השכונה שלנו") — next session starts here
+Branch `claude/our-neighborhood` (from origin/main eeb3d83, so it does NOT contain trip mode — that is PR #1, branch `claude/trip-mode`,
+whose session-6 HANDOFF lives on that branch). Code-wise the two are independent; shared files are `overview.ts`, `design.css`,
+DECISIONS (this branch adds row **#40**, trip mode has #39), PROGRESS — expect only trivial text conflicts in the docs.
+- Built: `src/domain/hood.ts` (kinds, floors, plots — pure) · `src/ui/hood.ts` (isometric SVG + the card) · `.hb-*` in design.css ·
+  card in `overview.ts` after the hero · DECISIONS #40 · ASSETS row · next-features §6 marked done. For a finished budget month the
+  card reads "השכונה של <חודש> · סיכום החודש". No migration, no Edge Function, nothing deployed, nothing touches the DB or the server.
+- Checks: `npm test` 303 (unit/hood 8 new) · typecheck · build · scan · `npx playwright test` 16/16 (hood.spec 2 new: card light + dark,
+  a building opens that category's transactions, no sideways scroll at 390px). Bundle: JS +1.5 KB gz, CSS +0.4 KB gz (budget 15 KB).
+- Shots in `docs/features/6-neighborhood` (390px): `before/overview(.png|-dark.png)` (same branch with the card line removed),
+  `after/overview(.png|-dark.png)` full page, `after/hood-card(.png|-dark.png)` the card alone (nav/FAB hidden for the crop).
+- Caught while building: the legend reused `.dlegend` → an existing E2E (design.spec) found two matching buttons → own class `.hoodleg`;
+  the gable roof first looked hollow → drawn with the back slope.
+- Not verified: the month-end wording on a real finished month (the fixture only has the current month); a household with all 21
+  categories at once on a phone (unit-tested markup only).
+- Waiting on Elad: push `claude/our-neighborhood`; PR #1 (trip mode) + revoking the Supabase token are still his from session 6.
+- Next: iPhone check of trip mode + this card; nothing else is left in next-features.md.
+
 ## ▶ HANDOFF (2026-10-27, session 5 — next-features 3 → 5) — next session starts here
 Branch `claude/next-features-3-5` (from origin/main 804f2e9). Commits: 0e49cd2 (§3 boundary tests on the OLD behavior, green) ·
 1b1b3a0 (§3 code) · bbf8302 (§4 code). `npm test` 295 · typecheck · build · scan all green.

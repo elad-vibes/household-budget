@@ -14,6 +14,7 @@ import { catColor, catIcon, tipIcon } from "./cat.ts";
 import { donut, sparkline } from "./charts.ts";
 import { art } from "./art.ts";
 import { currentBudgetMonth } from "../domain/month.ts";
+import { hoodCard } from "./hood.ts";
 
 /** Phase 2 modules push extra cards here (budgets, upcoming bills, suggestions). */
 export const overviewCards: ((m: string) => SafeHtml)[] = [];
@@ -72,6 +73,7 @@ export function renderOverview(): SafeHtml {
       : html`<div class="legend">${keys.map((k) => html`<span><i class="dot" style="background:${personColor(c, k || null)}"></i>${personName(c, k || null)} <b class="num">${ils(byP[k])}</b></span>`)}</div>`}
   </div>
   ${saved ? html`<div class="card empty">${art.success()}<h2>חודש חסכוני</h2><p class="muted">ב${mLabel(m)} יצא ${ils(p.total - s.total)} פחות מהחודש שלפניו. כל הכבוד!</p></div>` : ""}
+  ${hoodCard(m)}
   ${overviewCards.map((f) => f(m))}
   <div class="card" id="anCard">
     <div class="card-h"><h2>ניתוח והמלצות</h2>
