@@ -17,11 +17,13 @@ import { banner, copyText } from "./common.ts";
 
 /** Phase 2 cards (notifications…) register here. */
 export const homeCards: (() => SafeHtml)[] = [];
+/** Household settings cards from features (מצב טיול) — shown with the other settings, above security. */
+export const settingsCards: (() => SafeHtml)[] = [];
 
 const ROLE: Record<string, string> = { owner: "מנהל/ת", member: "חבר/ה", viewer: "צפייה בלבד" };
 
 export function renderHome(): SafeHtml {
-  return html`${householdCard()}${peopleCard()}${membersCard()}${monthStartCard()}${receiptSettingsCard()}${securityCard()}
+  return html`${householdCard()}${peopleCard()}${membersCard()}${monthStartCard()}${settingsCards.map((f) => f())}${receiptSettingsCard()}${securityCard()}
     ${homeCards.map((f) => f())}${themeCard()}${usageCard()}${backupCard()}${accountCard()}`;
 }
 

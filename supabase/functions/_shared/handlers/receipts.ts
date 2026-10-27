@@ -9,6 +9,7 @@ import { caller, isUuid, rateLimit, release, requireAccess, reserve } from "../g
 import { endpoint, HttpError, safeEqual } from "../http.ts";
 import { parseJson, sanitizeReceipt, textOf } from "../ai.ts";
 import { israelDateStr, receiptPrompt, RECEIPT_SCHEMA } from "../prompts.ts";
+import { refreshRates } from "../fx.ts";
 
 const CLIENT_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
@@ -108,6 +109,8 @@ export function createPollBatchesHandler(deps: Deps) {
             results.push({ client_id: r.custom_id, ok: false, reason: "failed" });
           }
         }
+        // a receipt from abroad is converted in SQL with the cached rate — make sure today's is in
+        if (results.some((x: any) => x?.ok && x.receipt?.currency && x.receipt.currency !== "ILS")) await refreshRates(deps);
         const out = await deps.rpc<any>("svc_complete_receipt_job", {
           p_job: job.id, p_results: results, p_input: input, p_output: output, p_usd: Math.round(usd * 1e5) / 1e5,
         });

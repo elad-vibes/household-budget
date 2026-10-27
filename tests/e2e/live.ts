@@ -83,6 +83,13 @@ export async function createFixture(): Promise<Fixture> {
   const { data: v } = await a.from("vouchers").insert({ household_id: householdId, name: "תו קנייה", issuer: "רשת לדוגמה",
     initial_amount: 300, expires_on: exp, code_last4: "4321", created_by: member.id }).select("id").maybeSingle();
   if (v) await a.from("voucher_uses").insert({ household_id: householdId, voucher_id: v.id, amount: 120, note: "קנייה בסניף", created_by: member.id });
+  // trip mode (feature 5, 0015): two purchases abroad — skipped silently on a database without 0015.
+  // Trip mode itself stays off here (the other specs add ₪ amounts); trip.spec switches it on.
+  await a.from("transactions").insert([
+    { date: `${m(0)}-10`, merchant: "שוק לילה", amount: 31.68, original_amount: 350, original_currency: "THB", fx_rate: 0.0905, category: "אוכל בחוץ ומשלוחים" },
+    { date: `${m(0)}-11`, merchant: "מונית מהשדה", amount: 45.55, original_amount: 500, original_currency: "THB", fx_rate: 0.0911, category: "תחבורה ציבורית" },
+  ].map((r) => ({ household_id: householdId, month: r.date.slice(0, 7), person_id: people?.[0]?.id ?? null, created_by: member.id,
+    is_fixed: false, status: "saved", source: "manual", note: "הוזן ידנית", ...r })));
 
   const mem = await signIn(member.email, member.password);
   // Owner: enroll + verify TOTP so the session is aal2 (owners must use 2FA).
