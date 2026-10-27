@@ -28,14 +28,13 @@ Commits: f224a9f (0012 + RLS tests) · aaac85e (collector + page) · 91962f9 (se
 ## ▶ HANDOFF (2026-10-27, session 5 — next-features 3 → 5) — next session starts here
 Branch `claude/next-features-3-5` (from origin/main 804f2e9). Commits: 0e49cd2 (§3 boundary tests on the OLD behavior, green) ·
 1b1b3a0 (§3 code) · bbf8302 (§4 code). `npm test` 295 · typecheck · build · scan all green.
-**Waiting on Elad's explicit OK (he asked to approve every DB/server-changing command):**
-1. `node scripts/db.mjs migrate` → applies 0013 + 0014 live. The new frontend is safe before that (settings `select *` → start day 1;
-   the wallet hides itself while `vouchers` doesn't exist).
-2. Playwright runs write the SYNTHETIC e2e fixture (example.test users) to the live DB: before-shots from a clean worktree of
-   origin/main (`git worktree add ../hb-before origin/main`), after-shots from this branch, both
-   `SHOTS=before|after SHOTS_DIR=docs/features/3-month-start|4-vouchers npx playwright test screens`, then `npx playwright test` (E2E).
-   Then commit the PNGs (+ HANDOFF), one commit per feature.
-3. Push: `git push origin claude/next-features-3-5:main` (fast-forward) — or give Elad the 2 PowerShell lines if blocked.
+**DONE 27.10 with Elad's OK:** 0013 + 0014 applied live · rls/month + rls/vouchers also green on the live DB (rolled-back txn) ·
+before-shots from a clean main worktree, after-shots from the branch (`docs/features/3-month-start`, `4-vouchers`, all 390px) ·
+`npx playwright test` 14/14 · E2E caught the yearly table widening the plan tab to 545px → fixed (eac3e0e). Fixture now has
+2 budgets + a sample voucher. Commits eac3e0e (§3 shots + fix) · 1ffbdab (§4 shots). Push to main: see the session-5 report.
+How to take before-shots again: `git worktree add ../hb-before origin/main`, junction node_modules, copy .env.local + the
+current tests/e2e/live.ts, run `SHOTS=before SHOTS_DIR=<abs path in this repo>/docs/features/<n> npx playwright test screens`,
+then `git worktree remove --force ../hb-before`.
 **§5 (trip mode) not started.** Needs: migration 0015 (tx original_amount/original_currency/fx_rate, fx cache table, household
 "trip mode" + default currency), Edge Function `fx-rates` (Bank of Israel representative rates, cached daily, manual override,
 fallback when down) → needs a NEW Supabase access token from Elad for the deploy (ask in ONE message, 5-year-old steps), then
@@ -50,8 +49,8 @@ tests green, before/after at 390px in `docs/features/<n>-<name>/` (`SHOTS=before
 |---|---|---|
 | 1 | "איפה הכי זול?" (SuperMCP) | ✅ committed — migration 0010 **applied live**; Edge Function `price-compare` **deployed + checked live** (real SuperMCP answer, 8 stores, cache hit) |
 | 2 | Apple Pay / Back Tap capture | ✅ committed — migration 0011 **applied live**; Edge Function `capture` **deployed + checked live** (shortcut-style call → saved; repeat → duplicate) |
-| 3 | Budget month start + "כמה נשאר להיום" | ✅ code committed (0e49cd2 tests-first, 1b1b3a0) — 0013 NOT live yet; shots + E2E pending (see session 5) |
-| 4 | Vouchers wallet | ✅ code committed (bbf8302) — 0014 NOT live yet; shots + E2E pending |
+| 3 | Budget month start + "כמה נשאר להיום" | ✅ 0e49cd2 (tests first) · 1b1b3a0 · eac3e0e — 0013 **live**, shots + E2E green |
+| 4 | Vouchers wallet | ✅ bbf8302 · 1ffbdab — 0014 **live**, shots + E2E green |
 | 5 | Trip mode / foreign currency | **NEXT** — needs a Supabase token for the new `fx-rates` function |
 | 6 | "השכונה שלנו" | optional |
 
