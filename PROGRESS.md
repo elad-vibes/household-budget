@@ -25,7 +25,18 @@ Commits: f224a9f (0012 + RLS tests) · aaac85e (collector + page) · 91962f9 (se
   Caddy basicauth); page live and green (screenshot from Elad 27.10). Nothing left here.
 - Elad first asked for a Claude Artifact dashboard, then chose his server instead → no Artifact was published.
 
-## ▶ HANDOFF (2026-10-27, session 7 — next-features §6 "השכונה שלנו") — next session starts here
+## ▶ HANDOFF (2026-10-28, session 8 — new app logo) — next session starts here
+Branch `claude/new-logo` (from origin/main ddbfbb0, includes trip mode + neighborhood). One commit, no push by Claude.
+- Built: new mark in `scripts/icons.mjs` (`master()`) → all PNGs re-rendered with `node scripts/icons.mjs`; `markArt()` in `src/ui/art.ts` is the
+  same drawing (flat colors, theme accent tile). DECISIONS #41, ASSETS row updated. No migration, no Edge Function, nothing touches the DB or server.
+- Checks: `npm test` 331 · typecheck · build · scan · `npx playwright test` 19 passed (12 skipped = SHOTS-only). Shots in `docs/features/7-logo`
+  (`before/` = icon + splash from main; `after/` = icon, splash, login screen light + dark at 390px).
+- Not verified: how the icon looks on a real iPhone home screen (iOS rounds the corners itself, the maskable/apple-touch ones are full-bleed);
+  an already-installed copy keeps the OLD icon until it is deleted and added again to the home screen.
+- Cost: icon PNGs got bigger (gradients), precache 1175 → 1361 KiB.
+- Waiting on Elad: push `claude/new-logo`, PR, merge; optional: tell the family to re-add the app to see the new icon.
+
+## ▶ HANDOFF (2026-10-27, session 7 — next-features §6 "השכונה שלנו")
 Branch `claude/our-neighborhood` (cut from origin/main eeb3d83; on 27.10 origin/main with trip mode, PR #1, was merged in — the only
 conflicts were DECISIONS rows #39/#40 and the PROGRESS HANDOFF blocks, kept both). Code-wise the two features are independent.
 - Built: `src/domain/hood.ts` (kinds, floors, plots — pure) · `src/ui/hood.ts` (isometric SVG + the card) · `.hb-*` in design.css ·
