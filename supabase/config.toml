@@ -33,3 +33,6 @@ verify_jwt = false  # the JWT is verified inside the function (asymmetric keys, 
 
 [functions.capture]
 verify_jwt = false  # iPhone Shortcuts send a capture token, not a JWT — checked inside the function (svc_capture)
+
+[functions.fx-rates]
+verify_jwt = false  # the JWT is verified inside the function (asymmetric keys, public invite, cron)

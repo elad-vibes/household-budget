@@ -17,6 +17,8 @@ import { I } from "./icons.ts";
 import { chipValue, guessStatementMethod, lastMethod, methodById, methodChips, rememberMethod, settle } from "../payments.ts";
 import { initialStatus, isAtmRow } from "../domain/match.ts";
 import { art } from "./art.ts";
+import { currentRate, ensureFx, rateLine, tripCurrency, tripOn } from "./trip.ts";
+import { fmtForeign, symbolOf, toIls } from "../domain/fx.ts";
 
 export function renderAdd(): SafeHtml {
   if (!canWrite()) return banner("יש לך הרשאת צפייה בלבד, אז אי אפשר להוסיף הוצאות.", "warn");
@@ -43,7 +45,8 @@ export function renderAdd(): SafeHtml {
       <h2>הוספה ידנית</h2>
       <form class="grid2" data-submit="manual">
         <label class="f">תאריך<input type="date" id="mDate" required value="${today()}"></label>
-        <label class="f">סכום (₪)<input type="number" id="mAmt" step="0.01" inputmode="decimal" required placeholder="0.00"></label>
+        <label class="f">סכום (${symbolOf(mCur())})<input type="number" id="mAmt" step="0.01" inputmode="decimal" required placeholder="0.00" data-input="m-amt"></label>
+        ${tripOn() ? tripRow() : ""}
         <label class="f" style="grid-column:1/-1">על מה<input type="text" id="mDesc" required maxlength="80" placeholder="למשל: שוק, מתנה ליום הולדת, מזומן לבייביסיטר"></label>
         <label class="f">קטגוריה<select id="mCat">${catOptions("סופר ומכולת", false)}</select></label>
         <label class="f">של מי${personSelect("mPerson", S.upPerson || null)}</label>
@@ -55,6 +58,29 @@ export function renderAdd(): SafeHtml {
       </form>
     </div>`;
 }
+
+// ------------------------------------------------------------ מצב טיול in the manual form
+/** The currency of the manual amount: the trip currency while trip mode is on (switchable to ₪). */
+const mCur = (): string => (tripOn() ? (S.extra.mCur ?? tripCurrency()) : "ILS");
+
+function tripRow(): SafeHtml {
+  ensureFx();
+  const cur = mCur(), trip = tripCurrency();
+  return html`<div class="f" style="grid-column:1/-1">
+    <div class="seg" role="group" aria-label="מטבע">${[trip, "ILS"].map((c) => html`<button type="button" data-click="m-cur" data-c="${c}" aria-pressed="${cur === c ? "true" : "false"}">${c === "ILS" ? "₪ שקל" : `${symbolOf(c)} ${c}`}</button>`)}</div>
+    ${cur !== "ILS" ? html`<span class="small" id="mConv">${convText(cur)}</span><span class="muted small">${rateLine(cur)}</span>` : ""}
+  </div>`;
+}
+function convText(cur: string, amount = NaN): string {
+  const r = currentRate(cur);
+  if (!r) return "אין עדיין שער — אפשר להזין שער ידני בלשונית הבית ← מצב טיול.";
+  return isFinite(amount) && amount ? `≈ ${ils(toIls(amount, r.rate), 2)}` : "הסכום יומר לשקלים לפי השער:";
+}
+on("click", "m-cur", (el) => { S.extra.mCur = el.dataset.c; rerender(); });
+on("input", "m-amt", (el) => {
+  const out = $("mConv");
+  if (out && mCur() !== "ILS") out.textContent = convText(mCur(), parseFloat((el as HTMLInputElement).value));
+});
 
 function personPicker(): SafeHtml {
   return html`<div class="card" style="padding:12px 16px">
@@ -235,7 +261,8 @@ function toDraft(r: { title: string; docType: string; statementTotal: number | n
       // the read date's month disagreeing with what the uploader declared is exactly the shape of bug this guards against —
       // never silently trust either side, surface it and let the review screen force a resolution
       const monthMismatch = x.month !== declaredMonth;
-      return { id: uid(), date: x.date, month: x.month, merchant: x.merchant, amount: x.amount, category, fixed: !!x.fixed, note: x.note ?? "", dup, keep: !dup && !excl, monthMismatch, mismatchAck: false };
+      const foreign = x.original_currency && x.fx_rate ? { original_amount: x.original_amount, original_currency: x.original_currency, fx_rate: x.fx_rate } : {};
+      return { id: uid(), date: x.date, month: x.month, merchant: x.merchant, amount: x.amount, category, fixed: !!x.fixed, note: x.note ?? "", dup, keep: !dup && !excl, monthMismatch, mismatchAck: false, ...foreign };
     }),
   };
 }
@@ -250,9 +277,17 @@ on("submit", "manual", async () => {
   const person = ($("mPerson") as HTMLSelectElement).value || null;
   const pm = chipValue("manual", lastMethod(S.upPerson || null));
   if (S.methods.length && !methodById(pm)) { flash("צריך לבחור איך שילמת.", "err"); return; }
+  // trip mode: the typed amount is in the trip currency → ₪ by today's rate, the original is kept
+  const cur = mCur();
+  const rate = cur === "ILS" ? null : currentRate(cur);
+  if (cur !== "ILS" && !rate) { flash("אין עדיין שער ל-" + cur + ". אפשר להזין שער ידני בלשונית הבית ← מצב טיול.", "err"); return; }
+  const typed = cat === "הכנסה" ? Math.abs(a) : Math.round(a * 100) / 100;
+  const amount = rate ? toIls(typed, rate.rate) : typed;
+  const foreign = rate ? { original_amount: typed, original_currency: cur, fx_rate: rate.rate } : {};
   try {
     const [row] = await insertTx([{
-      date: d, month: d.slice(0, 7), merchant: desc.slice(0, 80), amount: cat === "הכנסה" ? Math.abs(a) : Math.round(a * 100) / 100,
+      ...foreign,
+      date: d, month: d.slice(0, 7), merchant: desc.slice(0, 80), amount,
       category: cat, is_fixed: ($("mFixed") as HTMLInputElement).checked, note: "הוזן ידנית",
       person_id: person, source: "manual", source_title: "הוספה ידנית", status: "saved",
       payment_method_id: pm || null, match_status: cat === "הכנסה" ? "none" : initialStatus(methodById(pm)),
@@ -261,7 +296,7 @@ on("submit", "manual", async () => {
     const merged = row && cat !== "הכנסה" ? await settle(row) : null;
     ($("mAmt") as HTMLInputElement).value = "";
     ($("mDesc") as HTMLInputElement).value = "";
-    flash(`✓ נוסף: ${desc} · ${ils(a, 2)}${merged ? " · " + merged : ""}`, "ok");
+    flash(`✓ נוסף: ${desc} · ${ils(amount, 2)}${rate ? ` (${fmtForeign(typed, cur)})` : ""}${merged ? " · " + merged : ""}`, "ok");
   } catch (e: any) {
     const { dbMessage } = await import("../lib/supa.ts");
     flash(dbMessage(e), "err");

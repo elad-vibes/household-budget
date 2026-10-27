@@ -15,6 +15,7 @@ import { budgetRange } from "../domain/month.ts";
 import { avatar } from "./cat.ts";
 import { art } from "./art.ts";
 import { onSwipeDelete } from "./motion.ts";
+import { fmtForeign, fmtRate } from "../domain/fx.ts";
 
 export function renderTx(): SafeHtml {
   const c = ctx();
@@ -42,7 +43,7 @@ export function renderTx(): SafeHtml {
     const armed = isArmed("tx/" + t.id);
     rows.push(html`<div class="tx" ${w ? html`data-swipe="${t.id}"` : ""}>
       ${avatar(t.merchant, t.category)}
-      <div class="m" data-click="${w ? "tx-edit" : ""}" data-id="${t.id}">${t.merchant}<small>${t.category} · ${personName(c, t.person_id)}${t.payment_method_id ? " · " + methodLabel(methodById(t.payment_method_id)) : ""}${t.note ? " · " + t.note : ""}</small></div>
+      <div class="m" data-click="${w ? "tx-edit" : ""}" data-id="${t.id}">${t.merchant}<small>${t.category} · ${personName(c, t.person_id)}${t.payment_method_id ? " · " + methodLabel(methodById(t.payment_method_id)) : ""}${t.note ? " · " + t.note : ""}</small>${t.original_currency && t.original_amount != null && t.fx_rate ? html`<small class="num fxorig">${fmtForeign(t.original_amount, t.original_currency)} · ${fmtRate(t.fx_rate, t.original_currency)}</small>` : ""}</div>
       <div class="row" style="gap:6px">${matchBadge(t)}${t.date_uncertain ? html`<span class="chip warn" title="התאריך שהתקבל מהקריאה האוטומטית נראה לא סביר (עתידי, או רחוק מתאריך ההעלאה). אפשר לתקן בעריכת התנועה.">לבדוק תאריך</span>` : ""}${isExcl(t) ? html`<span class="chip grey">לא נספר</span>` : isFixed(c, t) ? html`<span class="chip fx">קבוע</span>` : ""}<span class="a num ${t.amount < 0 ? "neg" : ""}">${ils(t.amount, 2)}</span></div>
       ${w ? html`<button class="ghost ${armed ? "danger" : ""}" data-click="tx-del" data-id="${t.id}" aria-label="מחיקה">${armed ? "למחוק?" : "✕"}</button>` : html`<span></span>`}
       ${editing === t.id ? html`<form class="txedit" data-submit="tx-save" data-id="${t.id}">
@@ -126,6 +127,8 @@ on("submit", "tx-save", async (el) => {
       date, month: date.slice(0, 7), date_uncertain: false,   // confirmed by hand: no longer "needs checking"
       person_id: v("#ePerson") || null, is_fixed: (el.querySelector("#eFixed") as HTMLInputElement).checked,
       payment_method_id: pm, ...(methodChanged ? { match_status: initialStatus(methodById(pm)) } : {}),
+      // a foreign expense corrected in ₪ keeps its original; the rate follows (₪ ÷ original)
+      ...(before?.original_amount ? { fx_rate: Math.round(Math.abs(amount / before.original_amount) * 1e6) / 1e6 } : {}),
     });
     const after = S.tx.find((t) => t.id === id);
     const msg = methodChanged && after ? await settle(after) : null;

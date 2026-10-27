@@ -21,12 +21,13 @@ const DATE_RULES = (today: string) => `תאריכים: היום בישראל ה�
 export const RECEIPT_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["is_receipt", "merchant", "date", "total", "category", "note", "items", "payment"],
+  required: ["is_receipt", "merchant", "date", "total", "currency", "category", "note", "items", "payment"],
   properties: {
     is_receipt: { type: "boolean", description: "false if the image is not a readable purchase receipt" },
     merchant: { type: "string" },
     date: { type: "string", description: "YYYY-MM-DD, or empty string if not visible" },
-    total: { type: "number", description: "final amount paid in ILS; 0 if unreadable" },
+    total: { type: "number", description: "final amount paid, in the receipt's own currency; 0 if unreadable" },
+    currency: { type: "string", description: "ISO 4217 code of total (ILS for shekels, THB, USD, EUR…)" },
     category: { type: "string", enum: [...CATS] },
     note: { type: "string" },
     payment: { type: "string", description: "how it was paid, as printed; card = last 4 digits only; empty if not visible" },
@@ -52,7 +53,8 @@ export function receiptPrompt(today: string): string {
 כללים:
 - merchant: שם העסק כפי שמופיע בראש הקבלה, בלי מספר עוסק, כתובת או טלפון.
 - date: תאריך הקנייה בפורמט YYYY-MM-DD. אם לא רואים תאריך, מחרוזת ריקה.
-- total: הסכום הסופי ששולם בשקלים (אחרי הנחות, "סה"כ לתשלום"). אם לא קריא, 0.
+- total: הסכום הסופי ששולם (אחרי הנחות, "סה"כ לתשלום") במטבע של הקבלה — לא להמיר בעצמך. אם לא קריא, 0.
+- currency: קוד המטבע של total לפי ISO 4217: ILS לשקלים (₪, ש"ח), ובקבלה מחו"ל המטבע המקומי (למשל THB לבאט ฿, USD, EUR). אם אין סימן מטבע וזו קבלה ישראלית, ILS.
 - category: הקטגוריה הכי מתאימה מהרשימה.
 - items: שורות המוצרים כפי שמופיעות (שם המוצר בעברית כמו בקבלה, כמות, מחיר ליחידה, סכום השורה). בלי שורות הנחה כלליות, מע"מ, עודף או אמצעי תשלום. אם אין פירוט מוצרים, מערך ריק.
 - payment: איך שילמו, כפי שמודפס בקבלה: "מזומן", "אשראי ****1234" (רק 4 הספרות האחרונות, לעולם לא מספר כרטיס מלא), "ויזה", "ביט". אם לא רואים, מחרוזת ריקה.
@@ -76,7 +78,7 @@ export const STATEMENT_SCHEMA = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["date", "month", "merchant", "amount", "category", "fixed", "note"],
+        required: ["date", "month", "merchant", "amount", "category", "fixed", "note", "original_amount", "original_currency"],
         properties: {
           date: { type: "string", description: "YYYY-MM-DD" },
           month: { type: "string", description: "YYYY-MM" },
@@ -85,6 +87,8 @@ export const STATEMENT_SCHEMA = {
           category: { type: "string", enum: [...ALLCATS] },
           fixed: { type: "boolean" },
           note: { type: "string" },
+          original_amount: { anyOf: [{ type: "number" }, { type: "null" }], description: "foreign transaction amount, null for ILS" },
+          original_currency: { anyOf: [{ type: "string" }, { type: "null" }], description: "ISO 4217 code of original_amount, null for ILS" },
         },
       },
     },
@@ -101,6 +105,7 @@ export function statementPrompt(kindDesc: string, fixedHints: { name: string; ke
 - בדפי בנק: חיוב מרוכז של חברת אשראי (ישראכרט, כאל, מקס, לאומי קארד, אמריקן אקספרס, דיינרס) = "חיוב אשראי מרוכז". משכורת, קצבאות והחזרים לחשבון = "הכנסה" עם amount חיובי. העברה בין חשבונות של אותה משפחה או הפקדה לחיסכון = "העברה בין חשבונות". משיכת מזומן מכספומט = "משיכת מזומן" (זו העברה למזומן, לא הוצאה). שאר ההוצאות לפי סוגן.
 - fixed=true להוצאות קבועות וחוזרות: ביטוחים, חשמל, מים, גז, ארנונה, ועד בית, שכירות, משכנתא, הלוואות, סלולר, אינטרנט, טלוויזיה, חוגים וגנים, הוראות קבע.
 - הוצאות קבועות שכבר מוגדרות אצלנו (שם : מילת חיפוש): ${fx}.
+- עסקאות בחו"ל: אם מופיע סכום העסקה המקורי במטבע זר (למשל "סכום עסקה מקורי" 350 THB), original_amount = הסכום המקורי ו-original_currency = קוד המטבע (ISO 4217). בעסקה בשקלים, שניהם null. amount נשאר תמיד הסכום בשקלים שחויב.
 - statementTotal: סכום "סה"כ לחיוב" שמופיע במסמך (אם יש כמה סכומים, הסכום הכולל של ארץ וחו"ל). אם אין, null.
 - title: תיאור קצר של המסמך, למשל: פירוט מקס חיוב 02/09/26. אם המסמך הוא רשימת "עסקאות אחרונות" בלי תאריך חיוב מסודר, אפשר לכתוב זאת בכותרת כפי שזה — אל תמציא/י תאריך חיוב שלא מופיע.
 - merchant כפי שמופיע במסמך, בלי מספרי כרטיס או חשבון.

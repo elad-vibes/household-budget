@@ -41,9 +41,18 @@ const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
 // ---------------------------------------------------------------- statement
 export interface StatementRow {
   date: string; month: string; merchant: string; amount: number; category: string; fixed: boolean; note: string;
+  original_amount?: number; original_currency?: string; fx_rate?: number;   // a foreign transaction (0015)
 }
 export interface StatementDoc {
   docType: string; title: string; statementTotal: number | null; rows: StatementRow[];
+}
+
+/** A statement row's "סכום עסקה מקורי" → original_amount / original_currency / fx_rate (₪ charged ÷ original). */
+function foreign(r: any): { original_amount: number; original_currency: string; fx_rate: number } | Record<string, never> {
+  const orig = num(r?.original_amount), cur = str(r?.original_currency, 3).toUpperCase(), amount = num(r?.amount);
+  if (!orig || !amount || !/^[A-Z]{3}$/.test(cur) || cur === "ILS" || Math.abs(orig) > 100_000_000) return {};
+  const fx_rate = Math.round(Math.abs(amount / orig) * 1e6) / 1e6;
+  return fx_rate > 0 && fx_rate < 100_000 ? { original_amount: Math.abs(orig) * Math.sign(amount), original_currency: cur, fx_rate } : {};
 }
 
 export function sanitizeStatement(raw: any): StatementDoc {
@@ -64,6 +73,7 @@ export function sanitizeStatement(raw: any): StatementDoc {
       category: ALLCATS.includes(r?.category) ? r.category : "שונות",
       fixed: r?.fixed === true,
       note: str(r?.note, 60),
+      ...foreign(r),
     });
   }
   const docType = ["credit_card", "bank", "receipt", "other"].includes(raw?.docType) ? raw.docType : "other";
@@ -72,7 +82,7 @@ export function sanitizeStatement(raw: any): StatementDoc {
 
 // ----------------------------------------------------------------- receipts
 export interface ReceiptItem { name: string; qty: number; unit_price: number | null; total: number | null }
-export interface Receipt { merchant: string; date: string; total: number; category: string; note: string; items: ReceiptItem[]; payment: string }
+export interface Receipt { merchant: string; date: string; total: number; currency: string; category: string; note: string; items: ReceiptItem[]; payment: string }
 
 export function sanitizeReceipt(raw: any): { ok: true; receipt: Receipt } | { ok: false; reason: string } {
   if (!raw || raw.is_receipt === false) return { ok: false, reason: "unreadable" };
@@ -92,6 +102,7 @@ export function sanitizeReceipt(raw: any): { ok: true; receipt: Receipt } | { ok
       merchant: str(raw.merchant, 80) || "קבלה",
       date,
       total,
+      currency: /^[A-Z]{3}$/.test(str(raw.currency, 3).toUpperCase()) ? str(raw.currency, 3).toUpperCase() : "ILS",
       category: (CATS as readonly string[]).includes(raw.category) ? raw.category : "שונות",
       note: str(raw.note, 60),
       items,

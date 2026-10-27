@@ -43,6 +43,7 @@ export const RATE: Record<string, [number, number]> = {
   priceSimilar: [40, 86400],
   capture: [60, 3600],      // per capture token (an automation firing per purchase)
   captureIp: [120, 3600],
+  fx: [120, 3600],          // per household: the app asks on open + add; the sources are fetched once a day anyway
 };
 
 export interface TokenUsage {

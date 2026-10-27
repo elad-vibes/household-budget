@@ -61,7 +61,7 @@ export function methodSelect(id: string, selected: string | null | undefined, at
 // ---------------------------------------------------- matching glue
 const waiting = (): Waiting[] => S.tx
   .filter((t) => t.status === "saved" && (t.match_status === "awaiting_statement" || t.match_status === "unmatched_after_statement"))
-  .map((t) => ({ id: t.id, date: t.date, amount: t.amount, merchant: t.merchant, methodId: t.payment_method_id ?? null }));
+  .map((t) => ({ id: t.id, date: t.date, amount: t.amount, merchant: t.merchant, methodId: t.payment_method_id ?? null, foreign: !!t.original_currency }));
 export const waitingById = (id: string) => S.tx.find((t) => t.id === id);
 
 const savedStatementRows = (): SRow[] => S.tx
@@ -103,6 +103,7 @@ export async function saveDraftDoc(d: DraftDoc, personId: string | null) {
   const rows = d.rows.filter((r) => r.keep && !merged.has(r.id)).map((r) => ({
     date: r.date, month: r.month, merchant: r.merchant, amount: r.amount, category: r.category, is_fixed: r.fixed,
     note: r.note, person_id: personId, source: d.source, source_title: d.title,
+    ...(r.original_currency ? { original_amount: r.original_amount, original_currency: r.original_currency, fx_rate: r.fx_rate } : {}),
   }));
   const mergeRows = merges.map((m) => {
     const r = d.rows.find((x) => x.id === m.rowKey)!;
