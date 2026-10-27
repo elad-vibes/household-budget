@@ -28,7 +28,7 @@ export const SOURCE_LABEL: Record<Rate["source"], string> = {
   manual: "שער ידני",
 };
 
-export const symbolOf = (code: string) => CURRENCIES.find((c) => c.code === code)?.symbol ?? code;
+export const symbolOf = (code: string) => (code === "ILS" ? "₪" : CURRENCIES.find((c) => c.code === code)?.symbol ?? code);
 export const nameOf = (code: string) => CURRENCIES.find((c) => c.code === code)?.name ?? code;
 
 /** "฿350" / "350 CHF" — the original amount as people read it. */

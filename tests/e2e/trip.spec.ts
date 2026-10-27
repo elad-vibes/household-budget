@@ -65,7 +65,7 @@ test.describe("trip mode (live Supabase, synthetic data, intercepted fx-rates)",
     await expect(row.locator(".fxorig")).toContainText("1 ฿ = ₪0.0905");
     await expect(page.locator(".tx", { hasText: "שוק לילה" }).locator(".fxorig")).toContainText("฿350");   // seeded row
     await noSideScroll(page);
-    if (process.env.SHOTS === "after") { await page.waitForTimeout(1200); await page.screenshot({ path: "docs/features/5-trip-mode/after/tx.png", fullPage: true, animations: "disabled" }); }
+    if (process.env.SHOTS === "after") { await expect(page.locator(".flash")).toHaveCount(0, { timeout: 8000 }); await page.waitForTimeout(1200); await page.screenshot({ path: "docs/features/5-trip-mode/after/tx.png", fullPage: true, animations: "disabled" }); }
   });
 
   test("₪ switch in trip mode saves a plain ₪ expense", async ({ page }) => {

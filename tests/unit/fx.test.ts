@@ -1,7 +1,7 @@
 // מצב טיול (feature 5), app side: which rate wins, how originals are shown, and the matcher's
 // wider tolerance for a purchase abroad (the card charges its own rate + fees).
 import { describe, expect, it } from "vitest";
-import { fmtForeign, fmtRate, rateOf, toIls, type FxRates } from "../../src/domain/fx.ts";
+import { fmtForeign, fmtRate, rateOf, symbolOf, toIls, type FxRates } from "../../src/domain/fx.ts";
 import { pairInfo, type SRow, type Waiting } from "../../src/domain/match.ts";
 
 const RATES: FxRates = {
@@ -31,6 +31,7 @@ describe("rates", () => {
     expect(fmtForeign(40, "CHF")).toBe("40 CHF");
     expect(fmtRate(0.0911, "THB")).toBe("1 ฿ = ₪0.0911");
     expect(fmtRate(3.078, "USD")).toBe("1 $ = ₪3.08");
+    expect(symbolOf("ILS")).toBe("₪");   // the manual form's "סכום (₪)" label (caught by E2E)
   });
 });
 
