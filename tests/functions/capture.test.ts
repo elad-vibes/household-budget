@@ -1,5 +1,5 @@
 // capture Edge Function (next-features.md §2): token header, amount parsing, category
-// rules, foreign currency → review, no Origin needed (iPhone Shortcuts), rate limits.
+// rules, foreign currency (0015: converted by svc_capture), no Origin needed (iPhone Shortcuts), rate limits.
 import { describe, expect, it } from "vitest";
 import { createCaptureHandler, parseAmount } from "../../supabase/functions/_shared/handlers/capture.ts";
 import { makeDeps, req } from "./fakes.ts";
@@ -67,10 +67,22 @@ describe("capture", () => {
     expect(s2.rpcCalls.find((c) => c.fn === "svc_capture")!.args).toMatchObject({ p_kind: "quick", p_category: "אוכל בחוץ ומשלוחים", p_category_known: true });
   });
 
-  it("a foreign-currency amount is noted and always reviewed", async () => {
-    const { h, s } = setup({ ok: true, status: "review" });
-    await call(h, shortcut({ amount: "฿350.00", merchant: "שופרסל דיל" }));
-    expect(s.rpcCalls.find((c) => c.fn === "svc_capture")!.args).toMatchObject({ p_category_known: false, p_note: "סכום במטבע זר: ฿350.00" });
+  it("a foreign amount goes to svc_capture with its currency; the reply shows ₪ and the original", async () => {
+    const { h, s } = setup({ ok: true, status: "saved", amount: 31.89, original_amount: 350, currency: "THB" });
+    const r = await call(h, shortcut({ amount: "฿350.00", merchant: "שופרסל דיל" }));
+    expect(s.rpcCalls.find((c) => c.fn === "svc_capture")!.args).toMatchObject({ p_amount: 350, p_currency: "THB", p_category_known: true, p_note: "" });
+    expect(r.body.text).toBe("נקלט: ₪31.89 (350.00 THB) · שופרסל דיל");
+    expect(s.rpcCalls.some((c) => c.fn === "svc_fx_claim")).toBe(true);    // rates refreshed first when due
+    const { h: q, s: s2 } = setup();
+    await call(q, shortcut({ amount: 120, kind: "quick", category: "אוכל בחוץ ומשלוחים" }));   // no currency → trip currency if on
+    expect(s2.rpcCalls.find((c) => c.fn === "svc_capture")!.args.p_currency).toBe("");
+    const { h: e, s: s3 } = setup();
+    await call(e, shortcut({ amount: "12", currency: "usd", kind: "quick" }));
+    expect(s3.rpcCalls.find((c) => c.fn === "svc_capture")!.args.p_currency).toBe("USD");
+    const { h: i, s: s4 } = setup();
+    await call(i, shortcut({ amount: "₪45.90", merchant: "קפה" }));
+    expect(s4.rpcCalls.find((c) => c.fn === "svc_capture")!.args.p_currency).toBe("ILS");
+    expect(s4.rpcCalls.some((c) => c.fn === "svc_fx_claim")).toBe(false);   // ₪ needs no rates
   });
 
   it("duplicate answer is reported; bad amount → 400; rate limited → 429", async () => {

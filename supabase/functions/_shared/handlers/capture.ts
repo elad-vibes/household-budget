@@ -9,9 +9,9 @@ import { clientIp, rateLimit } from "../guard.ts";
 import { endpoint, HttpError } from "../http.ts";
 import { CATS } from "../catalog.ts";
 import { catOf } from "../rules.ts";
+import { CURRENCY, parseForeign, refreshRates } from "../fx.ts";
 
 const TOKEN = /^hbc_[0-9a-f]{64}$/;
-const FOREIGN = /\$|€|£|฿|usd|eur|gbp|thb|dollar|euro/i;
 
 /** "₪1,234.50", "45,90 ש״ח", 12.3 → number; null if unreadable. */
 export function parseAmount(v: unknown): number | null {
@@ -48,23 +48,29 @@ export function createCaptureHandler(deps: Deps) {
     const amount = parseAmount(rawAmount);
     if (!kind || amount === null) throw new HttpError(400, "invalid", "לא הצלחתי לקרוא את הסכום.");
     const merchant = str(body.merchant, 80);
-    const foreign = typeof rawAmount === "string" && FOREIGN.test(rawAmount);
+    // currency: sent explicitly, else from the amount text ("฿350.00" from Apple Pay abroad),
+    // else "" = the household's trip currency while trip mode is on, ₪ otherwise (svc_capture)
+    const explicit = typeof body.currency === "string" ? body.currency.trim().toUpperCase() : "";
+    const currency = CURRENCY.test(explicit) ? explicit : typeof rawAmount === "string" ? parseForeign(rawAmount)?.currency ?? "" : "";
+    if (currency !== "ILS") await refreshRates(deps);   // never throws; the conversion uses whatever is cached
     let category: string | null = null;
     let known = false;
     if (typeof body.category === "string" && (CATS as readonly string[]).includes(body.category)) { category = body.category; known = true; }
     else if (merchant) { const c = catOf(merchant).category; if (c !== "שונות") { category = c; known = true; } }
-    if (foreign) known = false; // a foreign amount always waits for review (feature 5 adds conversion)
-    const note = [foreign ? `סכום במטבע זר: ${str(rawAmount, 30)}` : "", str(body.note, 120)].filter(Boolean).join(" · ");
+    const note = str(body.note, 120);
 
-    const r = await deps.rpc<{ ok: boolean; reason?: string; duplicate?: boolean; status?: string; method?: string | null }>("svc_capture", {
+    const r = await deps.rpc<{ ok: boolean; reason?: string; duplicate?: boolean; status?: string; method?: string | null;
+      amount?: number; original_amount?: number | null; currency?: string }>("svc_capture", {
       p_token: token, p_amount: amount, p_merchant: merchant, p_card: str(body.card, 40), p_kind: kind,
-      p_category: category, p_category_known: known, p_note: note, p_date: israelDate(deps.now()),
+      p_category: category, p_category_known: known, p_note: note, p_date: israelDate(deps.now()), p_currency: currency,
     });
     if (!r?.ok) {
       const [status, msg] = REASON[r?.reason ?? "invalid"] ?? REASON.invalid;
       throw new HttpError(status, r?.reason ?? "invalid", msg);
     }
-    const what = `₪${Math.abs(amount).toFixed(2)}${merchant ? " · " + merchant : ""}`;
+    const ils = typeof r.amount === "number" ? r.amount : amount;
+    const orig = r.original_amount ? ` (${Math.abs(r.original_amount).toFixed(2)} ${r.currency})` : "";
+    const what = `₪${Math.abs(ils).toFixed(2)}${orig}${merchant ? " · " + merchant : ""}`;
     return {
       ok: true, duplicate: !!r.duplicate, status: r.status ?? null,
       text: r.duplicate ? `כבר נקלט: ${what}` : r.status === "review" ? `נקלט ומחכה לאישור: ${what}` : `נקלט: ${what}`,

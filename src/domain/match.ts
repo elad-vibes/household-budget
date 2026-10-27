@@ -38,13 +38,16 @@ export function initialStatus(m: Pick<PaymentMethod, "type"> | null | undefined)
 }
 
 /** A logged expense that waits for its statement row. */
-export interface Waiting { id: string; date: string; amount: number; merchant: string; methodId: string | null }
+export interface Waiting { id: string; date: string; amount: number; merchant: string; methodId: string | null; foreign?: boolean }
 /** A statement row (from an import, or already saved in the household). */
 export interface SRow { key: string; date: string; month?: string; amount: number; merchant: string; note: string; methodId?: string | null }
 
 export const DATE_BEFORE = 2; // the statement date may be up to 2 days before the receipt
 export const DATE_AFTER = 5;  // … and up to 5 days after it
 export const AMOUNT_TOL = 1;  // ₪
+/** A purchase abroad was logged at the official rate; the card charges its own rate + fees (0015). */
+export const FOREIGN_TOL = 0.05;
+const tol = (w: Waiting) => (w.foreign ? Math.max(AMOUNT_TOL, Math.abs(w.amount) * FOREIGN_TOL) : AMOUNT_TOL);
 
 // ------------------------------------------------------------ helpers
 const day = (d: string) => Math.round(Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)) / 86_400_000);
@@ -93,14 +96,14 @@ export function eligible(item: PaymentMethod | undefined, st: PaymentMethod, row
 
 export interface PairInfo { kind: "amount" | "installment"; amountDiff: number; dayDiff: number; merchant: number; score: number; confident: boolean }
 
-/** Amount (±1₪, same sign, or the first installment of the full amount) + date window. */
+/** Amount (±1₪ — ±5% for a purchase abroad, same sign, or the first installment of the full amount) + date window. */
 export function pairInfo(w: Waiting, r: SRow): PairInfo | null {
   if (Math.sign(w.amount) !== Math.sign(r.amount)) return null; // a refund only matches a refund
   const dd = daysBetween(w.date, r.date);
   if (dd < -DATE_BEFORE || dd > DATE_AFTER) return null;
   let kind: PairInfo["kind"] = "amount";
   let diff = Math.abs(w.amount - r.amount);
-  if (diff > AMOUNT_TOL) {
+  if (diff > tol(w)) {
     const inst = r.note.match(/תשלום\s*1\s*מתוך\s*(\d+)/);
     const n = inst ? +inst[1] : 0;
     if (n < 2 || Math.abs(w.amount / n - r.amount) > AMOUNT_TOL) return null;

@@ -119,6 +119,7 @@ tr.mismatch td{background:var(--warn-soft)}
 .txday{font-size:13px;color:var(--muted);font-weight:700;padding:10px 0 2px}
 .tx{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
 .tx .m{font-weight:600;overflow-wrap:anywhere;cursor:pointer} .tx .m small{display:block;color:var(--muted);font-weight:400;font-size:13px}
+.tx .m small.fxorig{color:var(--ink2);direction:rtl;unicode-bidi:plaintext}
 .tx .a{font-weight:700;text-align:left}
 .tx .a.neg{color:var(--ok)}
 .txedit{grid-column:1/-1;background:var(--surface2);border-radius:12px;padding:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}

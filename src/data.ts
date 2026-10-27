@@ -10,7 +10,8 @@ const HH_KEY = "hb2-hh";
 const num = (v: unknown) => (v === null || v === undefined ? 0 : Number(v));
 
 function normTx(r: any): Tx {
-  return { ...r, amount: num(r.amount) };
+  return { ...r, amount: num(r.amount), original_amount: r.original_amount == null ? null : num(r.original_amount),
+    fx_rate: r.fx_rate == null ? null : num(r.fx_rate) };
 }
 function normFixed(r: any): Fixed {
   return { ...r, amount: num(r.amount), cycle: (Number(r.cycle) || 1) as 1 | 2 | 12 };
@@ -286,6 +287,7 @@ export const fn = {
   mfaRecover: (code: string) => invoke("mfa-recover", { code }),
   mfaReset: (userId: string) => invoke("mfa-reset", { household_id: S.hh, user_id: userId }),
   priceCompare: () => invoke<{ cached: boolean; result: import("./ui/price.ts").PriceResult }>("price-compare", { household_id: S.hh }),
+  fxRates: () => invoke<import("./domain/fx.ts").FxRates>("fx-rates", { household_id: S.hh }),
   priceSimilar: (q: string) => invoke<{ similar: { name: string; brand: string }[] }>("price-compare", { household_id: S.hh, similar: q }),
 };
 
