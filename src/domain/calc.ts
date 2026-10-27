@@ -2,9 +2,11 @@
 // analysis summary — ported from the prototype. Pure functions over a context.
 import { addM, ils, mLabel, norm } from "../lib/format.ts";
 import { EXCL, SUBS } from "./categories.ts";
+import { budgetMonth } from "./month.ts";
 import type { AnalysisData, Fixed, Person, Tx } from "./types.ts";
 
-export interface Ctx { tx: Tx[]; fixed: Fixed[]; people: Person[] }
+/** startDay: the household's budget-month start (1–28, feature 3); every monthly number goes through txOf. */
+export interface Ctx { tx: Tx[]; fixed: Fixed[]; people: Person[]; startDay?: number }
 
 export const JOINT = "משותף";
 
@@ -39,8 +41,9 @@ export const isFixed = (ctx: Ctx, t: Tx) => t.is_fixed || !!fixedMatch(ctx, t);
 
 export const savedTx = (ctx: Ctx) => ctx.tx.filter((t) => t.status === "saved");
 export const reviewTx = (ctx: Ctx) => ctx.tx.filter((t) => t.status === "review");
-export const txOf = (ctx: Ctx, m: string) => savedTx(ctx).filter((t) => t.month === m);
-export const monthsWithData = (ctx: Ctx) => [...new Set(savedTx(ctx).map((t) => t.month))].sort();
+export const monthOf = (ctx: Ctx, t: Tx) => budgetMonth(t, ctx.startDay);
+export const txOf = (ctx: Ctx, m: string) => savedTx(ctx).filter((t) => monthOf(ctx, t) === m);
+export const monthsWithData = (ctx: Ctx) => [...new Set(savedTx(ctx).map((t) => monthOf(ctx, t)))].sort();
 
 export interface MonthSum { fx: number; vr: number; total: number; inc: number; count: number }
 export function sumM(ctx: Ctx, m: string): MonthSum {

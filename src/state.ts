@@ -46,7 +46,8 @@ export const S = {
   extra: {} as Record<string, any>, // Phase 2 collections live here (budgets, goals…)
 };
 
-export const ctx = (): Ctx => ({ tx: S.tx, fixed: S.fixed, people: S.people });
+export const startDay = () => S.settings?.month_start_day ?? 1;
+export const ctx = (): Ctx => ({ tx: S.tx, fixed: S.fixed, people: S.people, startDay: startDay() });
 export const canWrite = () => S.role === "owner" || S.role === "member";
 export const isOwner = () => S.role === "owner";
 export const household = () => S.households.find((h) => h.id === S.hh) ?? null;

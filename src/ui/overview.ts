@@ -13,7 +13,7 @@ import type { AnalysisData } from "../domain/types.ts";
 import { catColor, catIcon, tipIcon } from "./cat.ts";
 import { donut, sparkline } from "./charts.ts";
 import { art } from "./art.ts";
-import { curMonth } from "../lib/format.ts";
+import { currentBudgetMonth } from "../domain/month.ts";
 
 /** Phase 2 modules push extra cards here (budgets, upcoming bills, suggestions). */
 export const overviewCards: ((m: string) => SafeHtml)[] = [];
@@ -55,7 +55,7 @@ export function renderOverview(): SafeHtml {
   const mx = Math.max(...rows.map((r) => r[2]), 1);
   const spark: number[] = [];
   for (let i = 5; i >= 0; i--) spark.push(sumM(c, addM(m, -i)).total);
-  const saved = m < curMonth() && p.total > 0 && s.total < p.total;
+  const saved = m < currentBudgetMonth(c.startDay) && p.total > 0 && s.total < p.total;
 
   return html`${reviewBanner}
   <div class="card herocard">

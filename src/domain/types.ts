@@ -15,6 +15,8 @@ export interface Settings {
   /** "איפה הכי זול?" comparison location (0010) — the only location sent to SuperMCP */
   price_city?: string | null;
   price_street?: string | null;
+  /** budget month starts on this day (1–28, 0013) — see src/domain/month.ts */
+  month_start_day?: number;
   quota_images: number;
   quota_statements: number;
   quota_analyses: number;

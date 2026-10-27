@@ -11,6 +11,7 @@ import { catOptions, personOptionsHtml } from "./common.ts";
 import { renderReceiptReview } from "./review.ts";
 import { matchBadge, methodById, methodLabel, methodSelect, settle } from "../payments.ts";
 import { initialStatus } from "../domain/match.ts";
+import { budgetRange } from "../domain/month.ts";
 import { avatar } from "./cat.ts";
 import { art } from "./art.ts";
 import { onSwipeDelete } from "./motion.ts";
@@ -31,10 +32,11 @@ export function renderTx(): SafeHtml {
   const w = canWrite();
 
   const rows: SafeHtml[] = [];
+  const range = budgetRange(S.month, c.startDay);   // a date outside the month on screen (installment) shows its year
   let last = "";
   for (const t of list) {
     if (t.date !== last) {
-      rows.push(html`<div class="txday num">${ddmm(t.date)}${t.date.slice(0, 7) !== S.month ? "/" + t.date.slice(2, 4) : ""}</div>`);
+      rows.push(html`<div class="txday num">${ddmm(t.date)}${t.date < range.from || t.date > range.to ? "/" + t.date.slice(2, 4) : ""}</div>`);
       last = t.date;
     }
     const armed = isArmed("tx/" + t.id);

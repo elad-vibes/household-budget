@@ -1,19 +1,36 @@
 // תכנון — category budgets, the annual/irregular expenses calendar, savings goals.
 import { attr, html, type SafeHtml, $ } from "../lib/html.ts";
 import { armed2, isArmed, on } from "../lib/events.ts";
-import { HEB_M, ils, ils2, today } from "../lib/format.ts";
+import { HEB_M, ils, ils2, mLabel, mShort, today } from "../lib/format.ts";
 import { CATS } from "../domain/categories.ts";
-import { annualCalendar, budgetRows, goalProgress } from "../domain/plan.ts";
+import { annualCalendar, budgetRows, goalProgress, yearReport } from "../domain/plan.ts";
+import { exportYear } from "../importer.ts";
 import { jar } from "./charts.ts";
 import { art } from "./art.ts";
 import { confetti } from "./motion.ts";
-import { canWrite, ctx, flash, rerender, S } from "../state.ts";
+import { canWrite, ctx, flash, rerender, S, startDay } from "../state.ts";
 import { dbMessage, sb } from "../lib/supa.ts";
 import { P2 } from "../phase2.ts";
 
 export function renderPlan(): SafeHtml {
-  return html`${budgetsCard()}${annualCard()}${goalsCard()}`;
+  return html`${budgetsCard()}${yearCard()}${annualCard()}${goalsCard()}`;
 }
+
+// feature 3: 12 budget months by category, ending at the month on screen
+function yearCard(): SafeHtml {
+  const y = yearReport(ctx(), S.month);
+  if (!y.rows.length) return html``;
+  const st = startDay();
+  const k = (n: number) => (n ? (Math.abs(n) >= 1000 ? (n / 1000).toFixed(1) + "K" : Math.round(n).toString()) : "–");
+  return html`<div class="card"><div class="card-h"><h2>דוח שנתי</h2><button class="ghost" data-click="year-xlsx">ייצוא ל-Excel</button></div>
+    <p class="muted small">12 חודשים עד ${mLabel(S.month)}${st > 1 ? `, כל חודש מה-${st} בו` : ""}. סכומים בשקלים, בלי הכנסות והעברות.</p>
+    <div class="yr" role="region" aria-label="דוח שנתי לפי קטגוריה" tabindex="0"><table>
+      <thead><tr><th>קטגוריה</th>${y.months.map((m) => html`<th class="num">${mShort(m)}</th>`)}<th class="num">סה״כ</th></tr></thead>
+      <tbody>${y.rows.map((r) => html`<tr><th>${r.category}</th>${r.byMonth.map((v) => html`<td class="num">${k(v)}</td>`)}<td class="num"><b>${ils(r.total)}</b></td></tr>`)}</tbody>
+      <tfoot><tr><th>סה״כ</th>${y.totals.map((v) => html`<td class="num">${k(v)}</td>`)}<td class="num"><b>${ils(y.total)}</b></td></tr></tfoot>
+    </table></div></div>`;
+}
+on("click", "year-xlsx", () => { exportYear(S.month).catch(() => flash("הייצוא נכשל", "err")); });
 
 function budgetsCard(): SafeHtml {
   const w = canWrite();

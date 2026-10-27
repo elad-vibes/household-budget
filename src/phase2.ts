@@ -2,12 +2,13 @@
 // and plugs cards into existing screens (overview, fixed, shopping, home).
 import { attr, html, type SafeHtml } from "./lib/html.ts";
 import { on } from "./lib/events.ts";
-import { ils, ils2, HEB_D } from "./lib/format.ts";
+import { ils, ils2, HEB_D, today } from "./lib/format.ts";
+import { currentBudgetMonth } from "./domain/month.ts";
 import { dbMessage, invoke, sb } from "./lib/supa.ts";
 import { canWrite, ctx, flash, rerender, S } from "./state.ts";
 import { saveFixed } from "./data.ts";
 import {
-  budgetRows, cheapestFor, keywordFor, priceHistory, suggestFixed, upcoming,
+  allowance, budgetRows, cheapestFor, keywordFor, priceHistory, suggestFixed, upcoming,
   type Annual, type Budget, type Deposit, type Goal, type ReceiptItem,
 } from "./domain/plan.ts";
 import { currentSubscription, disablePush, enablePush, isIOS, standalone } from "./lib/push.ts";
@@ -57,10 +58,20 @@ export async function loadPhase2() {
 
 // ------------------------------------------------------------ overview cards
 overviewCards.push((m) => {
-  const rows = budgetRows(ctx(), P2().budgets, m);
+  const c = ctx();
+  const rows = budgetRows(c, P2().budgets, m);
   if (!rows.length) return html``;
+  // "כמה נשאר להיום" — only while looking at the budget month we are in
+  const a = m === currentBudgetMonth(c.startDay) ? allowance(c, P2().budgets, today()) : null;
+  const left = (cat: string) => (a?.days ? a.rows.find((r) => r.category === cat) : undefined);
+  const until = a ? `${+a.to.slice(8, 10)}/${+a.to.slice(5, 7)}` : "";
   return html`<div class="card"><div class="card-h"><h2>תקציבים החודש</h2><button class="ghost" data-click="go" data-to="plan">עריכה</button></div>
-    <div class="rings">${rows.slice(0, 6).map((r) => html`<div class="rb">${ring(r.pct, r.level)}<b class="row" style="gap:4px;justify-content:center">${catIcon(r.category, "s")}${r.category}</b><span class="num muted">${ils(r.spent)} / ${ils(r.amount)}</span>${r.level !== "ok" ? html`<span class="chip ${r.level === "over" ? "miss" : "warn"}">${r.level === "over" ? "עברתם את התקציב" : "קרוב לתקציב"}</span>` : ""}</div>`)}</div></div>`;
+    ${a?.days ? html`<div class="allow"><span class="muted small">אפשר להוציא היום</span><b class="num">≈ ${ils(a.perDay)}</b>
+      <span class="muted small">בקטגוריות עם תקציב · ${a.days === 1 ? "היום האחרון של החודש" : `עוד ${a.days} ימים, עד ${until}`}</span></div>` : ""}
+    <div class="rings">${rows.slice(0, 6).map((r) => {
+      const l = left(r.category);
+      return html`<div class="rb${r.level !== "ok" ? " low" : ""}">${ring(r.pct, r.level)}<b class="row" style="gap:4px;justify-content:center">${catIcon(r.category, "s")}${r.category}</b><span class="num muted">${ils(r.spent)} / ${ils(r.amount)}</span>${l ? html`<span class="num small">נשאר ${ils(l.remaining)}${l.remaining > 0 ? ` · ≈ ${ils(l.perDay)} ליום` : ""}</span>` : ""}${r.level !== "ok" ? html`<span class="chip ${r.level === "over" ? "miss" : "warn"}">${r.level === "over" ? "עברתם את התקציב" : "כמעט ריק"}</span>` : ""}</div>`;
+    })}</div></div>`;
 });
 
 overviewCards.push(() => {

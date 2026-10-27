@@ -3,7 +3,10 @@
 import { exportV2, LEGACY_KEY, parseBackup, planImport } from "./domain/backup.ts";
 import { THEMES } from "./domain/categories.ts";
 import { addPerson, addShop, insertTx, saveFixed, updateSettings, upsertAnalysis } from "./data.ts";
-import { S, household } from "./state.ts";
+import { ctx, S, household, startDay } from "./state.ts";
+import { budgetMonth, rangeLabel } from "./domain/month.ts";
+import { yearReport } from "./domain/plan.ts";
+import { mLabel } from "./lib/format.ts";
 import { downloadBlob } from "./ui/common.ts";
 
 export function legacyData(): any | null {
@@ -52,8 +55,9 @@ export async function exportExcel() {
   const XLSX = await import("xlsx");
   const pn = (id: string | null) => (id ? S.people.find((p) => p.id === id)?.name ?? "" : "משותף");
   const wb = XLSX.utils.book_new();
+  const st = startDay();
   const tx = S.tx.filter((t) => t.status === "saved").sort((a, b) => a.date.localeCompare(b.date))
-    .map((t) => ({ "תאריך": t.date, "חודש": t.month, "בית עסק": t.merchant, "סכום": t.amount, "קטגוריה": t.category, "קבוע": t.is_fixed ? "כן" : "", "של מי": pn(t.person_id), "הערה": t.note, "מקור": t.source_title }));
+    .map((t) => ({ "תאריך": t.date, "חודש": t.month, ...(st > 1 ? { "חודש תקציב": budgetMonth(t, st) } : {}), "בית עסק": t.merchant, "סכום": t.amount, "קטגוריה": t.category, "קבוע": t.is_fixed ? "כן" : "", "של מי": pn(t.person_id), "הערה": t.note, "מקור": t.source_title }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(tx), "תנועות");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(S.fixed.map((f) => ({ "שם": f.name, "סכום": f.amount, "מילת חיפוש": f.keyword, "קטגוריה": f.category, "תדירות (חודשים)": f.cycle, "יום חיוב": f.due_day ?? "" }))), "קבועות");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(S.shop.map((i) => ({ "פריט": i.name, "כמות": i.qty, "נקנה": i.done ? "כן" : "" }))), "קניות");
@@ -61,4 +65,19 @@ export async function exportExcel() {
   wb.Workbook.Views = [{ RTL: true }];
   const out = XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
   downloadBlob(new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), `הכסף-של-הבית-${stamp()}.xlsx`);
+}
+
+/** Yearly report (feature 3): 12 budget months × category, ending at `lastMonth`, as one sheet. */
+export async function exportYear(lastMonth: string) {
+  const XLSX = await import("xlsx");
+  const st = startDay();
+  const y = yearReport(ctx(), lastMonth);
+  const head = ["קטגוריה", ...y.months.map((m) => (st > 1 ? `${mLabel(m)} (${rangeLabel(m, st)})` : mLabel(m))), "סה\"כ"];
+  const rows = [head, ...y.rows.map((r) => [r.category, ...r.byMonth, r.total]), ["סה\"כ", ...y.totals, y.total]];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), "דוח שנתי");
+  if (!wb.Workbook) wb.Workbook = {};
+  wb.Workbook.Views = [{ RTL: true }];
+  const out = XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
+  downloadBlob(new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), `דוח-שנתי-עד-${lastMonth}.xlsx`);
 }

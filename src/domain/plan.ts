@@ -1,7 +1,8 @@
 // Phase 2 domain logic (pure, unit-tested): budgets, upcoming bills and annual
 // expenses, savings goals, fixed-expense suggestions, personal price history.
 import { addM, norm } from "../lib/format.ts";
-import { fixedMatch, isExcl, savedTx, type Ctx } from "./calc.ts";
+import { fixedMatch, isExcl, monthOf, savedTx, txOf, type Ctx } from "./calc.ts";
+import { budgetMonthOfDay, daysLeft, budgetRange } from "./month.ts";
 import type { Fixed } from "./types.ts";
 
 export interface Budget { household_id?: string; category: string; amount: number }
@@ -16,12 +17,51 @@ export interface BudgetRow { category: string; amount: number; spent: number; pc
 
 /** Same thresholds as the database trigger: 80% = warn, 100% = over. */
 export function budgetRows(ctx: Ctx, budgets: Budget[], month: string): BudgetRow[] {
-  const tx = savedTx(ctx).filter((t) => t.month === month && !isExcl(t));
+  const tx = txOf(ctx, month).filter((t) => !isExcl(t));
   return budgets.map((b) => {
     const spent = tx.filter((t) => t.category === b.category).reduce((a, t) => a + t.amount, 0);
     const pct = b.amount > 0 ? (spent / b.amount) * 100 : 0;
     return { category: b.category, amount: b.amount, spent, pct, level: (pct >= 100 ? "over" : pct >= 80 ? "warn" : "ok") as BudgetLevel };
   }).sort((a, b) => b.pct - a.pct);
+}
+
+// ------------------------------------------------------ "כמה נשאר להיום"
+export interface AllowanceRow extends BudgetRow { remaining: number; perDay: number }
+export interface Allowance { month: string; to: string; days: number; rows: AllowanceRow[]; perDay: number }
+
+/** For the budget month that contains `day`: what's left per budgeted category, and per day until it ends (today included). */
+export function allowance(ctx: Ctx, budgets: Budget[], day: string): Allowance | null {
+  const active = budgets.filter((b) => b.amount > 0);
+  if (!active.length) return null;
+  const month = budgetMonthOfDay(day, ctx.startDay);
+  const days = daysLeft(month, ctx.startDay, day);
+  const rows = budgetRows(ctx, active, month).map((r) => {
+    const remaining = Math.max(0, r.amount - r.spent);
+    return { ...r, remaining, perDay: days ? Math.floor(remaining / days) : 0 };
+  });
+  return { month, to: budgetRange(month, ctx.startDay).to, days, rows, perDay: rows.reduce((a, r) => a + r.perDay, 0) };
+}
+
+// ---------------------------------------------------------- yearly report
+export interface YearReport { months: string[]; rows: { category: string; byMonth: number[]; total: number }[]; totals: number[]; total: number }
+const r2 = (n: number) => Math.round(n * 100) / 100;
+
+/** 12 budget months ending at `lastMonth`, expenses by category (same exclusions as the overview). */
+export function yearReport(ctx: Ctx, lastMonth: string): YearReport {
+  const months = Array.from({ length: 12 }, (_, i) => addM(lastMonth, i - 11));
+  const cats = new Map<string, number[]>();
+  months.forEach((m, i) => {
+    for (const t of txOf(ctx, m)) {
+      if (isExcl(t)) continue;
+      const row = cats.get(t.category) ?? new Array<number>(12).fill(0);
+      row[i] += t.amount;
+      cats.set(t.category, row);
+    }
+  });
+  const rows = [...cats].map(([category, byMonth]) => ({ category, byMonth: byMonth.map(r2), total: r2(byMonth.reduce((a, x) => a + x, 0)) }))
+    .sort((a, b) => b.total - a.total);
+  const totals = months.map((_, i) => r2(rows.reduce((a, r) => a + r.byMonth[i], 0)));
+  return { months, rows, totals, total: r2(totals.reduce((a, x) => a + x, 0)) };
 }
 
 // ------------------------------------------------------- upcoming payments
@@ -101,11 +141,12 @@ export function suggestFixed(ctx: Ctx, month: string, dismissed: Set<string>): S
   const months = [month, addM(month, -1), addM(month, -2)];
   const byKey = new Map<string, { m: string; merchant: string; amount: number; category: string }[]>();
   for (const t of savedTx(ctx)) {
-    if (!months.includes(t.month) || isExcl(t) || t.is_fixed || t.amount <= 0 || fixedMatch(ctx, t)) continue;
+    const tm = monthOf(ctx, t);
+    if (!months.includes(tm) || isExcl(t) || t.is_fixed || t.amount <= 0 || fixedMatch(ctx, t)) continue;
     const k = merchantKey(t.merchant);
     if (!k) continue;
     const list = byKey.get(k) ?? [];
-    list.push({ m: t.month, merchant: t.merchant, amount: t.amount, category: t.category });
+    list.push({ m: tm, merchant: t.merchant, amount: t.amount, category: t.category });
     byKey.set(k, list);
   }
   const out: Suggestion[] = [];

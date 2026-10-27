@@ -65,6 +65,17 @@ td .cat{display:flex;align-items:center;gap:6px}
 .rings .rb{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;font-size:13px}
 .ring{width:64px;height:64px}
 .ring .rt{font:700 13px var(--body);fill:var(--ink)}
+/* feature 3: "אפשר להוציא היום", "כמעט ריק", month range, yearly report */
+.allow{display:flex;flex-direction:column;align-items:center;gap:2px;margin:2px 0 14px;text-align:center}
+.allow b{font-size:28px;line-height:1.2}
+.rings .rb.low{background:var(--surface2);border-radius:12px;padding:6px 2px}
+.monthsw .mrange{display:block;font-size:11px;font-weight:400;color:var(--muted);line-height:1.1}
+.yr{overflow-x:auto;margin:0 -4px;border-radius:10px}
+.yr table{border-collapse:collapse;font-size:12px;min-width:100%}
+.yr th,.yr td{padding:6px 5px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:right}
+.yr td.num,.yr thead th.num{text-align:left}
+.yr tbody th,.yr tfoot th{position:sticky;right:0;background:var(--surface);font-weight:600;max-width:110px;overflow:hidden;text-overflow:ellipsis}
+.yr tfoot td,.yr tfoot th{border-top:2px solid var(--line);border-bottom:0}
 
 /* ---- goals jar ---- */
 .goal{display:grid;grid-template-columns:72px minmax(0,1fr);gap:12px;align-items:center}

@@ -5,6 +5,7 @@ import { armed2, isArmed, on } from "../lib/events.ts";
 import { fmtDate, HEB_D } from "../lib/format.ts";
 import { THEMES } from "../domain/categories.ts";
 import { activePeople } from "../domain/calc.ts";
+import { currentBudgetMonth, rangeLabel } from "../domain/month.ts";
 import { canWrite, ctx, flash, household, isOwner, rerender, S } from "../state.ts";
 import {
   addPerson, chooseHousehold, createInvite, deleteHousehold, deletePerson, fn, removeMember, renameHousehold,
@@ -20,7 +21,7 @@ export const homeCards: (() => SafeHtml)[] = [];
 const ROLE: Record<string, string> = { owner: "מנהל/ת", member: "חבר/ה", viewer: "צפייה בלבד" };
 
 export function renderHome(): SafeHtml {
-  return html`${householdCard()}${peopleCard()}${membersCard()}${receiptSettingsCard()}${securityCard()}
+  return html`${householdCard()}${peopleCard()}${membersCard()}${monthStartCard()}${receiptSettingsCard()}${securityCard()}
     ${homeCards.map((f) => f())}${themeCard()}${usageCard()}${backupCard()}${accountCard()}`;
 }
 
@@ -92,6 +93,19 @@ function transferCard(): SafeHtml {
     <label class="f">למי להעביר<select id="trTo" data-change="transfer-pick"><option value="">בחירה…</option>${others.map((m) => html`<option value="${m.user_id}" ${attr(m.user_id === pick, "selected")}>${m.display_name || "ללא שם"} (${ROLE[m.role]})</option>`)}</select></label>
     ${armed ? html`<div class="banner warn">${who!.display_name || "ללא שם"} יהיה/תהיה המנהל/ת, ואת/ה תהיה/תהיה חבר/ה. ללחוץ שוב לאישור.</div>` : ""}
     <div class="row end"><button class="${armed ? "danger" : ""}" data-click="transfer" ${attr(!who, "disabled")}>${armed ? "כן, להעביר את הניהול" : "העברת ניהול"}</button></div>
+  </div>`;
+}
+
+// feature 3: the budget month can start on a payday instead of the 1st
+function monthStartCard(): SafeHtml {
+  const s = S.settings;
+  if (!s) return html``;
+  const st = s.month_start_day ?? 1;
+  return html`<div class="card">
+    <h2>החודש שלנו מתחיל ב-</h2>
+    <p class="muted small">למשל ביום שהמשכורת נכנסת. כל המספרים החודשיים (סקירה, תקציבים, קבועות, דוח שנתי, סיכום שבועי) יחושבו מהיום הזה. חודש נקרא לפי היום שבו הוא מתחיל: אם בוחרים 10, "אוקטובר" הוא 10.10–9.11. חיובים שהפירוט שייך לחודש מסוים (תשלומים) נשארים בחודש של הפירוט.</p>
+    <label class="f">יום בחודש<select data-change="month-start" ${attr(!canWrite(), "disabled")}>${Array.from({ length: 28 }, (_, i) => i + 1).map((d) => html`<option value="${d}" ${attr(st === d, "selected")}>${d === 1 ? "1 בחודש (רגיל)" : `${d} בחודש`}</option>`)}</select></label>
+    ${st > 1 ? html`<p class="small">החודש הנוכחי: <b class="num">${rangeLabel(currentBudgetMonth(st), st)}</b></p>` : ""}
   </div>`;
 }
 
@@ -219,6 +233,12 @@ on("click", "invite-revoke", (el) => run(() => revokeInvite(el.dataset.id!), "ה
 on("click", "send-mode", (el) => run(() => updateSettings({ send_mode: el.dataset.v as "weekly" })));
 on("change", "send-weekday", (el) => run(() => updateSettings({ send_weekday: +(el as HTMLSelectElement).value })));
 on("change", "send-monthday", (el) => run(() => updateSettings({ send_monthday: +(el as HTMLSelectElement).value })));
+on("change", "month-start", (el) => run(async () => {
+  const st = +(el as HTMLSelectElement).value;
+  await updateSettings({ month_start_day: st });
+  S.month = currentBudgetMonth(st);   // jump to the budget month we are in now
+  flash(st === 1 ? "החודש מתחיל שוב ב-1" : `מעכשיו החודש מתחיל ב-${st} בחודש`);
+}));
 on("click", "theme", (el) => run(() => updateSettings({ theme: el.dataset.k! })));
 on("change", "require-mfa", (el) => run(() => setRequireMfa((el as HTMLInputElement).checked), "✓ נשמר"));
 on("click", "mfa-new-codes", () => run(async () => {

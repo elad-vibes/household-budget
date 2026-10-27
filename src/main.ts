@@ -5,10 +5,11 @@ import type { Session } from "@supabase/supabase-js";
 import { html, render, type SafeHtml } from "./lib/html.ts";
 import { installEvents, on } from "./lib/events.ts";
 import { configured, sb } from "./lib/supa.ts";
-import { addM, curMonth, mLabel } from "./lib/format.ts";
+import { addM, mLabel } from "./lib/format.ts";
 import { THEMES } from "./domain/categories.ts";
 import { monthsWithData, reviewTx } from "./domain/calc.ts";
-import { ctx, household, rerender, S, setRenderer, type Tab } from "./state.ts";
+import { currentBudgetMonth, rangeLabel } from "./domain/month.ts";
+import { ctx, household, rerender, S, setRenderer, startDay, type Tab } from "./state.ts";
 import { bootHousehold, loadHousehold, loadUsage } from "./data.ts";
 import { checkJobs, loadQueue, maybeAutoSend } from "./receipts.ts";
 import { renderOverview } from "./ui/overview.ts";
@@ -133,7 +134,7 @@ async function start() {
   await loadPhase2().catch(() => undefined);
   if (!S.monthTouched) {
     const ms = monthsWithData(ctx());
-    S.month = ms.length ? ms[ms.length - 1] : curMonth();
+    S.month = ms.length ? ms[ms.length - 1] : currentBudgetMonth(startDay());
   }
   S.view = !isStandalone() && !localStorage.getItem("hb2-onboarded") && /mobile|iphone|android/i.test(navigator.userAgent) ? "install" : "app";
   rerender();
@@ -240,7 +241,7 @@ function shell(): SafeHtml {
   return html`
   <div class="top">
     <div><button class="hhsw" data-click="go" data-to="home">${household()?.name ?? ""} ▾</button>${tab === "overview" ? greeting() : ""}<h1>${tab === "overview" ? "הכסף של הבית" : TITLES[tab]}</h1></div>
-    ${monthTabs ? html`<div class="monthsw" aria-label="בחירת חודש"><button data-click="prevM" aria-label="חודש קודם">→</button><b>${mLabel(S.month)}</b><button data-click="nextM" aria-label="חודש הבא">←</button></div>` : ""}
+    ${monthTabs ? html`<div class="monthsw" aria-label="בחירת חודש"><button data-click="prevM" aria-label="חודש קודם">→</button><b>${mLabel(S.month)}${startDay() > 1 ? html`<small class="mrange num">${rangeLabel(S.month, startDay())}</small>` : ""}</b><button data-click="nextM" aria-label="חודש הבא">←</button></div>` : ""}
   </div>
   ${S.extra.swUpdate ? banner(html`יש גרסה חדשה של האפליקציה. <button data-click="sw-update">עדכון</button>`, "info") : ""}
   ${legacy ? banner(html`נמצאו במכשיר הזה נתונים מהגרסה הקודמת. <button data-click="go" data-to="home">לייבוא</button>`, "info") : ""}
