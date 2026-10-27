@@ -8,6 +8,7 @@
 //   * loud column checks (columns.ts): missing columns or 0 rows → ImportError, never a silent empty import
 import { addM } from "../lib/format.ts";
 import { catOf } from "./categories.ts";
+import { region, regionCode } from "../lib/region.ts";
 import { headerComplete, mapHeader, missingColumnsError, missingOf, noRowsError } from "./columns.ts";
 export { ImportError } from "./columns.ts";
 
@@ -25,6 +26,10 @@ function excelSerialToDate(v: number): string {
   return d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0") + "-" + String(d.getUTCDate()).padStart(2, "0");
 }
 
+/** A Buddhist-era year (พ.ศ., used on Thai bank statements: 2569 = 2026) is the Gregorian year + 543. No Gregorian date reaches 2400,
+ *  so this changes nothing for any other file. */
+const gregorian = (year: string) => (+year > 2400 ? String(+year - 543) : year);
+
 export function parseDate(v: Cell): string {
   if (v instanceof Date && !isNaN(+v)) {
     return v.getFullYear() + "-" + String(v.getMonth() + 1).padStart(2, "0") + "-" + String(v.getDate()).padStart(2, "0");
@@ -32,11 +37,12 @@ export function parseDate(v: Cell): string {
   if (typeof v === "number" && v > 20000 && v < 80000) return excelSerialToDate(v);
   const s = String(v ?? "").trim();
   let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if (m) return m[1] + "-" + m[2].padStart(2, "0") + "-" + m[3].padStart(2, "0");
+  if (m) return gregorian(m[1]) + "-" + m[2].padStart(2, "0") + "-" + m[3].padStart(2, "0");
   m = s.match(/^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{2,4})/);
   if (m) {
     let y = m[3];
     if (y.length === 2) y = "20" + y;
+    y = gregorian(y);
     const mo = +m[2], d = +m[1];
     if (mo < 1 || mo > 12 || d < 1 || d > 31) return "";
     return y + "-" + m[2].padStart(2, "0") + "-" + m[1].padStart(2, "0");
@@ -100,7 +106,7 @@ export function parseSheets(sheets: Sheet[], title: string): ParseResult {
           if (!isFinite(amount) || amount === 0) { skipped++; continue; }
         }
         const note = m.note >= 0 ? String(row[m.note] ?? "").trim() : "";
-        let { category, fixed } = catOf(merchant + " " + note);
+        let { category, fixed } = catOf(merchant + " " + note, regionCode());
         if (forceInc && category !== "חיוב אשראי מרוכז") category = "הכנסה";
         if (!forceInc && category === "הכנסה") category = "שונות";
         const inst = note.match(/תשלום\s*(\d+)\s*מתוך\s*(\d+)/);
@@ -137,11 +143,15 @@ export function fileKind(f: { name: string; type: string }): "xlsx" | "csv" | "p
 }
 
 /** CSV bytes → text: strict UTF-8 first, then windows-1255. */
-export function decodeCsv(buf: ArrayBuffer): string {
+export function decodeCsv(buf: ArrayBuffer, fallbacks: readonly string[] = ["windows-1255"]): string {
   try {
     return new TextDecoder("utf-8", { fatal: true }).decode(buf);
   } catch {
-    return new TextDecoder("windows-1255").decode(buf);
+    // the household's region lists the legacy encodings its banks use (Thailand: windows-874 / TIS-620, then windows-1255)
+    for (const enc of fallbacks.slice(0, -1)) {
+      try { return new TextDecoder(enc, { fatal: true }).decode(buf); } catch { /* next one */ }
+    }
+    return new TextDecoder(fallbacks[fallbacks.length - 1]).decode(buf);
   }
 }
 
@@ -150,7 +160,7 @@ export async function localParse(file: File): Promise<ParseResult> {
   const XLSX = await import("xlsx");
   const buf = await file.arrayBuffer();
   const wb = fileKind(file) === "csv"
-    ? XLSX.read(decodeCsv(buf), { type: "string", raw: true })
+    ? XLSX.read(decodeCsv(buf, region().csvEncodings), { type: "string", raw: true })
     : XLSX.read(buf, { type: "array", cellDates: true });
   const sheets = wb.SheetNames.map((n) => XLSX.utils.sheet_to_json<Cell[]>(wb.Sheets[n], { header: 1, raw: true, defval: "" }));
   return parseSheets(sheets, file.name);

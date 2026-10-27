@@ -30,7 +30,41 @@ export const RULES: [RegExp, string, boolean][] = [
   [/פרחים|מתנה/i, "מתנות ואירועים", false],
 ];
 
-export function catOf(m: string): { category: string; fixed: boolean } {
-  for (const [re, c, f] of RULES) if (re.test(m)) return { category: c, fixed: f };
+/**
+ * Thailand (0016): merchants and statement lines as they appear on a Thai card / bank statement, in Latin and
+ * Thai script. Tried BEFORE the Israeli rules for a TH household (so "7-Eleven" is groceries even though no
+ * Hebrew rule knows it); anything they miss falls through to RULES, which still knows Netflix, Booking, Wolt…
+ * Written from the brands' public names, not from a real statement — add a rule when a real line is missed.
+ */
+export const TH_RULES: [RegExp, string, boolean][] = [
+  [/credit ?card (payment|bill)|card payment|pay(ment)? to .*card|ชำระ(ค่า)?บัตร(เครดิต)?|ชำระบัตร/i, "חיוב אשראי מרוכז", false],
+  [/salary|payroll|เงินเดือน/i, "הכנסה", false],
+  [/atm|cash withdraw|ถอนเงิน(สด)?|ถอนเงินสด/i, "משיכת מזומן", false],
+  [/visa (extension|fee|service|run)|immigration|\btm ?(30|47|7|6)\b|90.?day report|re-?entry|work ?permit|\bdtv\b|ใบอนุญาตทำงาน|ตรวจคนเข้าเมือง|ต่อวีซ่า|วีซ่า(ท่องเที่ยว|ถาวร|ทำงาน)|แจ้งที่พัก/i, "ויזה ואישורי שהייה", false],
+  [/\brent\b|ค่าเช่า|condo|คอนโด|juristic|นิติบุคคล|common fee|ค่าส่วนกลาง|sinking fund/i, "דיור (שכירות/משכנתא)", true],
+  [/\bmea\b|\bpea\b|metropolitan electricity|provincial electricity|การไฟฟ้า|\bmwa\b|\bpwa\b|metropolitan waterworks|provincial waterworks|การประปา|ค่าไฟ|ค่าน้ำ|\bpttgas\b|ก๊าซหุงต้ม/i, "חשבונות בית", true],
+  [/\bais\b|true ?(move|online|digital|corp)|\btrue\b|dtac|\b3bb\b|\bnt\b|ทรู|เอไอเอส|ดีแทค|ค่าโทรศัพท์|อินเทอร์เน็ต|internet/i, "תקשורת ומנויים", true],
+  [/health insurance|life insurance|ประกัน(สุขภาพ|ชีวิต|รถ)?|\baia\b|allianz|\baxa\b|msig|bupa|cigna|muang ?thai|thai ?life|bangkok insurance|viriyah|เมืองไทย|วิริยะ|insurance/i, "ביטוחים", true],
+  [/hospital|โรงพยาบาล|bumrungrad|samitivej|\bbnh\b|bangkok hospital|clinic|คลินิก|pharmacy|ร้านขายยา|\bboots\b|watsons|fascino|dental|ทันตกรรม/i, "בריאות ופארם", false],
+  [/grab ?food|food ?panda|foodpanda|line ?man|lineman|robinhood|shopeefood|wongnai|เดลิเวอรี่|ฟู้ดแพนด้า|ไลน์แมน|restaurant|ร้านอาหาร|\bcafe\b|café|coffee|starbucks|amazon cafe|after you|mk (restaurant|suki)|mcdonald|\bkfc\b|burger king|pizza|\bs&p\b|fuji|sushi|bonchon|swensen|ชาบู|ก๋วยเตี๋ยว/i, "אוכל בחוץ ומשלוחים", false],
+  [/7-?eleven|seven ?eleven|เซเว่น|เซเว่นอีเลฟเว่น|cp ?all|lotus'?s?|โลตัส|big ?c|บิ๊กซี|makro|แม็คโคร|tops (market|daily)?|ท็อปส์|villa market|foodland|gourmet market|\bfamily ?mart\b|แฟมิลี่มาร์ท|supermarket|ซูเปอร์มาร์เก็ต|mini ?big ?c|cj (express|more|supermarket)/i, "סופר ומכולת", false],
+  [/\bgrab\b|\bbolt\b|indrive|\bbts\b|\bmrt\b|airport rail|\brabbit\b|taxi|แท็กซี่|แกร็บ|รถไฟฟ้า|\bsrt\b|ขนส่ง|songthaew|tuk ?tuk/i, "תחבורה ציבורית", false],
+  [/\bptt\b|pt station|\bshell\b|bangchak|caltex|\besso\b|susco|ปตท|บางจาก|เชลล์|easy ?pass|expressway|ทางด่วน|parking|ที่จอดรถ|car ?care/i, "רכב, דלק וחניה", false],
+  [/lazada|shopee|ลาซาด้า|ช้อปปี้|jd central|tiktok shop/i, "קניות אונליין", false],
+  [/home ?pro|global house|thai ?watsadu|index living|ikea|ไทวัสดุ|โฮมโปร|ซ่อม|cleaning|แม่บ้าน|maid/i, "בית ותחזוקה", false],
+  [/major cineplex|\bsf cinema\b|เมเจอร์|cinema|massage|นวด|\bspa\b|karaoke|bowling|muay thai|\bgym\b|fitness|ฟิตเนส/i, "בילויים ופנאי", false],
+  [/thai airways|airasia|bangkok airways|nok ?air|vietjet|lion air|thai smile|agoda|traveloka|hotel|resort|โรงแรม|รีสอร์ท|การบินไทย/i, "חופשות ונסיעות", false],
+  [/international school|tuition|school|โรงเรียน|ค่าเทอม|kindergarten|อนุบาล|course|คอร์ส/i, "חינוך וחוגים", false],
+  [/central ?(world|festival|plaza|ladprao|westgate|embassy)?|siam ?(paragon|center|discovery)|terminal ?21|icon ?siam|emporium|emquartier|\bmbk\b|the mall|robinsons|megabangna|mega bangna|fashion island|เซ็นทรัล|พารากอน|เทอมินอล|ไอคอนสยาม|เดอะมอลล์|เมกาบางนา|เอ็มโพเรี่ยม|เอ็มควอเทียร์|สยามเซ็นเตอร์|เซ็นทรัลเวิลด์|ห้างสรรพสินค้า/i, "מרכזים מסחריים", false],
+  [/promptpay|prompt pay|พร้อมเพย์|true ?money|truemoney|ทรูมันนี่|rabbit line ?pay|line ?pay|thai ?qr|qr (payment|code)|โอนเงิน|\btransfer\b|โอนไป|โอนให้/i, "העברות ומזומן", false],
+  [/loan|สินเชื่อ|ผ่อน(ชำระ)?|hire purchase/i, "הלוואות", true],
+  [/\bfee\b|ค่าธรรมเนียม|interest|ดอกเบี้ย|annual \bfee\b|ค่าบริการ/i, "עמלות וריבית", false],
+];
+
+export const rulesFor = (region?: string | null): [RegExp, string, boolean][] => (region === "TH" ? [...TH_RULES, ...RULES] : RULES);
+
+/** First matching rule wins. region = the household's region ("IL" / undefined = the Israeli rules, as before 0016). */
+export function catOf(m: string, region?: string | null): { category: string; fixed: boolean } {
+  for (const [re, c, f] of rulesFor(region)) if (re.test(m)) return { category: c, fixed: f };
   return { category: "שונות", fixed: false };
 }

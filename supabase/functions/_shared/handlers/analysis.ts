@@ -7,7 +7,8 @@ import type { Deps } from "../deps.ts";
 import { caller, finalize, rateLimit, release, requireAccess, reserve } from "../guard.ts";
 import { endpoint, HttpError } from "../http.ts";
 import { parseJson, sanitizeAnalysis, textOf } from "../ai.ts";
-import { ANALYSIS_SCHEMA, analysisPrompt } from "../prompts.ts";
+import { analysisPrompt, analysisSchemaFor } from "../prompts.ts";
+import { isRegion } from "../region.ts";
 
 export function createAnalysisHandler(deps: Deps) {
   return endpoint(deps, "analyze-month", async (req, body) => {
@@ -21,6 +22,7 @@ export function createAnalysisHandler(deps: Deps) {
     if (summary.length < 20) throw new HttpError(400, "empty", "אין מספיק נתונים לניתוח החודש.");
     if (summary.length > LIMITS.maxSummaryChars) throw new HttpError(413, "too_large", "הסיכום ארוך מדי.");
 
+    const region = isRegion(body.region) ? body.region : "IL";   // 0016
     const model = deps.env.models.analysis;
     const reservation = await reserve(deps, body.household_id, claims.sub, "analysis", 1, ESTIMATE_USD.analysis, model);
     let msg: Anthropic.Message;
@@ -28,8 +30,8 @@ export function createAnalysisHandler(deps: Deps) {
       msg = await deps.anthropic.messages.create({
         model,
         max_tokens: 8000,
-        output_config: { effort: "medium", format: { type: "json_schema", schema: ANALYSIS_SCHEMA as any } },
-        messages: [{ role: "user", content: analysisPrompt(summary) }],
+        output_config: { effort: "medium", format: { type: "json_schema", schema: analysisSchemaFor(region) as any } },
+        messages: [{ role: "user", content: analysisPrompt(summary, region) }],
       });
     } catch (e) {
       await release(deps, reservation);

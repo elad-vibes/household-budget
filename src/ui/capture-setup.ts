@@ -6,7 +6,8 @@ import { on } from "../lib/events.ts";
 import { fmtDateTime, ils2 } from "../lib/format.ts";
 import { dbMessage, sb } from "../lib/supa.ts";
 import { canWrite, flash, rerender, S } from "../state.ts";
-import { CATS } from "../domain/categories.ts";
+import { catsFor } from "../domain/categories.ts";
+import { baseSymbol, regionCode } from "../lib/region.ts";
 import { banner, copyText } from "./common.ts";
 import { homeCards } from "./home.ts";
 import { icon } from "./cat.ts";
@@ -61,9 +62,9 @@ function setupCard(): SafeHtml {
       <ol class="steps small">
         <li>בקיצורים לוחצים <b>+</b> (קיצור דרך חדש) וקוראים לו "הוצאה מהירה".</li>
         <li>מוסיפים פעולה <b>בקשת קלט</b> (Ask for Input) מסוג <b>מספר</b>, עם השאלה "כמה?".</li>
-        <li>מוסיפים פעולה <b>בחירה מתפריט</b> (Choose from List) עם הקטגוריות שרוצים, למשל:${copyRow("קטגוריות", CATS.slice(0, 6).join(", "), "cats")}</li>
+        <li>מוסיפים פעולה <b>בחירה מתפריט</b> (Choose from List) עם הקטגוריות שרוצים, למשל:${copyRow("קטגוריות", catsFor(regionCode()).slice(0, 6).join(", "), "cats")}</li>
         <li>מוסיפים <b>קבלת התוכן של כתובת URL</b> בדיוק כמו בשלבים 5–6 למעלה, ובגוף ה-JSON: <code dir="ltr">kind</code> = <code dir="ltr">quick</code>, <code dir="ltr">amount</code> = הקלט, <code dir="ltr">category</code> = הפריט שנבחר.${copyRow("לדוגמה", QUICK_BODY, "quick")}</li>
-        <li>מוסיפים בסוף <b>הצגת התראה</b> (Show Notification) עם התוצאה — תופיע הודעה "נקלט: ₪…".</li>
+        <li>מוסיפים בסוף <b>הצגת התראה</b> (Show Notification) עם התוצאה — תופיע הודעה "נקלט: ${baseSymbol()}…".</li>
         <li>ב<b>הגדרות</b> → <b>נגישות</b> → <b>מגע</b> → <b>הקשה על הגב</b> → <b>הקשה כפולה</b> → בוחרים "הוצאה מהירה".</li>
       </ol>
       <p class="muted small">הוספה מהירה נרשמת כמזומן ונספרת מיד. אפשר לשנות אחר כך בלשונית "תנועות".</p></details>
@@ -110,7 +111,7 @@ on("click", "cap-revoke", async () => {
 });
 on("click", "cap-hide", () => { C().fresh = null; rerender(); });
 on("click", "cap-copy", async (el) => {
-  const v = { token: C().fresh ?? "", url: ENDPOINT, wallet: WALLET_BODY, quick: QUICK_BODY, cats: CATS.slice(0, 6).join(", ") }[el.dataset.k as "url"] ?? "";
+  const v = { token: C().fresh ?? "", url: ENDPOINT, wallet: WALLET_BODY, quick: QUICK_BODY, cats: catsFor(regionCode()).slice(0, 6).join(", ") }[el.dataset.k as "url"] ?? "";
   flash((await copyText(v)) ? "הועתק" : "לא הצלחתי להעתיק", "info");
 });
 on("click", "log-refresh", () => { C().log = null; rerender(); });

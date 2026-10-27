@@ -7,12 +7,19 @@ import { dbMessage } from "../lib/supa.ts";
 import { copyText } from "./common.ts";
 import { priceCard } from "./price.ts";
 import { art } from "./art.ts";
+import { region } from "../lib/region.ts";
+import { banner } from "./common.ts";
 
 /** Phase 2: price history hints and the "our prices" card plug in here. */
 export const shopExtras = {
   hint: (_name: string): SafeHtml | string => "",
   cards: [] as (() => SafeHtml)[],
 };
+
+/** "איפה הכי זול?" compares Israeli chains only (SuperMCP), so outside Israel it says so instead of offering a useless button (0016). */
+function priceUnavailable(): SafeHtml {
+  return html`<div class="card">${banner("ההשוואה בין סופרים ('איפה הכי זול?') מבוססת על רשתות ישראליות ולכן לא זמינה באזור הזה. את הרשימה אפשר להעתיק ולהשוות ידנית בין Lotus's, Big C ו-Makro.", "info")}</div>`;
+}
 
 export function renderShop(): SafeHtml {
   const w = canWrite();
@@ -32,7 +39,7 @@ export function renderShop(): SafeHtml {
       </div>`) : html`<div class="empty">${art.shopEmpty()}<p class="muted">הרשימה ריקה. מוסיפים פריט למעלה, וכל בני הבית רואים את אותה רשימה.</p></div>`}</div>
     ${items.length ? html`<div class="row"><button type="button" data-click="shop-copy">העתקת הרשימה</button>${w ? html`<button type="button" class="ghost" data-click="shop-clear">ניקוי מה שסומן</button>` : ""}</div>` : ""}
   </div>
-  ${items.some((i) => !i.done) ? priceCard() : ""}
+  ${region().priceCompare ? (items.some((i) => !i.done) ? priceCard() : "") : priceUnavailable()}
   ${shopExtras.cards.map((f) => f())}`;
 }
 

@@ -3,6 +3,7 @@
 // prefers-reduced-motion. The app re-renders with innerHTML, so effects run in
 // an after-render hook and only when a value actually changed.
 import { S } from "../state.ts";
+import { baseSymbol, region } from "../lib/region.ts";
 
 export const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -13,7 +14,7 @@ export const afterRender = (f: () => void) => { after.push(f); };
 
 // ------------------------------------------------------------ count-up
 const shown = new Map<string, number>();
-const fmt = (n: number) => (n < 0 ? "-" : "") + "₪" + Math.abs(Math.round(n)).toLocaleString("he-IL");
+const fmt = (n: number) => (n < 0 ? "-" : "") + baseSymbol() + Math.abs(Math.round(n)).toLocaleString(region().locale);
 afterRender(() => {
   document.querySelectorAll<HTMLElement>("[data-countup]").forEach((el) => {
     const key = el.dataset.key ?? "k";

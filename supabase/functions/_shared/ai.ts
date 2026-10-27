@@ -2,7 +2,7 @@
 // and strict sanitizing of everything the model returns before it is stored
 // or sent to the app.
 import type Anthropic from "@anthropic-ai/sdk";
-import { ALLCATS, CATS, isLinkId, type LinkId } from "./catalog.ts";
+import { EXCL, isKnownCat, isLinkId, type LinkId } from "./catalog.ts";
 import { HttpError } from "./http.ts";
 
 export function textOf(msg: Anthropic.Message): string {
@@ -47,15 +47,16 @@ export interface StatementDoc {
   docType: string; title: string; statementTotal: number | null; rows: StatementRow[];
 }
 
-/** A statement row's "סכום עסקה מקורי" → original_amount / original_currency / fx_rate (₪ charged ÷ original). */
-function foreign(r: any): { original_amount: number; original_currency: string; fx_rate: number } | Record<string, never> {
+/** A statement row's "סכום עסקה מקורי" → original_amount / original_currency / fx_rate (base currency charged ÷ original). */
+function foreign(r: any, base: string): { original_amount: number; original_currency: string; fx_rate: number } | Record<string, never> {
   const orig = num(r?.original_amount), cur = str(r?.original_currency, 3).toUpperCase(), amount = num(r?.amount);
-  if (!orig || !amount || !/^[A-Z]{3}$/.test(cur) || cur === "ILS" || Math.abs(orig) > 100_000_000) return {};
+  if (!orig || !amount || !/^[A-Z]{3}$/.test(cur) || cur === base || Math.abs(orig) > 100_000_000) return {};
   const fx_rate = Math.round(Math.abs(amount / orig) * 1e6) / 1e6;
   return fx_rate > 0 && fx_rate < 100_000 ? { original_amount: Math.abs(orig) * Math.sign(amount), original_currency: cur, fx_rate } : {};
 }
 
-export function sanitizeStatement(raw: any): StatementDoc {
+/** base = the household's base currency (0016): a row "foreign" in it is no foreign row. */
+export function sanitizeStatement(raw: any, base = "ILS"): StatementDoc {
   const rows: StatementRow[] = [];
   for (const r of Array.isArray(raw?.rows) ? raw.rows.slice(0, 600) : []) {
     const amount = num(r?.amount);
@@ -70,10 +71,10 @@ export function sanitizeStatement(raw: any): StatementDoc {
       month,
       merchant: str(r?.merchant, 80) || "לא ידוע",
       amount,
-      category: ALLCATS.includes(r?.category) ? r.category : "שונות",
+      category: isKnownCat(r?.category) ? r.category : "שונות",
       fixed: r?.fixed === true,
       note: str(r?.note, 60),
-      ...foreign(r),
+      ...foreign(r, base),
     });
   }
   const docType = ["credit_card", "bank", "receipt", "other"].includes(raw?.docType) ? raw.docType : "other";
@@ -102,8 +103,8 @@ export function sanitizeReceipt(raw: any): { ok: true; receipt: Receipt } | { ok
       merchant: str(raw.merchant, 80) || "קבלה",
       date,
       total,
-      currency: /^[A-Z]{3}$/.test(str(raw.currency, 3).toUpperCase()) ? str(raw.currency, 3).toUpperCase() : "ILS",
-      category: (CATS as readonly string[]).includes(raw.category) ? raw.category : "שונות",
+      currency: /^[A-Z]{3}$/.test(str(raw.currency, 3).toUpperCase()) ? str(raw.currency, 3).toUpperCase() : "",   // "" = the household's base currency (svc_complete_receipt_job, 0016)
+      category: isKnownCat(raw.category) && !(EXCL as readonly string[]).includes(raw.category) ? raw.category : "שונות",
       note: str(raw.note, 60),
       items,
       // never more than the last 4 digits of a card number

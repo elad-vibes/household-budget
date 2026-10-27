@@ -12,6 +12,7 @@ const KIND: Record<string, Kind> = {
   "תקשורת ומנויים": "tower", "רכב, דלק וחניה": "tower", "תחבורה ציבורית": "tower", "חופשות ונסיעות": "tower",
   "ביטוחים": "office", "הלוואות": "office", "עמלות וריבית": "office", "העברות ומזומן": "office",
   "בריאות ופארם": "medical",
+  "ויזה ואישורי שהייה": "office", "מרכזים מסחריים": "shop",   // Thailand (0016)
   "שונות": "tree",
 };
 export const kindOf = (category: string): Kind => KIND[category] ?? "tree";

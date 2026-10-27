@@ -1,6 +1,7 @@
 // ארנק שוברים (feature 4): wallet card on the plan tab + "שוברים שעומדים לפוג" on the
 // overview. Paying with a voucher = choosing "שובר: …" in "איך שילמת?" — the database
 // records the use and lowers the balance (0014); manual uses / top-ups are added here.
+import { baseSymbol } from "../lib/region.ts";
 import { html, type SafeHtml, $ } from "../lib/html.ts";
 import { armed2, isArmed, on } from "../lib/events.ts";
 import { ddmm, ils2, today } from "../lib/format.ts";
@@ -63,7 +64,7 @@ export function walletCard(): SafeHtml {
               ${w && !u.transaction_id ? html`<button class="ghost ${isArmed("vu/" + u.id) ? "danger" : ""}" data-click="vu-del" data-id="${u.id}" aria-label="מחיקת שימוש">${isArmed("vu/" + u.id) ? "למחוק?" : "✕"}</button>` : html`<span></span>`}</div>`)
             : html`<p class="muted small">עוד לא השתמשתם בו.</p>`}
           ${w ? html`<form class="grid2" data-submit="vu-save" data-id="${v.id}">
-              <label class="f">סכום (₪)<input type="number" id="vuAmt" min="0.01" step="0.01" inputmode="decimal" required></label>
+              <label class="f">סכום (${baseSymbol()})<input type="number" id="vuAmt" min="0.01" step="0.01" inputmode="decimal" required></label>
               <label class="f">מה זה<select id="vuKind"><option value="use">שימוש בקופה</option><option value="top">טעינה / זיכוי</option></select></label>
               <label class="f" style="grid-column:1/-1">הערה<input type="text" id="vuNote" maxlength="120" placeholder="למשל: קנייה בסניף"></label>
               <div class="row end" style="grid-column:1/-1;gap:6px">
@@ -76,7 +77,7 @@ export function walletCard(): SafeHtml {
     ${w ? html`<h3>שובר חדש</h3><form class="grid2" data-submit="v-save">
       <label class="f">שם<input type="text" id="vName" maxlength="60" required placeholder="למשל: תו קנייה ליום הולדת"></label>
       <label class="f">איפה אפשר להשתמש<input type="text" id="vIssuer" maxlength="40" placeholder="רשת / חנות"></label>
-      <label class="f">שווי (₪)<input type="number" id="vAmt" min="1" step="0.01" inputmode="decimal" required></label>
+      <label class="f">שווי (${baseSymbol()})<input type="number" id="vAmt" min="1" step="0.01" inputmode="decimal" required></label>
       <label class="f">בתוקף עד (לא חובה)<input type="date" id="vExp"></label>
       <label class="f">4 תווים אחרונים מהקוד (לא חובה)<input type="text" id="vCode" maxlength="40" autocomplete="off" placeholder="רק 4 האחרונים יישמרו"></label>
       <label class="f">הערה<input type="text" id="vNote" maxlength="200"></label>

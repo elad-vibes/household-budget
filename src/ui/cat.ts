@@ -25,6 +25,8 @@ export const CAT_STYLE: Record<string, { icon: string; color: string }> = {
   "העברות ומזומן": { icon: "arrow-left-right", color: "#3F6212" },
   "הלוואות": { icon: "landmark", color: "#7F1D1D" },
   "עמלות וריבית": { icon: "percent", color: "#991B1B" },
+  "ויזה ואישורי שהייה": { icon: "landmark", color: "#0E7490" },   // Thailand (0016)
+  "מרכזים מסחריים": { icon: "shopping-cart", color: "#A16207" },
   "שונות": { icon: "circle-ellipsis", color: "#475569" },
   "הכנסה": { icon: "wallet", color: "#047857" },
   "חיוב אשראי מרוכז": { icon: "building-2", color: "#334155" },

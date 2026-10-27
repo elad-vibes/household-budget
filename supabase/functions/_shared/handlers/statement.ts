@@ -8,7 +8,8 @@ import { type CheckedFile, checkFile, IMAGE_TYPES, PDF_TYPE } from "../files.ts"
 import { caller, finalize, rateLimit, release, requireAccess, reserve } from "../guard.ts";
 import { endpoint, HttpError } from "../http.ts";
 import { parseJson, sanitizeStatement, textOf } from "../ai.ts";
-import { israelDateStr, STATEMENT_SCHEMA, statementPrompt } from "../prompts.ts";
+import { israelDateStr, statementPrompt, statementSchemaFor } from "../prompts.ts";
+import { isRegion, regionOf } from "../region.ts";
 
 export function createStatementHandler(deps: Deps) {
   return endpoint(deps, "extract-statement", async (req, body) => {
@@ -31,6 +32,8 @@ export function createStatementHandler(deps: Deps) {
       .map((h: any) => ({ name: String(h?.name ?? "").slice(0, 60), keyword: String(h?.keyword ?? "").slice(0, 40) }))
       .filter((h: { name: string; keyword: string }) => h.name && h.keyword);
 
+    // the household's region (0016) from the app: it only shapes this household's own prompt (no data is read with it)
+    const region = isRegion(body.region) ? body.region : "IL";
     const model = deps.env.models.statements;
     const reservation = await reserve(deps, body.household_id, claims.sub, "statement", 1, ESTIMATE_USD.statement, model);
 
@@ -42,14 +45,14 @@ export function createStatementHandler(deps: Deps) {
         ? { type: "document", source: { type: "base64", media_type: PDF_TYPE, data: f.data } }
         : { type: "image", source: { type: "base64", media_type: f.media_type as "image/jpeg", data: f.data } },
     );
-    content.push({ type: "text", text: statementPrompt(kind, hints, israelDateStr(deps.now())) });
+    content.push({ type: "text", text: statementPrompt(kind, hints, israelDateStr(deps.now(), region), region) });
 
     let msg: Anthropic.Message;
     try {
       msg = await deps.anthropic.messages.create({
         model,
         max_tokens: 16000,
-        output_config: { effort: "medium", format: { type: "json_schema", schema: STATEMENT_SCHEMA as any } },
+        output_config: { effort: "medium", format: { type: "json_schema", schema: statementSchemaFor(region) as any } },
         messages: [{ role: "user", content }],
       });
     } catch (e) {
@@ -58,7 +61,7 @@ export function createStatementHandler(deps: Deps) {
       throw new HttpError(502, "ai_unavailable", "הקריאה האוטומטית לא זמינה כרגע. אפשר לנסות שוב בעוד כמה דקות.");
     }
     await finalize(deps, reservation, 1, msg.usage.input_tokens, msg.usage.output_tokens, costUsd(model, msg.usage));
-    const doc = sanitizeStatement(parseJson(textOf(msg)));
+    const doc = sanitizeStatement(parseJson(textOf(msg)), regionOf(region).currency);
     return { ok: true, doc };
   }, { maxBytes: LIMITS.maxRequestBytes });
 }

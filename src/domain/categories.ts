@@ -1,7 +1,7 @@
 // Categories, themes, auto-categorization rules and subscription patterns —
 // ported verbatim from the prototype. CATS/EXCL/LINKS are shared with the
 // Edge Functions through supabase/functions/_shared/catalog.ts.
-export { ALLCATS, CATS, EXCL, isLinkId, LINK_IDS, LINKS } from "../../supabase/functions/_shared/catalog.ts";
+export { ALLCATS, CATS, catsFor, EXCL, isKnownCat, isLinkId, LINK_IDS, LINKS, TH_CATS } from "../../supabase/functions/_shared/catalog.ts";
 export type { LinkId } from "../../supabase/functions/_shared/catalog.ts";
 
 export interface Theme { label: string; accent: string; deep: string; soft: string; ground: string; var: string }
@@ -28,4 +28,4 @@ export const SUBS: [string, RegExp, string[]][] = [
   ["סלקום TV", /cellcom ?tv|סלקום טי/i, ["comm_cmp"]], ["ChatGPT", /openai|chatgpt/i, []], ["Claude", /anthropic|claude/i, []],
 ];
 
-export { catOf, RULES } from "../../supabase/functions/_shared/rules.ts";
+export { catOf, RULES, rulesFor, TH_RULES } from "../../supabase/functions/_shared/rules.ts";

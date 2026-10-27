@@ -17,6 +17,7 @@ export interface FxRow { currency: string; date: string; rate: number; source: "
 /** Currencies the app offers, with the symbol people see on receipts. */
 export const CURRENCIES: { code: string; name: string; symbol: string }[] = [
   { code: "THB", name: "באט תאילנדי", symbol: "฿" },
+  { code: "ILS", name: "שקל חדש", symbol: "₪" },   // 0016: a foreign currency for a Thailand household; the pickers hide the base currency
   { code: "USD", name: "דולר אמריקאי", symbol: "$" },
   { code: "EUR", name: "אירו", symbol: "€" },
   { code: "GBP", name: "לירה שטרלינג", symbol: "£" },
@@ -36,7 +37,7 @@ export const CURRENCIES: { code: string; name: string; symbol: string }[] = [
 ];
 export const CURRENCY = /^[A-Z]{3}$/;
 
-/** ₪ amount of a foreign amount — rounded to agorot like Postgres numeric round(x, 2) (half away from zero). */
+/** Base-currency amount of a foreign amount (₪ or ฿) — rounded to 2 places like Postgres numeric round(x, 2) (half away from zero). */
 export function toIls(original: number, rate: number): number {
   const v = Number((Math.abs(original) * rate).toFixed(8));   // kill float noise before rounding (350 × 0.0905)
   return Math.sign(original) * Math.round(v * 100) / 100;
@@ -129,4 +130,11 @@ export async function refreshRates(deps: Deps): Promise<"cached" | "fetched" | "
     return "down";
   }
   return boiRows.length && ecbRows.length ? "fetched" : "partial";
+}
+
+/** The base currency's rate, from the hub-and-spoke cache (0016): every cached rate is "₪ per 1 unit", so a rate in another
+ *  base is a cross rate through the shekel — foreign → base = (₪ per foreign) ÷ (₪ per base); ₪ itself is 1. Same rule as
+ *  public.fx_rate_for. base "ILS" returns the cached rate untouched. */
+export function crossRate(ilsPerForeign: number, ilsPerBase: number, base = "ILS"): number {
+  return base === "ILS" ? ilsPerForeign : Math.round((ilsPerForeign / ilsPerBase) * 1e6) / 1e6;
 }

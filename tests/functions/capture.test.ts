@@ -6,10 +6,14 @@ import { makeDeps, req } from "./fakes.ts";
 
 const TOKEN = "hbc_" + "ab".repeat(32);
 const call = async (h: (r: Request) => Promise<Response>, r: Request) => { const res = await h(r); return { status: res.status, body: await res.json() }; };
-function setup(svc: any = { ok: true, duplicate: false, status: "saved", method: "מקס" }, rateOk = true) {
+function setup(svc: any = { ok: true, duplicate: false, status: "saved", method: "מקס" }, rateOk = true, region: string | null = null) {
   const { deps, s } = makeDeps({ rateOk });
   const base = deps.rpc;
-  deps.rpc = (async (fn: string, args: any) => { if (fn === "svc_capture") { s.rpcCalls.push({ fn, args }); return svc; } return base(fn, args); }) as any;
+  deps.rpc = (async (fn: string, args: any) => {
+    if (fn === "svc_capture") { s.rpcCalls.push({ fn, args }); return svc; }
+    if (fn === "svc_capture_region") { s.rpcCalls.push({ fn, args }); return region; }   // 0016: the household's region for the token
+    return base(fn, args);
+  }) as any;
   return { h: createCaptureHandler(deps), s };
 }
 const shortcut = (body: unknown, token: string | null = TOKEN) =>
@@ -92,5 +96,29 @@ describe("capture", () => {
     expect((await call(b, shortcut({ amount: "שלום" }))).status).toBe(400);
     const { h: r } = setup(undefined, false);
     expect((await call(r, shortcut({ amount: 5 }))).status).toBe(429);
+  });
+});
+
+describe("capture in a Thai household (0016)", () => {
+  it("uses the household's day (Bangkok), the Thai category rules and the baht sign", async () => {
+    const { h, s } = setup({ ok: true, duplicate: false, status: "saved", method: "PromptPay / Thai QR", amount: 350 }, true, "TH");
+    // 18:30 UTC on the fake clock's day is already the next morning in Bangkok but still evening in Israel
+    const r = await call(h, shortcut({ amount: "฿350.00", merchant: "7-Eleven Silom", kind: "wallet" }));
+    expect(r.status).toBe(200);
+    expect(r.body.text).toBe("נקלט: ฿350.00 · 7-Eleven Silom");
+    const a = s.rpcCalls.find((c) => c.fn === "svc_capture")!.args;
+    expect(a).toMatchObject({ p_category: "סופר ומכולת", p_category_known: true, p_currency: "THB" });
+  });
+
+  it("an Israeli household's merchants are not read with the Thai rules, and the Thai-only categories are refused for it", async () => {
+    const il = setup(undefined, true, null);
+    await call(il.h, shortcut({ amount: 20, merchant: "7-Eleven", kind: "wallet" }));
+    expect(il.s.rpcCalls.find((c) => c.fn === "svc_capture")!.args).toMatchObject({ p_category: null, p_category_known: false });
+    const il2 = setup(undefined, true, "IL");
+    await call(il2.h, shortcut({ amount: 20, merchant: "x", kind: "quick", category: "ויזה ואישורי שהייה" }));
+    expect(il2.s.rpcCalls.find((c) => c.fn === "svc_capture")!.args.p_category_known).toBe(false);
+    const th = setup(undefined, true, "TH");
+    await call(th.h, shortcut({ amount: 20, merchant: "x", kind: "quick", category: "ויזה ואישורי שהייה" }));
+    expect(th.s.rpcCalls.find((c) => c.fn === "svc_capture")!.args).toMatchObject({ p_category: "ויזה ואישורי שהייה", p_category_known: true });
   });
 });

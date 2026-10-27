@@ -25,6 +25,22 @@ Commits: f224a9f (0012 + RLS tests) · aaac85e (collector + page) · 91962f9 (se
   Caddy basicauth); page live and green (screenshot from Elad 27.10). Nothing left here.
 - Elad first asked for a Claude Artifact dashboard, then chose his server instead → no Artifact was published.
 
+## ▶ HANDOFF (2026-10-28, session 9 — אזור תאילנד) — next session starts here
+Branch `claude/thailand-region` (from origin/main bc173b4). One commit; Elad sends it to GitHub. DECISIONS #42.
+- Built: `household_settings.region` IL|TH (0016) → base currency ILS/THB, time zone, default payment methods (+ new type `e_wallet`), Thai banks as issuer
+  suggestions, 2 extra categories + Thai classification rules, AI prompts per region, price comparison hidden for TH, rule-based tips without Israeli links,
+  cross rates through the shekel for a THB base, notification text with the household's sign. Region card in הבית (owner only, only while the household is empty).
+- Checks: `npm test` (RLS region 11 · unit region 23 · capture TH 2, all old tests unchanged) · typecheck · build · scan · `npx playwright test` 19 passed
+  (the Israeli household, unchanged) + `thailand.spec` 8 passed (region injected into the REST answers because 0016 is not live). Shots `docs/features/8-thailand`
+  (`after/` = Thailand light + dark at 390px; `il/before` from main vs `il/after` from the branch for the Israeli household — before-shots lack dark by design,
+  and the fonts differ because of the worktree junction).
+- **NOT applied / NOT deployed:** migration 0016 and the Edge Functions (`capture`, `extract-statement`, `submit-receipts`, `poll-batches`, `analyze-month`, `fx-rates`)
+  wait for Elad's OK. Until 0016 is live the app still works for Israel (no `region` column → IL); a Thai household needs it. SETUP "אזור תאילנד".
+- Open (cannot be closed without real samples): the actual export format of each Thai bank (only generic English / Thai header aliases, Buddhist years and a
+  windows-874 fallback exist); Thai merchant rules were written from public brand names, not from a real statement; the fx source mix (USD/EUR come from the
+  Bank of Israel, THB from the ECB); a household that already holds data cannot switch region.
+- Next: Elad applies 0016 + deploys, uses an empty household, sets הבית → אזור → תאילנד, then sends one real Thai statement (CSV/XLSX) so the importer can be checked.
+
 ## ▶ HANDOFF (2026-10-28, session 8 — new app logo) — next session starts here
 Branch `claude/new-logo` (from origin/main ddbfbb0, includes trip mode + neighborhood). One commit, no push by Claude.
 - Built: new mark in `scripts/icons.mjs` (`master()`) → all PNGs re-rendered with `node scripts/icons.mjs`; `markArt()` in `src/ui/art.ts` is the
