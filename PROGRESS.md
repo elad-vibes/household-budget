@@ -21,10 +21,26 @@ Commits: f224a9f (0012 + RLS tests) · aaac85e (collector + page) · 91962f9 (se
   install-server.sh). Page: `https://95-217-135-115.sslip.io/bayit-admin/`, Caddy basicauth user `elad`, rebuilt every 5 min.
 - Checks: `npm test` 263 (new: rls/stats 7, unit/stats 11) · typecheck · scan · page checked in the browser with synthetic
   data at desktop + 375px (light only — the pane renders local files light; dark tokens are in the CSS but unseen).
-- **NOT done yet (needs Elad):** ① `node scripts/db.mjs migrate` (0012 live — the auto-mode guard blocked me) ② `node scripts/stats/role.mjs`
-  ③ `npm run stats:bundle` ④ on the bridge: `scripts/stats/install-server.sh` (prints the page password once). Untested against the
-  live DB: custom-role sign-in through the pooler (`hb_stats.<ref>`) and the live `cron.job_run_details` query — role.mjs proves the first.
+- **DONE 2026-10-26/27:** pushed + merged to main; 0012 live; hb_stats login; installed on the server by M2 (crontab every 5 min,
+  Caddy basicauth); page live and green (screenshot from Elad 27.10). Nothing left here.
 - Elad first asked for a Claude Artifact dashboard, then chose his server instead → no Artifact was published.
+
+## ▶ HANDOFF (2026-10-27, session 5 — next-features 3 → 5) — next session starts here
+Branch `claude/next-features-3-5` (from origin/main 804f2e9). Commits: 0e49cd2 (§3 boundary tests on the OLD behavior, green) ·
+1b1b3a0 (§3 code) · bbf8302 (§4 code). `npm test` 295 · typecheck · build · scan all green.
+**Waiting on Elad's explicit OK (he asked to approve every DB/server-changing command):**
+1. `node scripts/db.mjs migrate` → applies 0013 + 0014 live. The new frontend is safe before that (settings `select *` → start day 1;
+   the wallet hides itself while `vouchers` doesn't exist).
+2. Playwright runs write the SYNTHETIC e2e fixture (example.test users) to the live DB: before-shots from a clean worktree of
+   origin/main (`git worktree add ../hb-before origin/main`), after-shots from this branch, both
+   `SHOTS=before|after SHOTS_DIR=docs/features/3-month-start|4-vouchers npx playwright test screens`, then `npx playwright test` (E2E).
+   Then commit the PNGs (+ HANDOFF), one commit per feature.
+3. Push: `git push origin claude/next-features-3-5:main` (fast-forward) — or give Elad the 2 PowerShell lines if blocked.
+**§5 (trip mode) not started.** Needs: migration 0015 (tx original_amount/original_currency/fx_rate, fx cache table, household
+"trip mode" + default currency), Edge Function `fx-rates` (Bank of Israel representative rates, cached daily, manual override,
+fallback when down) → needs a NEW Supabase access token from Elad for the deploy (ask in ONE message, 5-year-old steps), then
+"אפשר לבטל את הטוקן". Also give the function `[functions.fx-rates] verify_jwt = false` in supabase/config.toml (lesson from §1/§2).
+§6 skipped unless there is room.
 
 ## ▶ HANDOFF (2026-10-26, session 3 — next-features.md)
 Order: next-features.md §1 → 2 → 3 → 4 → 5 → (6 only if room). One feature = one commit, migrations from 0010,
@@ -34,9 +50,9 @@ tests green, before/after at 390px in `docs/features/<n>-<name>/` (`SHOTS=before
 |---|---|---|
 | 1 | "איפה הכי זול?" (SuperMCP) | ✅ committed — migration 0010 **applied live**; Edge Function `price-compare` **deployed + checked live** (real SuperMCP answer, 8 stores, cache hit) |
 | 2 | Apple Pay / Back Tap capture | ✅ committed — migration 0011 **applied live**; Edge Function `capture` **deployed + checked live** (shortcut-style call → saved; repeat → duplicate) |
-| 3 | Budget month start + "כמה נשאר להיום" | **NEXT** — regression-sensitive: write month-boundary tests against the CURRENT behavior first (commit them green), then change |
-| 4 | Vouchers wallet | — |
-| 5 | Trip mode / foreign currency | — |
+| 3 | Budget month start + "כמה נשאר להיום" | ✅ code committed (0e49cd2 tests-first, 1b1b3a0) — 0013 NOT live yet; shots + E2E pending (see session 5) |
+| 4 | Vouchers wallet | ✅ code committed (bbf8302) — 0014 NOT live yet; shots + E2E pending |
+| 5 | Trip mode / foreign currency | **NEXT** — needs a Supabase token for the new `fx-rates` function |
 | 6 | "השכונה שלנו" | optional |
 
 **Feature 1 notes:** REST API (`/openapi.json`), terms + privacy reviewed → DECISIONS #34 (credit shown, 10/day/household,
