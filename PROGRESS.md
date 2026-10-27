@@ -26,7 +26,7 @@ Commits: f224a9f (0012 + RLS tests) · aaac85e (collector + page) · 91962f9 (se
 - Elad first asked for a Claude Artifact dashboard, then chose his server instead → no Artifact was published.
 
 ## ▶ HANDOFF (2026-10-27, session 6 — next-features §5 trip mode) — next session starts here
-Branch `claude/trip-mode` (from origin/main eeb3d83). Commits: 33cb906 (§5 code) · next commit (E2E fix ₪ label + 390px shots + this HANDOFF).
+Branch `claude/trip-mode` (from origin/main eeb3d83). Commits: 33cb906 (§5 code) · b48c1bb (E2E fix ₪ label + 390px shots) · next commit (deploy recorded).
 - Built: 0015 (tx original_amount/original_currency/fx_rate, settings trip_mode/trip_currency, `fx_rates` + `fx_meta` shared cache,
   `fx_overrides` manual rate per household, receipts/capture/apply_statement convert + keep the original), Edge Function `fx-rates`
   (Bank of Israel + ECB cross rates — BoI has NO THB; daily cache, retry after 30 min, stale fallback, 502 → "manual rate"), UI card
@@ -37,10 +37,13 @@ Branch `claude/trip-mode` (from origin/main eeb3d83). Commits: 33cb906 (§5 code
   instead of "סכום (₪)" → fixed) · shots in `docs/features/5-trip-mode` (before: home/add/tx from main; after: home, add, tx, add-trip,
   home-trip-card). Before-shots were taken from a worktree with a node_modules junction → Vite refused the fonts there (fallback font).
 - **DONE live with Elad's OK (27.10):** 0015 applied.
-- **NOT DONE:** deploy of `fx-rates`, `capture`, `poll-batches`, `submit-receipts`, `extract-statement` + one live fx-rates call —
-  the token in `.env.local` was rejected (401; the file was last saved 26.10 19:58, so the new token never landed). The old deployed
-  functions keep working with 0015 (svc_capture's new p_currency has a default). Until the deploy: receipts are read without currency,
-  the app's trip card shows "אין עדיין שער" (fx-rates 404) — manual rate works. Deploy command: see the session-6 report.
+- **DONE 27.10 (2nd token):** `fx-rates`, `capture`, `poll-batches`, `submit-receipts`, `extract-statement` deployed. Live check
+  (synthetic fixture, removed after): 200, both sources fetched, 32 currencies (THB 0.091108 ecb · USD 3.078 boi · EUR 3.4462 boi ·
+  JPY 0.019557 boi, dated 26.10 — BoI publishes ~13:30 Israel); 2nd call = cache; no session = 401. The first token was rejected
+  (401) because it never got saved to `.env.local`.
+- **Waiting on Elad:** send `claude/trip-mode` to GitHub + merge; revoke the Supabase token.
+- Next: iPhone check — trip mode on, quick add (Back Tap) in ฿, an Apple Pay payment abroad → "מה נקלט ומתי" shows ₪ + ฿.
+  §6 "השכונה שלנו" is the only feature left (optional).
 - Not in scope / later: local Excel/CSV imports don't read an original-currency column; Hebrew wording of the trip card on a real iPhone.
 - Known: commit 33cb906's message says "unit/fx 7" — it is 6.
 
@@ -70,7 +73,7 @@ tests green, before/after at 390px in `docs/features/<n>-<name>/` (`SHOTS=before
 | 2 | Apple Pay / Back Tap capture | ✅ committed — migration 0011 **applied live**; Edge Function `capture` **deployed + checked live** (shortcut-style call → saved; repeat → duplicate) |
 | 3 | Budget month start + "כמה נשאר להיום" | ✅ 0e49cd2 (tests first) · 1b1b3a0 · eac3e0e — 0013 **live**, shots + E2E green |
 | 4 | Vouchers wallet | ✅ bbf8302 · 1ffbdab — 0014 **live**, shots + E2E green |
-| 5 | Trip mode / foreign currency | ✅ 33cb906 + shots — 0015 **live**; functions **waiting for deploy** (token) |
+| 5 | Trip mode / foreign currency | ✅ 33cb906 · b48c1bb — 0015 **live**; `fx-rates` + 4 functions **deployed + checked live** |
 | 6 | "השכונה שלנו" | optional |
 
 **Feature 1 notes:** REST API (`/openapi.json`), terms + privacy reviewed → DECISIONS #34 (credit shown, 10/day/household,
