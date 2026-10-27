@@ -191,7 +191,8 @@ homeCards.push(() => {
   const w = canWrite();
   const edit = methodById(S.extra.editPm);
   const used = (id: string) => S.tx.some((t) => t.payment_method_id === id) || S.fixed.some((f) => f.payment_method_id === id);
-  const list = [...S.methods].sort((a, b) => Number(b.active) - Number(a.active) || a.sort - b.sort);
+  // voucher methods (0014) are created and managed by the voucher wallet, not here
+  const list = S.methods.filter((m) => m.type !== "voucher").sort((a, b) => Number(b.active) - Number(a.active) || a.sort - b.sort);
   const type: PmType = (S.extra.pmType as PmType) ?? edit?.type ?? "credit_card";
   const cardLike = type === "credit_card" || type === "debit_card";
   return html`<div class="card">
@@ -203,7 +204,7 @@ homeCards.push(() => {
         : html`<button class="ghost ${isArmed("pm/" + m.id) ? "danger" : ""}" data-click="pm-del" data-id="${m.id}" aria-label="מחיקה">${isArmed("pm/" + m.id) ? "למחוק?" : "✕"}</button>`}</div>` : html`<span></span>`}</div>`)}</div>
     ${w ? html`<h3>${edit ? "עריכת " + edit.label : "אמצעי תשלום חדש"}</h3>
     <form class="grid2" data-submit="pm-save">
-      <label class="f">סוג<select id="pmType" data-change="pm-type">${(Object.keys(PM_TYPES) as PmType[]).map((k) => html`<option value="${k}" ${attr(k === type, "selected")}>${PM_TYPES[k]}</option>`)}</select></label>
+      <label class="f">סוג<select id="pmType" data-change="pm-type">${(Object.keys(PM_TYPES) as PmType[]).filter((k) => k !== "voucher").map((k) => html`<option value="${k}" ${attr(k === type, "selected")}>${PM_TYPES[k]}</option>`)}</select></label>
       <label class="f">שם<input type="text" id="pmLabel" maxlength="40" required placeholder="${cardLike ? "למשל: המקס של נועה" : "למשל: חשבון הבנק"}" value="${edit?.label ?? ""}"></label>
       <label class="f">חברה / בנק<input type="text" id="pmIssuer" maxlength="30" list="pmIssuers" value="${edit?.issuer ?? ""}"><datalist id="pmIssuers">${ISSUERS.map((i) => html`<option value="${i}"></option>`)}</datalist></label>
       ${cardLike ? html`<label class="f">4 ספרות אחרונות (לא חובה)<input type="text" id="pmLast4" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="off" value="${edit?.last4 ?? ""}"></label>` : ""}

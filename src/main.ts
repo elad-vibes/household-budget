@@ -27,6 +27,7 @@ import { I } from "./ui/icons.ts";
 import { renderPlan } from "./ui/plan.ts";
 import { renderCaptureLog } from "./ui/capture-setup.ts";
 import { loadPhase2 } from "./phase2.ts";
+import { loadVouchers } from "./ui/vouchers.ts";
 import "./payments.ts"; // payment methods: cards + handlers register themselves
 import { art, markArt, timeArt } from "./ui/art.ts";
 import { icon } from "./ui/cat.ts";
@@ -131,7 +132,7 @@ async function start() {
   if (r === "none") { S.view = "nohousehold"; rerender(); return; }
   if (r === "mfa-challenge") { await prepareChallenge(); S.view = "mfa-challenge"; rerender(); return; }
   if (r === "mfa-enroll") { S.view = "mfa-enroll"; rerender(); return; }
-  await loadPhase2().catch(() => undefined);
+  await Promise.all([loadPhase2().catch(() => undefined), loadVouchers().catch(() => undefined)]);
   if (!S.monthTouched) {
     const ms = monthsWithData(ctx());
     S.month = ms.length ? ms[ms.length - 1] : currentBudgetMonth(startDay());
@@ -150,7 +151,7 @@ async function boot() {
   installGestures();
   onPullRefresh(async () => {
     await loadHousehold();
-    await loadPhase2().catch(() => undefined);
+    await Promise.all([loadPhase2().catch(() => undefined), loadVouchers().catch(() => undefined)]);
     rerender();
     flash("✓ עודכן", "ok");
   });

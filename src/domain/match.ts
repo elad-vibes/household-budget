@@ -5,7 +5,7 @@
 // row survives (category, note, person, line items) and takes the statement's
 // amount and date. Pure functions — unit-tested in tests/unit/match.test.ts.
 
-export type PmType = "cash" | "credit_card" | "debit_card" | "bank_transfer" | "standing_order" | "bit_paybox" | "other";
+export type PmType = "cash" | "credit_card" | "debit_card" | "bank_transfer" | "standing_order" | "bit_paybox" | "other" | "voucher";
 
 export interface PaymentMethod {
   id: string;
@@ -24,6 +24,7 @@ export type MatchStatus = "none" | "awaiting_statement" | "matched" | "unmatched
 export const PM_TYPES: Record<PmType, string> = {
   cash: "מזומן", credit_card: "כרטיס אשראי", debit_card: "כרטיס חיוב (דביט)", bank_transfer: "העברה בנקאית",
   standing_order: "הוראת קבע", bit_paybox: "ביט / פייבוקס", other: "אחר",
+  voucher: "שובר",   // created by the voucher wallet (0014), never by hand
 };
 
 /** Types that show up later in a card or bank statement. Cash and "other" never do. */

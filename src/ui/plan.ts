@@ -5,6 +5,7 @@ import { HEB_M, ils, ils2, mLabel, mShort, today } from "../lib/format.ts";
 import { CATS } from "../domain/categories.ts";
 import { annualCalendar, budgetRows, goalProgress, yearReport } from "../domain/plan.ts";
 import { exportYear } from "../importer.ts";
+import { walletCard } from "./vouchers.ts";
 import { jar } from "./charts.ts";
 import { art } from "./art.ts";
 import { confetti } from "./motion.ts";
@@ -13,7 +14,7 @@ import { dbMessage, sb } from "../lib/supa.ts";
 import { P2 } from "../phase2.ts";
 
 export function renderPlan(): SafeHtml {
-  return html`${budgetsCard()}${yearCard()}${annualCard()}${goalsCard()}`;
+  return html`${budgetsCard()}${yearCard()}${walletCard()}${annualCard()}${goalsCard()}`;
 }
 
 // feature 3: 12 budget months by category, ending at the month on screen

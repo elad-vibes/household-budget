@@ -164,3 +164,14 @@ body:not(.noapp) main.wrap{padding-bottom:72px} /* room for the floating camera 
 .copyrow code{font-size:12px;overflow-wrap:anywhere;min-width:0}
 .copyrow button{min-height:36px;padding:4px 10px}
 #captureSetup details summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
+
+/* ---- voucher wallet (feature 4) ---- */
+.vch{border-top:1px solid var(--line);padding:10px 0}
+.vch:first-of-type{border-top:0}
+.vch.off{opacity:.65}
+.vhead{all:unset;cursor:pointer;display:flex;justify-content:space-between;gap:10px;width:100%;margin-bottom:6px}
+.vhead:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:6px}
+.vhead .n,.vhead .a{display:flex;flex-direction:column}
+.vhead .a{align-items:flex-end}
+.vhead small{color:var(--muted);font-size:12px}
+.vdet{margin-top:10px;padding:10px;background:var(--surface2);border-radius:12px}
