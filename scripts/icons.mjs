@@ -9,13 +9,22 @@ const ACCENT = "#00A58E", DEEP = "#00705F";
 
 /** SVG master, 512×512. maskable = full-bleed background and the mark inside the 80% safe zone. */
 const master = (maskable, bg = true) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00B89E"/><stop offset="1" stop-color="${DEEP}"/></linearGradient></defs>
-  ${bg ? `<rect width="512" height="512" rx="${maskable ? 0 : 112}" fill="url(#g)"/>` : ""}
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#19D3B3"/><stop offset="1" stop-color="${DEEP}"/></linearGradient>
+    <radialGradient id="glow" cx=".25" cy=".18" r=".75"><stop offset="0" stop-color="#fff" stop-opacity=".38"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <linearGradient id="coin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE9A8"/><stop offset="1" stop-color="#F4B63A"/></linearGradient>
+    <linearGradient id="roof" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF9F72"/><stop offset="1" stop-color="#F0583A"/></linearGradient>
+  </defs>
+  ${bg ? `<rect width="512" height="512" rx="${maskable ? 0 : 112}" fill="url(#g)"/><rect width="512" height="512" rx="${maskable ? 0 : 112}" fill="url(#glow)"/>` : ""}
   <g transform="translate(256 262) scale(${maskable ? 0.74 : 0.92}) translate(-256 -256)">
-    <path d="M104 250 256 122l152 128" fill="none" stroke="#fff" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M144 232v156h224V232" fill="none" stroke="#fff" stroke-width="40" stroke-linejoin="round"/>
-    <circle cx="256" cy="304" r="58" fill="#FFD27A"/><circle cx="256" cy="304" r="38" fill="none" stroke="#E0A93A" stroke-width="8"/>
-    <path d="M256 276v56" stroke="#8A5A00" stroke-width="14" stroke-linecap="round"/>
+    <ellipse cx="256" cy="424" rx="158" ry="15" fill="#003D33" opacity=".35"/>
+    <rect x="164" y="146" width="34" height="90" rx="9" fill="#C8472B"/>
+    <circle cx="352" cy="172" r="76" fill="url(#coin)"/><circle cx="352" cy="172" r="55" fill="none" stroke="#E2A22E" stroke-width="9"/>
+    <g fill="none" stroke="#B87A14" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M330 198V150h16v34"/><path d="M374 146v48h-16v-34"/></g>
+    <path d="M148 262h216v134a24 24 0 0 1-24 24H172a24 24 0 0 1-24-24z" fill="#FFF8EC"/>
+    <path d="M148 280 256 176l108 104z" fill="#FFF8EC"/>
+    <path d="M118 276 256 158l138 118" fill="none" stroke="url(#roof)" stroke-width="46" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M226 420v-64a30 30 0 0 1 60 0v64z" fill="#0B8C77"/><circle cx="272" cy="382" r="5" fill="#FFD27A"/>
   </g></svg>`;
 
 const ICONS = [
@@ -33,7 +42,7 @@ const SPLASH = [
 
 const splashHtml = (w) => `<html><body style="margin:0;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${Math.round(w * 0.06)}px;
   background:${ACCENT};font-family:'Segoe UI',Arial,sans-serif">
-  <div style="width:${Math.round(w * 0.34)}px;height:${Math.round(w * 0.34)}px">${master(true, false).replace("<svg ", '<svg width="100%" height="100%" ')}</div>
+  <div style="width:${Math.round(w * 0.46)}px;height:${Math.round(w * 0.46)}px">${master(true, false).replace("<svg ", '<svg width="100%" height="100%" ')}</div>
   <div dir="rtl" style="color:#fff;font-size:${Math.round(w * 0.075)}px;font-weight:700">הכסף של הבית</div></body></html>`;
 
 mkdirSync("public/icons", { recursive: true });

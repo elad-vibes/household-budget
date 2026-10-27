@@ -21,11 +21,17 @@ export const timeArt = {
     <circle cx="12" cy="12" r="1.8" fill="${W}"/><circle cx="20" cy="6" r="1.2" fill="${W}"/><circle cx="8" cy="22" r="1.2" fill="${W}"/>`, "tod"),
 };
 
-/** The app mark: a house with a coin (also the app icon). */
+/** The app mark: a house with a rising coin (also the app icon — same drawing as scripts/icons.mjs, flat colors
+ *  so it survives a hidden <svg> and takes the theme's accent as its background). */
 export const markArt = () => svg("0 0 64 64", `<rect width="64" height="64" rx="16" fill="${A}"/>
-  <path d="M13 31 32 15l19 16" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M18 29v19h28V29" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
-  <circle cx="32" cy="38" r="7" fill="#FFD27A"/><path d="M32 34.5v7" stroke="#8A5A00" stroke-width="2" stroke-linecap="round"/>`, "mark");
+  <g transform="translate(32 30) scale(.13) translate(-256 -256)">
+    <rect x="164" y="146" width="34" height="90" rx="9" fill="#C8472B"/>
+    <circle cx="352" cy="172" r="76" fill="#F9CF68"/><circle cx="352" cy="172" r="55" fill="none" stroke="#E2A22E" stroke-width="9"/>
+    <g fill="none" stroke="#B87A14" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M330 198V150h16v34"/><path d="M374 146v48h-16v-34"/></g>
+    <path d="M148 262h216v134a24 24 0 0 1-24 24H172a24 24 0 0 1-24-24z" fill="#FFF8EC"/><path d="M148 280 256 176l108 104z" fill="#FFF8EC"/>
+    <path d="M118 276 256 158l138 118" fill="none" stroke="#F5714A" stroke-width="46" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M226 420v-64a30 30 0 0 1 60 0v64z" fill="${D}"/><circle cx="272" cy="382" r="5" fill="#FFD27A"/>
+  </g>`, "mark");
 
 export const art = {
   /** no transactions yet: an open wallet with a receipt and coins */
