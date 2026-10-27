@@ -60,7 +60,7 @@ exact button names, copy-paste blocks.
 - "מצב טיול" toggle with default currency (e.g. THB) for manual/quick add; receipts/statements in foreign currency keep the original.
 - Tests: conversion, rounding, fallback when FX source is down.
 
-## 6. (gift, lowest priority) "השכונה שלנו"
+## 6. ✅ DONE 2026-10-27 (branch claude/our-neighborhood, DECISIONS #40) — "השכונה שלנו"
 - 2D isometric SVG neighborhood that grows during the budget month: one building type per category, size by spend,
   theme-aware (light/dark), on the overview + month-end summary. No 3D, no new heavy dependency (<15 KB gz).
 - Skip if time/context is short — note it in PROGRESS.md.

@@ -176,3 +176,35 @@ body:not(.noapp) main.wrap{padding-bottom:72px} /* room for the floating camera 
 .vhead .a{align-items:flex-end}
 .vhead small{color:var(--muted);font-size:12px}
 .vdet{margin-top:10px;padding:10px;background:var(--surface2);border-radius:12px}
+
+/* ---- השכונה שלנו (§6): isometric neighborhood; shades derive from --c so dark mode and themes recolor it ---- */
+.hood{width:100%;max-height:240px;display:block}
+.hb-b{cursor:pointer;outline:none}
+.hb-g{fill:var(--surface2);stroke:var(--line);stroke-width:.6}
+.hb-top{fill:color-mix(in srgb,var(--c) 45%,#fff)}
+.hb-l{fill:color-mix(in srgb,var(--c) 72%,#fff)}
+.hb-r{fill:var(--c)}
+.hb-roof.hb-l{fill:color-mix(in srgb,var(--c) 55%,#000)}
+.hb-roof.hb-r{fill:color-mix(in srgb,var(--c) 70%,#000)}
+.hb-roof2{fill:color-mix(in srgb,var(--c) 85%,#000)}
+.hb-w{fill:#fff;opacity:.7}
+.hb-t{fill:color-mix(in srgb,var(--c) 50%,#4a3a28)}
+.hb-ant{stroke:var(--ink2);stroke-width:1.2;fill:none}
+.hb-dot{fill:var(--var)}
+.hb-cross{stroke:#fff;stroke-width:2.2;fill:none;stroke-linecap:round}
+.hb-awn{fill:#fff;opacity:.55}.hb-awn2{opacity:.35}
+.hb-par{fill:none;stroke:color-mix(in srgb,var(--c) 60%,#000);stroke-width:.8}
+:root[data-dark="1"] .hb-top{fill:color-mix(in srgb,var(--c) 40%,#fff)}
+:root[data-dark="1"] .hb-l{fill:color-mix(in srgb,var(--c) 55%,#fff)}
+:root[data-dark="1"] .hb-r{fill:color-mix(in srgb,var(--c) 78%,#fff)}
+:root[data-dark="1"] .hb-roof.hb-l{fill:color-mix(in srgb,var(--c) 70%,#000)}
+:root[data-dark="1"] .hb-roof.hb-r{fill:color-mix(in srgb,var(--c) 85%,#000)}
+:root[data-dark="1"] .hb-roof2{fill:var(--c)}
+:root[data-dark="1"] .hb-w{fill:#FFE9A8;opacity:.85}
+:root[data-dark="1"] .hb-g{fill:var(--surface2)}
+.hb-b:focus-visible .hb-g,.hb-b:hover .hb-g{stroke:var(--accent);stroke-width:1.4}
+.hoodleg{display:grid;grid-template-columns:1fr 1fr;column-gap:10px;min-width:0}
+.hoodleg button{display:flex;align-items:center;gap:8px;border:0;background:none;padding:4px 2px;min-height:40px;font-weight:600;font-size:14px;text-align:right;min-width:0}
+.hoodleg .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (prefers-reduced-motion:no-preference){.hb-b{transform-box:fill-box;transform-origin:50% 100%;animation:hb-rise .6s cubic-bezier(.2,.8,.2,1) both}
+  @keyframes hb-rise{from{transform:scaleY(.2);opacity:0}}}
