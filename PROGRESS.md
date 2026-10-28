@@ -36,14 +36,13 @@ Branch `claude/thailand-region` (from origin/main bc173b4). One commit; Elad sen
   and the fonts differ because of the worktree junction).
 - **DONE live 28.10 with Elad's OK:** migration 0016 applied (`db.mjs status` lists it; Israeli households keep region IL). `npx playwright test` against the
   live DB: 27 passed (Israel 19 + Thailand 8), 12 skipped.
-- **NOT deployed:** the Edge Functions (`capture`, `extract-statement`, `submit-receipts`, `poll-batches`, `analyze-month`, `fx-rates`). `functions deploy` answered 401
-  "Invalid access token" — the PAT in `.env.local` is dead (revoked/expired). Safe meanwhile: the OLD functions send the same RPC arguments (`svc_capture` keeps its
-  signature), so Israeli households work; a Thai household needs the new functions. Next: Elad makes a new token, saves it in `.env.local`, then deploy the 6 and revoke it.
-  SETUP "אזור תאילנד".
+- **DONE live 28.10 (2nd token, new PAT in `.env.local`):** the 6 Edge Functions deployed (`capture`, `extract-statement`, `submit-receipts`, `poll-batches`,
+  `analyze-month`, `fx-rates`). The first attempt got 401 "Invalid access token" (the old PAT was dead). Probed without auth: capture 401 bad_token,
+  poll-batches 401, the others 403 origin_required — all answering, none 404/500. PR #4 (`claude/thailand-region`) is merged. SETUP "אזור תאילנד".
 - Open (cannot be closed without real samples): the actual export format of each Thai bank (only generic English / Thai header aliases, Buddhist years and a
   windows-874 fallback exist); Thai merchant rules were written from public brand names, not from a real statement; the fx source mix (USD/EUR come from the
   Bank of Israel, THB from the ECB); a household that already holds data cannot switch region.
-- Next: Elad makes a new token so the functions can deploy, uses an empty household, sets הבית → אזור → תאילנד, then sends one real Thai statement (CSV/XLSX) so the importer can be checked.
+- Next: Elad revokes the deploy token (and the old ones) at supabase.com → Account → Access Tokens, uses an empty household, sets הבית → אזור → תאילנד, then sends one real Thai statement (CSV/XLSX) so the importer can be checked.
 
 ## ▶ HANDOFF (2026-10-28, session 8 — new app logo) — next session starts here
 Branch `claude/new-logo` (from origin/main ddbfbb0, includes trip mode + neighborhood). One commit, no push by Claude.
