@@ -1,6 +1,7 @@
 // Month math, fixed-expense matching, subscriptions, rule-based tips and the
 // analysis summary — ported from the prototype. Pure functions over a context.
 import { addM, ils, mLabel, norm } from "../lib/format.ts";
+import { baseSymbol, region, regionCode } from "../lib/region.ts";
 import { EXCL, SUBS } from "./categories.ts";
 import { budgetMonth } from "./month.ts";
 import type { AnalysisData, Fixed, Person, Tx } from "./types.ts";
@@ -91,23 +92,26 @@ export function localTips(ctx: Ctx, m: string): AnalysisData | null {
   const checks: string[] = [];
   const sumRe = (re: RegExp) => tx.filter((t) => re.test(t.merchant)).reduce((a, t) => a + t.amount, 0);
 
-  const elec = sumRe(/חשמל/);
-  if (elec > 250) tips.push({ title: "לבדוק ספק חשמל פרטי", text: `החשמל החודש עלה ${ils(elec)}. ספקים פרטיים נותנים הנחה על התעריף של חברת החשמל, בלי החלפת מונה.`, save: Math.round(elec * 0.07), links: ["elec_cmp", "elec_gov"] });
+  const th = regionCode() === "TH", k = region().thresholdScale;   // 0016: Israeli advice and links do not apply in Thailand
+  const elec = sumRe(th ? /חשמל|electric|\bmea\b|\bpea\b|การไฟฟ้า/i : /חשמל/);
+  if (th && elec > 250 * k) tips.push({ title: "לבדוק את חשבון החשמל", text: `החשמל החודש עלה ${ils(elec)}. התעריף בתאילנד מדורג לפי צריכה והמזגן הוא בדרך כלל החלק הגדול: כדאי לבדוק טמפרטורה ושעות שימוש, ובקונדו לוודא שנגבה התעריף הרשמי.`, save: Math.round(elec * 0.07), links: [] });
+  if (!th && elec > 250) tips.push({ title: "לבדוק ספק חשמל פרטי", text: `החשמל החודש עלה ${ils(elec)}. ספקים פרטיים נותנים הנחה על התעריף של חברת החשמל, בלי החלפת מונה.`, save: Math.round(elec * 0.07), links: ["elec_cmp", "elec_gov"] });
   const ins = tx.filter((t) => t.category === "ביטוחים");
-  if (ins.length >= 2) tips.push({ title: "לעשות סדר בביטוחים", text: `יש ${ins.length} חיובי ביטוח החודש (${ils(ins.reduce((a, t) => a + t.amount, 0))}). כדאי לבדוק בהר הביטוח שאין כפל, ולהשוות את ביטוח הרכב לפני החידוש.`, save: null, links: ["harb", "car_calc"] });
+  if (th && ins.length >= 2) tips.push({ title: "לעשות סדר בביטוחים", text: `יש ${ins.length} חיובי ביטוח החודש (${ils(ins.reduce((a, t) => a + t.amount, 0))}). כדאי לוודא שאין כפל כיסוי בין ביטוח הבריאות, ביטוח הנסיעות וכרטיס האשראי, ולהשוות פרמיה לפני החידוש.`, save: null, links: [] });
+  if (!th && ins.length >= 2) tips.push({ title: "לעשות סדר בביטוחים", text: `יש ${ins.length} חיובי ביטוח החודש (${ils(ins.reduce((a, t) => a + t.amount, 0))}). כדאי לבדוק בהר הביטוח שאין כפל, ולהשוות את ביטוח הרכב לפני החידוש.`, save: null, links: ["harb", "car_calc"] });
   const subs = subsOf(ctx, m);
   const subT = subs.reduce((a, x) => a + x.amount, 0);
   if (subs.length) tips.push({ title: "לעבור על המנויים", text: `${subs.map((x) => x.name).join(", ")}: ${ils(subT, subT % 1 ? 2 : 0)} בחודש. כדאי לבטל את מה שלא משתמשים בו או לבדוק אם זה כלול בחבילה.`, save: null, links: [...new Set(subs.flatMap((x) => x.links))] });
   const tel = tx.filter((t) => t.category === "תקשורת ומנויים" && t.amount > 25).reduce((a, t) => a + t.amount, 0);
-  if (tel > 150) tips.push({ title: "להשוות חבילות תקשורת", text: `תקשורת ומנויים החודש: ${ils(tel)}. שווה לבדוק אם יש חבילה זולה יותר לסלולר, לאינטרנט או לטלוויזיה.`, save: Math.round(tel * 0.15), links: ["cell_cmp", "comm_cmp"] });
+  if (tel > 150 * k) tips.push({ title: "להשוות חבילות תקשורת", text: `תקשורת ומנויים החודש: ${ils(tel)}. שווה לבדוק אם יש חבילה זולה יותר לסלולר, לאינטרנט או לטלוויזיה.`, save: Math.round(tel * 0.15), links: th ? [] : ["cell_cmp", "comm_cmp"] });
   const groc = tx.filter((t) => t.category === "סופר ומכולת");
-  const small = groc.filter((t) => t.amount > 0 && t.amount < 60).length;
+  const small = groc.filter((t) => t.amount > 0 && t.amount < region().smallPurchase).length;
   const gT = groc.reduce((a, t) => a + t.amount, 0);
-  if (small >= 6 || gT > 1500) tips.push({ title: "לרכז את הקניות בסופר", text: `${groc.length} קניות בסופר ובמכולת (${ils(gT)}), מתוכן ${small} קטנות. קנייה גדולה אחת בשבוע ברשת זולה חוסכת בדרך כלל כמה אחוזים.`, save: Math.round(gT * 0.06), links: ["chp", "pricez"] });
+  if (small >= 6 || gT > 1500 * k) tips.push({ title: "לרכז את הקניות בסופר", text: `${groc.length} קניות בסופר ובמכולת (${ils(gT)}), מתוכן ${small} קטנות. קנייה גדולה אחת בשבוע ברשת זולה חוסכת בדרך כלל כמה אחוזים.`, save: Math.round(gT * 0.06), links: th ? [] : ["chp", "pricez"] });
   const food = tx.filter((t) => t.category === "אוכל בחוץ ומשלוחים").reduce((a, t) => a + t.amount, 0);
   if (s.total && food / s.total > 0.08) tips.push({ title: "אוכל בחוץ ומשלוחים", text: `${ils(food)} החודש (${Math.round((food / s.total) * 100)}% מההוצאות). אפשר לקבוע תקציב שבועי למשלוחים.`, save: Math.round(food * 0.25), links: [] });
   const onl = tx.filter((t) => t.category === "קניות אונליין").reduce((a, t) => a + t.amount, 0);
-  if (onl > 250) tips.push({ title: "קניות אונליין קטנות", text: `${ils(onl)} בקניות אונליין. כדאי לחכות כמה ימים לפני קנייה קטנה ולראות אם עדיין צריך.`, save: Math.round(onl * 0.3), links: [] });
+  if (onl > 250 * k) tips.push({ title: "קניות אונליין קטנות", text: `${ils(onl)} בקניות אונליין. כדאי לחכות כמה ימים לפני קנייה קטנה ולראות אם עדיין צריך.`, save: Math.round(onl * 0.3), links: [] });
 
   for (const f of ctx.fixed) {
     const a = fixedActual(ctx, f, m).amount;
@@ -115,7 +119,7 @@ export function localTips(ctx: Ctx, m: string): AnalysisData | null {
     else if (a && Math.abs(a - f.amount) > Math.max(5, f.amount * 0.05)) checks.push(`${f.name}: ${ils(a, 2)} במקום ${ils(f.amount, 2)}`);
   }
   tx.filter((t) => /תשלום\s*(\d+)\s*מתוך\s*\1\b/.test(t.note)).forEach((t) => checks.push(`${t.merchant}: זה התשלום האחרון, מהחודש הבא החיוב יורד`));
-  checks.push("פעם בשנה כדאי לבדוק בהר הכסף אם נשכח כסף בבנקים או בפנסיה");
+  checks.push(th ? "פעם בשנה כדאי לבדוק מועדי חידוש של ויזה, ביטוחים ודמי ועד של הקונדו" : "פעם בשנה כדאי לבדוק בהר הכסף אם נשכח כסף בבנקים או בפנסיה");
   return {
     status: `ב${mLabel(m)} יצאו ${ils(s.total)}: ${ils(s.fx)} קבועות ו-${ils(s.vr)} משתנות.`,
     changes: "", tips: tips.slice(0, 6), checks: checks.slice(0, 5), local: true,
@@ -135,10 +139,10 @@ export function monthSummaryText(ctx: Ctx, m: string): string {
     o.n++;
     o.a += x.amount;
   }
-  const topM = Object.entries(merch).sort((a, b) => b[1].a - a[1].a).slice(0, 18).map(([k, v]) => `${k}: ${v.n} פעמים, ${v.a.toFixed(0)} ₪`).join("\n");
+  const topM = Object.entries(merch).sort((a, b) => b[1].a - a[1].a).slice(0, 18).map(([k, v]) => `${k}: ${v.n} פעמים, ${v.a.toFixed(0)} ${baseSymbol()}`).join("\n");
   const byP: Record<string, number> = {};
   for (const x of tx) byP[personName(ctx, x.person_id)] = (byP[personName(ctx, x.person_id)] || 0) + x.amount;
-  const small = tx.filter((x) => x.amount > 0 && x.amount < 60).length;
+  const small = tx.filter((x) => x.amount > 0 && x.amount < region().smallPurchase).length;
   const fx = ctx.fixed.map((f) => {
     const a = fixedActual(ctx, f, m).amount;
     return `${f.name}: צפוי ${f.amount}, בפועל ${a ? a.toFixed(0) : "לא הופיע"}${(f.cycle || 1) > 1 ? " (לא חודשי)" : ""}`;
@@ -152,12 +156,12 @@ export function monthSummaryText(ctx: Ctx, m: string): string {
   const notes = tx.filter((x) => x.note).slice(0, 20).map((x) => `${x.merchant} ${x.amount}: ${x.note}`).join("\n");
   return `חודש: ${mLabel(m)}
 בני הבית: ${activePeople(ctx).map((p) => p.name).join(", ")}
-סה"כ הוצאות: ${s.total.toFixed(0)} ₪ (קבועות ${s.fx.toFixed(0)}, משתנות ${s.vr.toFixed(0)}), ${s.count} תנועות. הכנסות שהועלו: ${s.inc.toFixed(0)}.
+סה"כ הוצאות: ${s.total.toFixed(0)} ${baseSymbol()} (קבועות ${s.fx.toFixed(0)}, משתנות ${s.vr.toFixed(0)}), ${s.count} תנועות. הכנסות שהועלו: ${s.inc.toFixed(0)}.
 לפי אדם: ${Object.entries(byP).map(([k, a]) => k + " " + a.toFixed(0)).join(", ")}
 לפי קטגוריה: ${Object.entries(cats).sort((a, b) => b[1] - a[1]).map(([k, a]) => k + " " + a.toFixed(0)).join(", ")}
 בתי עסק מובילים:
 ${topM}
-קניות קטנות (מתחת ל-60 ₪): ${small}
+קניות קטנות (מתחת ל-${region().smallPurchase} ${baseSymbol()}): ${small}
 מנויים שזוהו: ${subs || "אין"}
 הוצאות קבועות מוגדרות מול בפועל:
 ${fx || "לא הוגדרו"}

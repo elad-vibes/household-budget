@@ -17,6 +17,8 @@ import type { DraftDoc, Tx } from "./domain/types.ts";
 import { overviewCards } from "./ui/overview.ts";
 import { homeCards } from "./ui/home.ts";
 import { personOptionsHtml } from "./ui/common.ts";
+import { issuersFor } from "./domain/banks.ts";
+import { regionCode } from "./lib/region.ts";
 
 export const methodById = (id: string | null | undefined) => (id ? S.methods.find((m) => m.id === id) : undefined);
 export const activeMethods = () =>
@@ -186,7 +188,11 @@ on("click", "um-del", async (el) => {
 });
 
 // ---------------------------------------------------- methods manager (Home)
-const ISSUERS = ["מקס", "ישראכרט", "כאל", "אמריקן אקספרס", "דיינרס", "לאומי", "הפועלים", "דיסקונט", "מזרחי-טפחות", "הבינלאומי", "ירושלים", "וואן זירו", "מרכנתיל"];
+/** Which types the editor offers: never a voucher (its own wallet makes those); no bit / PayBox in Thailand and no e-wallet in
+ *  Israel — unless the method being edited already has that type. */
+const typeAllowed = (k: PmType, current?: PmType) =>
+  k !== "voucher" && (k === current || (regionCode() === "TH" ? k !== "bit_paybox" : k !== "e_wallet"));
+
 
 homeCards.push(() => {
   const w = canWrite();
@@ -205,9 +211,9 @@ homeCards.push(() => {
         : html`<button class="ghost ${isArmed("pm/" + m.id) ? "danger" : ""}" data-click="pm-del" data-id="${m.id}" aria-label="מחיקה">${isArmed("pm/" + m.id) ? "למחוק?" : "✕"}</button>`}</div>` : html`<span></span>`}</div>`)}</div>
     ${w ? html`<h3>${edit ? "עריכת " + edit.label : "אמצעי תשלום חדש"}</h3>
     <form class="grid2" data-submit="pm-save">
-      <label class="f">סוג<select id="pmType" data-change="pm-type">${(Object.keys(PM_TYPES) as PmType[]).filter((k) => k !== "voucher").map((k) => html`<option value="${k}" ${attr(k === type, "selected")}>${PM_TYPES[k]}</option>`)}</select></label>
+      <label class="f">סוג<select id="pmType" data-change="pm-type">${(Object.keys(PM_TYPES) as PmType[]).filter((k) => typeAllowed(k, edit?.type)).map((k) => html`<option value="${k}" ${attr(k === type, "selected")}>${PM_TYPES[k]}</option>`)}</select></label>
       <label class="f">שם<input type="text" id="pmLabel" maxlength="40" required placeholder="${cardLike ? "למשל: המקס של נועה" : "למשל: חשבון הבנק"}" value="${edit?.label ?? ""}"></label>
-      <label class="f">חברה / בנק<input type="text" id="pmIssuer" maxlength="30" list="pmIssuers" value="${edit?.issuer ?? ""}"><datalist id="pmIssuers">${ISSUERS.map((i) => html`<option value="${i}"></option>`)}</datalist></label>
+      <label class="f">חברה / בנק<input type="text" id="pmIssuer" maxlength="30" list="pmIssuers" value="${edit?.issuer ?? ""}"><datalist id="pmIssuers">${issuersFor(regionCode()).map((i) => html`<option value="${i}"></option>`)}</datalist></label>
       ${cardLike ? html`<label class="f">4 ספרות אחרונות (לא חובה)<input type="text" id="pmLast4" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="off" value="${edit?.last4 ?? ""}"></label>` : ""}
       <label class="f">של מי<select id="pmPerson">${personOptionsHtml(edit?.person_id ?? null)}</select></label>
       <div class="row end" style="grid-column:1/-1">${edit ? html`<button type="button" class="ghost" data-click="pm-edit" data-id="">ביטול</button>` : ""}<button class="primary" type="submit">שמירה</button></div>

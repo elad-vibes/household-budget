@@ -3,7 +3,8 @@ import { attr, html, safeUrl, type SafeHtml } from "../lib/html.ts";
 import { isLinkId, LINKS } from "../domain/categories.ts";
 import { personOptions } from "../domain/calc.ts";
 import { ctx } from "../state.ts";
-import { ALLCATS, CATS } from "../domain/categories.ts";
+import { catsFor, EXCL } from "../domain/categories.ts";
+import { regionCode } from "../lib/region.ts";
 
 /** Renders ONLY whitelisted links (AI output can never inject a URL). */
 export function linkHtml(ids: readonly string[] | undefined): SafeHtml {
@@ -23,7 +24,9 @@ export function personOptionsHtml(value: string | null): SafeHtml {
 }
 
 export function catOptions(selected: string, withExcl = true): SafeHtml {
-  const list = withExcl ? ALLCATS : [...CATS, "הכנסה"];
+  const base = catsFor(regionCode());   // Israel: the 21 categories as before; Thailand: + visa and shopping malls (0016)
+  const list = withExcl ? [...base, ...EXCL] : [...base, "הכנסה"];
+  if (selected && !list.includes(selected)) list.push(selected);   // a row keeps its own category even if this region doesn't offer it
   return html`${list.map((c) => html`<option ${attr(c === selected, "selected")}>${c}</option>`)}`;
 }
 

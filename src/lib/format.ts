@@ -1,10 +1,12 @@
 // Formatting helpers ported from the prototype.
+import { baseSymbol, region } from "./region.ts";
 
 export const HEB_M = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"];
 export const HEB_D = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
 
+/** An amount in the household's BASE currency (₪ for an Israeli household, ฿ for a Thai one — 0016). */
 export const ils = (n: number, d = 0) =>
-  (n < 0 ? "-" : "") + "₪" + Math.abs(n).toLocaleString("he-IL", { minimumFractionDigits: d, maximumFractionDigits: d });
+  (n < 0 ? "-" : "") + baseSymbol() + Math.abs(n).toLocaleString(region().locale, { minimumFractionDigits: d, maximumFractionDigits: d });
 export const ils2 = (n: number) => ils(n, n % 1 ? 2 : 0);
 
 export const mLabel = (m: string) => {

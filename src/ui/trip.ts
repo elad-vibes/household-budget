@@ -7,7 +7,8 @@ import { fmtDate } from "../lib/format.ts";
 import { dbMessage, sb } from "../lib/supa.ts";
 import { canWrite, flash, rerender, S } from "../state.ts";
 import { fn, updateSettings } from "../data.ts";
-import { CURRENCIES, fmtRate, nameOf, rateOf, SOURCE_LABEL, symbolOf, type FxRates, type Rate } from "../domain/fx.ts";
+import { fmtRate, nameOf, rateOf, SOURCE_LABEL, symbolOf, travelCurrencies, type FxRates, type Rate } from "../domain/fx.ts";
+import { baseCode, baseSymbol, baseWordTo } from "../lib/region.ts";
 import { banner } from "./common.ts";
 import { settingsCards } from "./home.ts";
 
@@ -15,7 +16,8 @@ interface FxState { rates: FxRates | null; at: number; loading: boolean; error: 
 const F = (): FxState => (S.extra.fx ??= { rates: null, at: 0, loading: false, error: null });
 
 export const tripOn = () => !!S.settings?.trip_mode;
-export const tripCurrency = () => S.settings?.trip_currency || "THB";
+/** the trip currency; never the base currency (0016) — a Thailand household travels with ₪ unless it picked another */
+export const tripCurrency = () => { const c = S.settings?.trip_currency; return c && c !== baseCode() ? c : baseCode() === "THB" ? "ILS" : "THB"; };
 
 export async function loadFx() {
   const f = F();
@@ -39,7 +41,7 @@ export function ensureFx() {
 }
 export const currentRate = (code: string): Rate | null => rateOf(F().rates, code);
 
-/** "1 ฿ = ₪0.0911 · שער יציג, בנק ישראל, 26.10.2026" */
+/** "1 ฿ = ₪0.0911 · שער יציג, בנק ישראל, 26.10.2026" (or the other way round for a Thailand household) */
 export function rateLine(code: string): SafeHtml {
   const r = currentRate(code);
   if (!r) return F().loading ? html`<span class="muted"><span class="spin"></span> טוען שער…</span>` : html`<span class="muted">אין עדיין שער ל${nameOf(code)}</span>`;
@@ -57,17 +59,17 @@ function tripCard(): SafeHtml {
   const official = f.rates?.official[cur];
   return html`<div class="card" id="tripCard">
     <h2>מצב טיול</h2>
-    <p class="muted small">יוצאים לחו״ל? מדליקים כאן. מעכשיו הוספה ידנית והוספה מהירה מהאייפון יהיו במטבע של הטיול, והאפליקציה ממירה לשקלים לפי השער של אותו יום. ליד כל הוצאה נשמר גם הסכום המקורי. קבלות ופירוטי אשראי מחו״ל נקראים במטבע שלהם בכל מקרה.</p>
+    <p class="muted small">יוצאים לחו״ל? מדליקים כאן. מעכשיו הוספה ידנית והוספה מהירה מהאייפון יהיו במטבע של הטיול, והאפליקציה ממירה ${baseWordTo()} לפי השער של אותו יום. ליד כל הוצאה נשמר גם הסכום המקורי. קבלות ופירוטי אשראי מחו״ל נקראים במטבע שלהם בכל מקרה.</p>
     <label class="chk"><input type="checkbox" data-change="trip-on" ${attr(s.trip_mode, "checked")} ${attr(!w, "disabled")}> מצב טיול פעיל</label>
     <label class="f">המטבע בטיול<select data-change="trip-cur" ${attr(!w, "disabled")}>
-      ${CURRENCIES.map((c) => html`<option value="${c.code}" ${attr(c.code === cur, "selected")}>${c.name} (${c.symbol})</option>`)}
+      ${travelCurrencies().map((c) => html`<option value="${c.code}" ${attr(c.code === cur, "selected")}>${c.name} (${c.symbol})</option>`)}
     </select></label>
     ${s.trip_mode || manual ? html`
       <p class="small">השער שלנו: ${rateLine(cur)}</p>
       ${f.rates?.stale && !manual ? banner("השער הרשמי לא התעדכן כמה ימים (המקור לא זמין). אפשר להמשיך איתו, או להזין שער ידני.", "warn") : ""}
       ${f.error && !f.rates ? banner(f.error, "warn") : ""}
       ${w ? html`<form class="grid2" data-submit="trip-rate">
-        <label class="f">שער ידני: כמה ₪ שווה 1 ${symbolOf(cur)}<input type="number" id="tripRate" min="0.000001" step="any" inputmode="decimal" placeholder="${official ? String(official.rate) : "למשל 0.095"}" value="${manual ? String(manual.rate) : ""}"></label>
+        <label class="f">שער ידני: כמה ${baseSymbol()} שווה 1 ${symbolOf(cur)}<input type="number" id="tripRate" min="0.000001" step="any" inputmode="decimal" placeholder="${official ? String(official.rate) : baseCode() === "THB" ? "למשל 9.1" : "למשל 0.095"}" value="${manual ? String(manual.rate) : ""}"></label>
         <div class="row end" style="align-self:end;gap:6px">
           ${manual ? html`<button type="button" class="ghost" data-click="trip-rate-clear">חזרה לשער הרשמי</button>` : ""}
           <button type="submit">שמירת שער</button></div>
@@ -93,7 +95,7 @@ on("change", "trip-cur", (el) => run(() => updateSettings({ trip_currency: (el a
 
 on("submit", "trip-rate", () => {
   const rate = parseFloat(($("tripRate") as HTMLInputElement).value);
-  if (!isFinite(rate) || rate <= 0 || rate >= 100000) { flash("צריך מספר חיובי — כמה שקלים שווה יחידה אחת.", "err"); return; }
+  if (!isFinite(rate) || rate <= 0 || rate >= 100000) { flash(`צריך מספר חיובי — כמה ${baseWordTo().replace(/^ל/, "")} שווה יחידה אחת.`, "err"); return; }
   const cur = tripCurrency();
   return run(async () => {
     const up = await sb.from("fx_overrides").update({ ils_per_unit: rate, updated_at: new Date().toISOString() })

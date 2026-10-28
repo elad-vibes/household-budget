@@ -4,8 +4,9 @@
 // rows is matched against the waiting items; a match MERGES the two: the logged
 // row survives (category, note, person, line items) and takes the statement's
 // amount and date. Pure functions — unit-tested in tests/unit/match.test.ts.
+import { issuerInText } from "./banks.ts";
 
-export type PmType = "cash" | "credit_card" | "debit_card" | "bank_transfer" | "standing_order" | "bit_paybox" | "other" | "voucher";
+export type PmType = "cash" | "credit_card" | "debit_card" | "bank_transfer" | "standing_order" | "bit_paybox" | "other" | "voucher" | "e_wallet";
 
 export interface PaymentMethod {
   id: string;
@@ -24,11 +25,12 @@ export type MatchStatus = "none" | "awaiting_statement" | "matched" | "unmatched
 export const PM_TYPES: Record<PmType, string> = {
   cash: "מזומן", credit_card: "כרטיס אשראי", debit_card: "כרטיס חיוב (דביט)", bank_transfer: "העברה בנקאית",
   standing_order: "הוראת קבע", bit_paybox: "ביט / פייבוקס", other: "אחר",
+  e_wallet: "ארנק דיגיטלי / QR",   // 0016: PromptPay / Thai QR, TrueMoney Wallet, Rabbit LINE Pay
   voucher: "שובר",   // created by the voucher wallet (0014), never by hand
 };
 
 /** Types that show up later in a card or bank statement. Cash and "other" never do. */
-const IN_STATEMENTS: readonly PmType[] = ["credit_card", "debit_card", "bank_transfer", "standing_order", "bit_paybox"];
+const IN_STATEMENTS: readonly PmType[] = ["credit_card", "debit_card", "bank_transfer", "standing_order", "bit_paybox", "e_wallet"];
 export const awaitsStatement = (t: PmType | undefined | null) => !!t && IN_STATEMENTS.includes(t);
 const BANKISH: readonly PmType[] = ["debit_card", "bank_transfer", "standing_order"];
 
@@ -44,7 +46,7 @@ export interface SRow { key: string; date: string; month?: string; amount: numbe
 
 export const DATE_BEFORE = 2; // the statement date may be up to 2 days before the receipt
 export const DATE_AFTER = 5;  // … and up to 5 days after it
-export const AMOUNT_TOL = 1;  // ₪
+export const AMOUNT_TOL = 1;  // base-currency units (₪ / ฿)
 /** A purchase abroad was logged at the official rate; the card charges its own rate + fees (0015). */
 export const FOREIGN_TOL = 0.05;
 const tol = (w: Waiting) => (w.foreign ? Math.max(AMOUNT_TOL, Math.abs(w.amount) * FOREIGN_TOL) : AMOUNT_TOL);
@@ -78,7 +80,7 @@ export function merchantSimilarity(a: string, b: string): number {
 
 const BIT_RE = /\bbit\b|ביט|paybox|פייבוקס|פיי בוקס/i;
 export const isBitRow = (merchant: string) => BIT_RE.test(merchant);
-const ATM_RE = /משיכת מזומן|משיכה מכספומט|כספומט|\batm\b/i;
+const ATM_RE = /משיכת מזומן|משיכה מכספומט|כספומט|\batm\b|cash withdraw|ถอนเงิน/i;
 export const isAtmRow = (merchant: string) => ATM_RE.test(merchant);
 
 const sameIssuer = (a: PaymentMethod, b: PaymentMethod) =>
@@ -205,8 +207,7 @@ export function detectMethod(text: string, methods: PaymentMethod[]): PaymentMet
   const byLast4 = active.filter((m) => m.last4 && digits.includes(m.last4));
   if (byLast4.length === 1) return byLast4[0];
   if (/מזומן|cash/i.test(text)) return active.find((m) => m.type === "cash") ?? null;
-  const t = normMerchant(text);
-  const byIssuer = active.filter((m) => m.issuer.trim() && awaitsStatement(m.type) && t.includes(normMerchant(m.issuer)));
+  const byIssuer = active.filter((m) => m.issuer.trim() && awaitsStatement(m.type) && issuerInText(m.issuer, text, normMerchant));
   if (byIssuer.length === 1) return byIssuer[0];
   if (isBitRow(text)) return active.find((m) => m.type === "bit_paybox") ?? null;
   return null;

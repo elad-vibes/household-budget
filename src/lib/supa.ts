@@ -47,6 +47,8 @@ export function dbMessage(e: any): string {
   if (/owner_invite/.test(m)) return "למשק בית יש מנהל/ת אחד/ת. אפשר להזמין חברים או צפייה בלבד.";
   if (/household_has_owner/.test(m)) return "למשק הבית כבר יש מנהל/ת, ולכן ההזמנה הזאת לא בתוקף.";
   if (/use_delete_household/.test(m)) return "אתם האחרונים במשק הבית. אפשר למחוק את משק הבית במקום לעזוב.";
+  if (/region_locked/.test(m)) return "אי אפשר להחליף אזור אחרי שנשמרו במשק הבית סכומים.";
+  if (/foreign currency must differ/.test(m)) return "מטבע הטיול חייב להיות שונה ממטבע משק הבית.";
   if (/too_many_invites/.test(m)) return "יש יותר מדי הזמנות פתוחות. אפשר לבטל חלק מהן.";
   if (/invite_used/.test(m)) return "ההזמנה כבר שימשה להצטרפות.";
   if (/invite_other_email/.test(m)) return "ההזמנה נשלחה לכתובת מייל אחרת.";

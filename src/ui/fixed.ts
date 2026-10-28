@@ -1,5 +1,6 @@
 // קבועות — the fixed-expense list and form (prototype) + an optional due day
 // used for "upcoming bills" reminders.
+import { baseSymbol } from "../lib/region.ts";
 import { attr, html, type SafeHtml, $ } from "../lib/html.ts";
 import { armed2, isArmed, on } from "../lib/events.ts";
 import { ils, ils2 } from "../lib/format.ts";
@@ -33,7 +34,7 @@ export function renderFixed(): SafeHtml {
     <h2>${edit ? "עריכת " + edit.name : "הוצאה קבועה חדשה"}</h2>
     <form class="grid2" data-submit="fx-save">
       <label class="f">שם<input type="text" id="xName" required maxlength="60" placeholder="ביטוח בריאות – הראל" value="${edit?.name ?? ""}"></label>
-      <label class="f">סכום חודשי צפוי (₪)<input type="number" id="xAmt" step="0.01" inputmode="decimal" required value="${edit?.amount ?? ""}"></label>
+      <label class="f">סכום חודשי צפוי (${baseSymbol()})<input type="number" id="xAmt" step="0.01" inputmode="decimal" required value="${edit?.amount ?? ""}"></label>
       <label class="f">מילת חיפוש בפירוט<input type="text" id="xKey" required maxlength="40" placeholder="הראל" value="${edit?.keyword ?? ""}"></label>
       <label class="f">קטגוריה<select id="xCat">${catOptions(edit?.category ?? "ביטוחים", false)}</select></label>
       <label class="f">של מי<select id="xPerson"><option value="any">כל אחד</option>${personOptionsHtml(edit ? edit.person_id ?? "any" : "any")}</select></label>

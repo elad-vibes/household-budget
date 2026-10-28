@@ -1,5 +1,6 @@
 // Phase 2 wiring: loads budgets / annual / goals / price history / push state
 // and plugs cards into existing screens (overview, fixed, shopping, home).
+import { region } from "./lib/region.ts";
 import { attr, html, type SafeHtml } from "./lib/html.ts";
 import { on } from "./lib/events.ts";
 import { ils, ils2, HEB_D, today } from "./lib/format.ts";
@@ -25,6 +26,8 @@ export interface P2State {
   dismissed: Set<string>; prefs: Prefs | null; pushOn: boolean; priceQuery: string;
 }
 const DEFAULT_PREFS: Prefs = { weekly_summary: true, bills: true, receipts: true, budget: true, weekly_day: 0, quiet_start: 22, quiet_end: 7 };
+/** Preferences a person who never saved any gets: the weekly summary on the first working day of the household's region (Sunday / Monday). */
+const defaultPrefs = (): Prefs => ({ ...DEFAULT_PREFS, weekly_day: region().weeklyDay });
 export const P2 = (): P2State =>
   (S.extra.p2 ??= { budgets: [], annual: [], goals: [], deposits: [], items: [], dismissed: new Set(), prefs: null, pushOn: false, priceQuery: "" });
 
@@ -129,7 +132,7 @@ on("change", "price-q", (el) => { P2().priceQuery = (el as HTMLInputElement).val
 // ------------------------------------------------------------ notifications
 homeCards.push(() => {
   const p = P2();
-  const pr = p.prefs ?? DEFAULT_PREFS;
+  const pr = p.prefs ?? defaultPrefs();
   const iosNeedsInstall = isIOS() && !standalone();
   const toggle = (k: keyof Prefs, label: string) => html`<label class="chk"><input type="checkbox" data-change="pref" data-k="${k}" ${attr(pr[k], "checked")}> ${label}</label>`;
   const hours = (k: "quiet_start" | "quiet_end") => html`<select data-change="pref" data-k="${k}">${Array.from({ length: 24 }, (_, h) => html`<option value="${h}" ${attr(pr[k] === h, "selected")}>${String(h).padStart(2, "0")}:00</option>`)}</select>`;
@@ -167,8 +170,8 @@ on("change", "pref", async (el) => {
   const p = P2();
   const k = el.dataset.k as keyof Prefs;
   const v = el instanceof HTMLInputElement && el.type === "checkbox" ? el.checked : Number((el as HTMLSelectElement).value);
-  p.prefs = { ...(p.prefs ?? DEFAULT_PREFS), [k]: v } as Prefs;
-  const { error } = await sb.from("notification_prefs").upsert({ user_id: S.user!.id, ...p.prefs });
+  p.prefs = { ...(p.prefs ?? defaultPrefs()), [k]: v } as Prefs;
+  const { error } = await sb.from("notification_prefs").upsert({ user_id: S.user!.id, ...p.prefs, tz: region().tz });   // 0016: quiet hours / the weekly summary run in the household's time zone
   if (error) flash(dbMessage(error), "err");
   rerender();
 });

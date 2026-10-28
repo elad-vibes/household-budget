@@ -17,6 +17,8 @@ export interface Settings {
   price_street?: string | null;
   /** budget month starts on this day (1–28, 0013) — see src/domain/month.ts */
   month_start_day?: number;
+  /** household region (0016): "IL" (default) or "TH" — picks the base currency and the local defaults, see supabase/functions/_shared/region.ts */
+  region?: "IL" | "TH";
   /** "מצב טיול" (0015): manual / quick add default to trip_currency */
   trip_mode?: boolean;
   trip_currency?: string;
@@ -56,7 +58,7 @@ export interface Tx {
   // 0009: an AI-read date more than 2 days in the future or 60 days before the upload is kept
   // as given (never silently changed) but flagged, instead of hiding as a normal-looking date.
   date_uncertain?: boolean;
-  // 0015: a foreign amount keeps its original; amount = round(original_amount × fx_rate, 2) in ₪
+  // 0015: a foreign amount keeps its original; amount = round(original_amount × fx_rate, 2) in the household's base currency
   original_amount?: number | null;
   original_currency?: string | null;
   fx_rate?: number | null;

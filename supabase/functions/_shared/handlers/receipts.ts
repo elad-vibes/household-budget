@@ -8,7 +8,8 @@ import { checkFile, IMAGE_TYPES } from "../files.ts";
 import { caller, isUuid, rateLimit, release, requireAccess, reserve } from "../guard.ts";
 import { endpoint, HttpError, safeEqual } from "../http.ts";
 import { parseJson, sanitizeReceipt, textOf } from "../ai.ts";
-import { israelDateStr, receiptPrompt, RECEIPT_SCHEMA } from "../prompts.ts";
+import { israelDateStr, receiptPrompt, receiptSchemaFor } from "../prompts.ts";
+import { isRegion, regionOf } from "../region.ts";
 import { refreshRates } from "../fx.ts";
 
 const CLIENT_ID = /^[A-Za-z0-9_-]{1,64}$/;
@@ -37,7 +38,8 @@ export function createSubmitReceiptsHandler(deps: Deps) {
     const reservation = await reserve(deps, body.household_id, claims.sub, "receipt",
       receipts.length, ESTIMATE_USD.receipt * receipts.length, model);
 
-    const prompt = receiptPrompt(israelDateStr(deps.now()));
+    const region = isRegion(body.region) ? body.region : "IL";   // 0016: shapes this household's own prompt
+    const prompt = receiptPrompt(israelDateStr(deps.now(), region), region);
     let batch: Anthropic.Messages.MessageBatch;
     try {
       batch = await deps.anthropic.messages.batches.create({
@@ -46,7 +48,7 @@ export function createSubmitReceiptsHandler(deps: Deps) {
           params: {
             model,
             max_tokens: 4096,
-            output_config: { format: { type: "json_schema", schema: RECEIPT_SCHEMA as any } },
+            output_config: { format: { type: "json_schema", schema: receiptSchemaFor(region) as any } },
             messages: [{
               role: "user",
               content: [
@@ -110,7 +112,8 @@ export function createPollBatchesHandler(deps: Deps) {
           }
         }
         // a receipt from abroad is converted in SQL with the cached rate — make sure today's is in
-        if (results.some((x: any) => x?.ok && x.receipt?.currency && x.receipt.currency !== "ILS")) await refreshRates(deps);
+        const base = regionOf(await deps.rpc<string | null>("svc_household_region", { p_household: job.household_id }).catch(() => null)).currency;
+        if (results.some((x: any) => x?.ok && x.receipt?.currency && x.receipt.currency !== base)) await refreshRates(deps);
         const out = await deps.rpc<any>("svc_complete_receipt_job", {
           p_job: job.id, p_results: results, p_input: input, p_output: output, p_usd: Math.round(usd * 1e5) / 1e5,
         });

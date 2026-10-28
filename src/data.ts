@@ -5,6 +5,7 @@ import { sb, invoke } from "./lib/supa.ts";
 import { S, rerender, mfaNeeded } from "./state.ts";
 import type { Analysis, Fixed, Household, Invite, Member, Person, Settings, ShopItem, Tx, Usage } from "./domain/types.ts";
 import type { PaymentMethod } from "./domain/match.ts";
+import { regionCode, setRegion } from "./lib/region.ts";
 
 const HH_KEY = "hb2-hh";
 const num = (v: unknown) => (v === null || v === undefined ? 0 : Number(v));
@@ -49,6 +50,7 @@ export async function loadSettings() {
   const { data, error } = await sb.from("household_settings").select("*").eq("household_id", S.hh!).maybeSingle();
   if (error) throw error;
   S.settings = data ? ({ ...data, quota_usd: num(data.quota_usd) } as Settings) : null;
+  setRegion(S.settings?.region);   // 0016: no region (old row / no settings) = Israel
 }
 
 // -------------------------------------------------------------- loading
@@ -87,6 +89,12 @@ export async function loadHousehold() {
   S.members = (members.data ?? []).map((m: any) => ({ ...m, display_name: names.get(m.user_id) || "" })) as Member[];
   await Promise.all([loadInvites(), loadUsage()]);
   S.loaded = true;
+}
+
+/** After the region changed (0016): the server replaced the untouched default payment methods. */
+export async function reloadMethods() {
+  if (!S.hh) return;
+  S.methods = await fetchAll<PaymentMethod>("payment_methods", "sort");
 }
 
 export async function loadInvites() {
@@ -231,6 +239,7 @@ export async function deletePerson(id: string) {
 export async function updateSettings(patch: Partial<Settings>) {
   check(await sb.from("household_settings").update(patch).eq("household_id", S.hh!));
   S.settings = { ...S.settings!, ...patch };
+  if ("region" in patch) setRegion(patch.region);
 }
 export async function renameHousehold(name: string) {
   check(await sb.from("households").update({ name }).eq("id", S.hh!));
@@ -276,11 +285,11 @@ export async function upsertAnalysis(month: string, data: unknown) {
 
 // ---------------------------------------------------------- functions
 export const fn = {
-  analyze: (month: string, summary: string) => invoke<{ analysis: Analysis & { at: string } }>("analyze-month", { household_id: S.hh, month, summary }),
+  analyze: (month: string, summary: string) => invoke<{ analysis: Analysis & { at: string } }>("analyze-month", { household_id: S.hh, month, summary, region: regionCode() }),
   statement: (files: { media_type: string; data: string }[], hints: { name: string; keyword: string }[]) =>
-    invoke<{ doc: any }>("extract-statement", { household_id: S.hh, files, fixed_hints: hints }),
+    invoke<{ doc: any }>("extract-statement", { household_id: S.hh, files, fixed_hints: hints, region: regionCode() }),
   receipts: (receipts: { client_id: string; person_id: string | null; media_type: string; data: string }[]) =>
-    invoke<{ job_id: string; accepted: string[] }>("submit-receipts", { household_id: S.hh, receipts }),
+    invoke<{ job_id: string; accepted: string[] }>("submit-receipts", { household_id: S.hh, receipts, region: regionCode() }),
   inviteInfo: (token: string) => invoke<{ household_name: string; role: string; person_name: string | null }>("invite-signin", { action: "info", token }),
   inviteClaim: (token: string, email: string) => invoke("invite-signin", { action: "claim", token, email }),
   deleteAccount: () => invoke("delete-account", { confirm: "מחיקה" }),

@@ -29,6 +29,7 @@ import { renderCaptureLog } from "./ui/capture-setup.ts";
 import { loadPhase2 } from "./phase2.ts";
 import { loadVouchers } from "./ui/vouchers.ts";
 import "./payments.ts"; // payment methods: cards + handlers register themselves
+import "./ui/region.ts";   // אזור (0016): ישראל / תאילנד
 import "./ui/trip.ts";   // מצב טיול: settings card + rates
 import { art, markArt, timeArt } from "./ui/art.ts";
 import { icon } from "./ui/cat.ts";

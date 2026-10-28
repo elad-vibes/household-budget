@@ -13,6 +13,16 @@ export const EXCL = ["הכנסה", "חיוב אשראי מרוכז", "העברה
 
 export const ALLCATS: readonly string[] = [...CATS, ...EXCL];
 
+/** Added to the picker of a Thailand household (0016). Nothing is removed from anyone's list: a row whose
+ *  category is one of these stays valid in every household, they just are not offered to an Israeli one. */
+export const TH_CATS = ["ויזה ואישורי שהייה", "מרכזים מסחריים"] as const;
+export const EXTRA_CATS: readonly string[] = TH_CATS;
+
+/** Categories offered when adding / editing / budgeting in this region. IL = CATS, exactly as before. */
+export const catsFor = (region: string | null | undefined): readonly string[] => (region === "TH" ? [...CATS, ...TH_CATS] : CATS);
+/** Valid for storage in any household (validation of AI output, backups, capture). */
+export const isKnownCat = (c: unknown): c is string => typeof c === "string" && (ALLCATS.includes(c) || EXTRA_CATS.includes(c));
+
 export type LinkId =
   | "harb" | "car_calc" | "itur" | "elec_cmp" | "elec_gov" | "cell_cmp" | "comm_cmp"
   | "chp" | "pricez" | "apple_subs" | "netflix" | "disney" | "spotify";
@@ -39,3 +49,8 @@ export const LINK_IDS = Object.keys(LINKS) as LinkId[];
 export function isLinkId(x: unknown): x is LinkId {
   return typeof x === "string" && Object.prototype.hasOwnProperty.call(LINKS, x);
 }
+
+/** The AI analysis may link to these only. The Israeli catalog is Israeli sites, so a Thailand household gets just the
+ *  global subscription-management pages (0016). */
+export const LINK_IDS_TH: LinkId[] = ["apple_subs", "netflix", "disney", "spotify"];
+export const linkIdsFor = (region: string | null | undefined): LinkId[] => (region === "TH" ? LINK_IDS_TH : LINK_IDS);

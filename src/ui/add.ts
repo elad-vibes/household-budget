@@ -19,6 +19,7 @@ import { initialStatus, isAtmRow } from "../domain/match.ts";
 import { art } from "./art.ts";
 import { currentRate, ensureFx, rateLine, tripCurrency, tripOn } from "./trip.ts";
 import { fmtForeign, symbolOf, toIls } from "../domain/fx.ts";
+import { baseCode, baseLabel, baseWordTo } from "../lib/region.ts";
 
 export function renderAdd(): SafeHtml {
   if (!canWrite()) return banner("יש לך הרשאת צפייה בלבד, אז אי אפשר להוסיף הוצאות.", "warn");
@@ -60,26 +61,26 @@ export function renderAdd(): SafeHtml {
 }
 
 // ------------------------------------------------------------ מצב טיול in the manual form
-/** The currency of the manual amount: the trip currency while trip mode is on (switchable to ₪). */
-const mCur = (): string => (tripOn() ? (S.extra.mCur ?? tripCurrency()) : "ILS");
+/** The currency of the manual amount: the trip currency while trip mode is on (switchable to the base currency). */
+const mCur = (): string => (tripOn() ? (S.extra.mCur ?? tripCurrency()) : baseCode());
 
 function tripRow(): SafeHtml {
   ensureFx();
   const cur = mCur(), trip = tripCurrency();
   return html`<div class="f" style="grid-column:1/-1">
-    <div class="seg" role="group" aria-label="מטבע">${[trip, "ILS"].map((c) => html`<button type="button" data-click="m-cur" data-c="${c}" aria-pressed="${cur === c ? "true" : "false"}">${c === "ILS" ? "₪ שקל" : `${symbolOf(c)} ${c}`}</button>`)}</div>
-    ${cur !== "ILS" ? html`<span class="small" id="mConv">${convText(cur)}</span><span class="muted small">${rateLine(cur)}</span>` : ""}
+    <div class="seg" role="group" aria-label="מטבע">${[trip, baseCode()].map((c) => html`<button type="button" data-click="m-cur" data-c="${c}" aria-pressed="${cur === c ? "true" : "false"}">${c === baseCode() ? baseLabel() : `${symbolOf(c)} ${c}`}</button>`)}</div>
+    ${cur !== baseCode() ? html`<span class="small" id="mConv">${convText(cur)}</span><span class="muted small">${rateLine(cur)}</span>` : ""}
   </div>`;
 }
 function convText(cur: string, amount = NaN): string {
   const r = currentRate(cur);
   if (!r) return "אין עדיין שער — אפשר להזין שער ידני בלשונית הבית ← מצב טיול.";
-  return isFinite(amount) && amount ? `≈ ${ils(toIls(amount, r.rate), 2)}` : "הסכום יומר לשקלים לפי השער:";
+  return isFinite(amount) && amount ? `≈ ${ils(toIls(amount, r.rate), 2)}` : `הסכום יומר ${baseWordTo()} לפי השער:`;
 }
 on("click", "m-cur", (el) => { S.extra.mCur = el.dataset.c; rerender(); });
 on("input", "m-amt", (el) => {
   const out = $("mConv");
-  if (out && mCur() !== "ILS") out.textContent = convText(mCur(), parseFloat((el as HTMLInputElement).value));
+  if (out && mCur() !== baseCode()) out.textContent = convText(mCur(), parseFloat((el as HTMLInputElement).value));
 });
 
 function personPicker(): SafeHtml {
@@ -277,10 +278,10 @@ on("submit", "manual", async () => {
   const person = ($("mPerson") as HTMLSelectElement).value || null;
   const pm = chipValue("manual", lastMethod(S.upPerson || null));
   if (S.methods.length && !methodById(pm)) { flash("צריך לבחור איך שילמת.", "err"); return; }
-  // trip mode: the typed amount is in the trip currency → ₪ by today's rate, the original is kept
+  // trip mode: the typed amount is in the trip currency → the base currency by today's rate, the original is kept
   const cur = mCur();
-  const rate = cur === "ILS" ? null : currentRate(cur);
-  if (cur !== "ILS" && !rate) { flash("אין עדיין שער ל-" + cur + ". אפשר להזין שער ידני בלשונית הבית ← מצב טיול.", "err"); return; }
+  const rate = cur === baseCode() ? null : currentRate(cur);
+  if (cur !== baseCode() && !rate) { flash("אין עדיין שער ל-" + cur + ". אפשר להזין שער ידני בלשונית הבית ← מצב טיול.", "err"); return; }
   const typed = cat === "הכנסה" ? Math.abs(a) : Math.round(a * 100) / 100;
   const amount = rate ? toIls(typed, rate.rate) : typed;
   const foreign = rate ? { original_amount: typed, original_currency: cur, fx_rate: rate.rate } : {};

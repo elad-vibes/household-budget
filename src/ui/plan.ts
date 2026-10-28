@@ -2,7 +2,8 @@
 import { attr, html, type SafeHtml, $ } from "../lib/html.ts";
 import { armed2, isArmed, on } from "../lib/events.ts";
 import { HEB_M, ils, ils2, mLabel, mShort, today } from "../lib/format.ts";
-import { CATS } from "../domain/categories.ts";
+import { catsFor } from "../domain/categories.ts";
+import { baseSymbol, regionCode } from "../lib/region.ts";
 import { annualCalendar, budgetRows, goalProgress, yearReport } from "../domain/plan.ts";
 import { exportYear } from "../importer.ts";
 import { walletCard } from "./vouchers.ts";
@@ -43,8 +44,8 @@ function budgetsCard(): SafeHtml {
         ${w ? html`<button class="ghost ${isArmed("bud/" + r.category) ? "danger" : ""}" data-click="bud-del" data-cat="${r.category}" aria-label="מחיקה">${isArmed("bud/" + r.category) ? "למחוק?" : "✕"}</button>` : ""}</span></div>
       <div class="bar ${r.level === "over" ? "over" : r.level === "warn" ? "warn" : ""}"><span style="width:${Math.min(100, r.pct)}%"></span></div></div>`) : html`<p class="muted">עוד אין תקציבים.</p>`}
     ${w ? html`<form class="grid2" data-submit="bud-save">
-      <label class="f">קטגוריה<select id="budCat">${CATS.filter((c) => !used.has(c)).map((c) => html`<option>${c}</option>`)}</select></label>
-      <label class="f">סכום לחודש (₪)<input type="number" id="budAmt" min="1" step="1" inputmode="numeric" required></label>
+      <label class="f">קטגוריה<select id="budCat">${catsFor(regionCode()).filter((c) => !used.has(c)).map((c) => html`<option>${c}</option>`)}</select></label>
+      <label class="f">סכום לחודש (${baseSymbol()})<input type="number" id="budAmt" min="1" step="1" inputmode="numeric" required></label>
       <div class="row end" style="grid-column:1/-1"><button class="primary" type="submit">שמירה</button></div></form>` : ""}
   </div>`;
 }
@@ -60,11 +61,11 @@ function annualCard(): SafeHtml {
       : html`<p class="muted">עוד לא נוספו הוצאות שנתיות.</p>`}
     ${w ? html`<form class="grid2" data-submit="ann-save">
       <label class="f">שם<input type="text" id="annName" maxlength="60" required placeholder="ביטוח רכב"></label>
-      <label class="f">סכום משוער (₪)<input type="number" id="annAmt" min="0" step="1" inputmode="numeric" required></label>
+      <label class="f">סכום משוער (${baseSymbol()})<input type="number" id="annAmt" min="0" step="1" inputmode="numeric" required></label>
       <label class="f">חודש<select id="annMonth">${HEB_M.map((m, i) => html`<option value="${i + 1}">${m}</option>`)}</select></label>
       <label class="f">יום בחודש<input type="number" id="annDay" min="1" max="31" value="1" inputmode="numeric"></label>
       <label class="f">תזכורת<select id="annRemind"><option value="7">שבוע לפני</option><option value="14" selected>שבועיים לפני</option><option value="30">חודש לפני</option></select></label>
-      <label class="f">קטגוריה<select id="annCat">${CATS.map((c) => html`<option ${attr(c === "ביטוחים", "selected")}>${c}</option>`)}</select></label>
+      <label class="f">קטגוריה<select id="annCat">${catsFor(regionCode()).map((c) => html`<option ${attr(c === "ביטוחים", "selected")}>${c}</option>`)}</select></label>
       <div class="row end" style="grid-column:1/-1"><button class="primary" type="submit">הוספה</button></div></form>` : ""}
   </div>`;
 }
@@ -87,7 +88,7 @@ function goalsCard(): SafeHtml {
     }) : html`<div class="empty">${art.goalsEmpty()}<p class="muted">עוד אין יעדים. למשל: חופשה, רכב, קרן חירום.</p></div>`}
     ${w ? html`<form class="grid2" data-submit="goal-save">
       <label class="f">יעד<input type="text" id="goalName" maxlength="60" required placeholder="חופשה משפחתית"></label>
-      <label class="f">סכום היעד (₪)<input type="number" id="goalTarget" min="1" step="1" inputmode="numeric" required></label>
+      <label class="f">סכום היעד (${baseSymbol()})<input type="number" id="goalTarget" min="1" step="1" inputmode="numeric" required></label>
       <label class="f">עד תאריך (לא חובה)<input type="date" id="goalDate" min="${today()}"></label>
       <div class="row end" style="grid-column:1/-1;align-self:end"><button class="primary" type="submit">יעד חדש</button></div></form>` : ""}
   </div>`;

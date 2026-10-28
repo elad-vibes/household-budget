@@ -1,6 +1,6 @@
 // Backups: export (JSON v2 + Excel) and import of both the new format and the
 // prototype's "hb-data-v1" (so families can move their local data over).
-import { ALLCATS } from "./categories.ts";
+import { isKnownCat } from "./categories.ts";
 import { dupKey } from "./calc.ts";
 import type { AnalysisData, Fixed, Person, ShopItem, Tx } from "./types.ts";
 
@@ -37,7 +37,7 @@ function normTx(it: any, personKey: string | null, sourceTitle: string): NormTx 
   if (!DATE.test(date)) date = `${month}-01`;
   return {
     date, month, merchant: s(it?.merchant, 120) || "לא ידוע", amount,
-    category: ALLCATS.includes(it?.category) ? it.category : "שונות",
+    category: isKnownCat(it?.category) ? it.category : "שונות",
     is_fixed: !!(it?.fixed ?? it?.is_fixed), note: s(it?.note, 200), personKey, source_title: s(sourceTitle, 120),
   };
 }
@@ -90,7 +90,7 @@ function normFixed(f: any, personKey: string | null): NormFixed | null {
   const cycle = [1, 2, 12].includes(+f?.cycle) ? (+f.cycle as 1 | 2 | 12) : 1;
   const due = +f?.due_day;
   return {
-    name, amount, keyword, category: ALLCATS.includes(f?.category) ? f.category : "שונות", personKey, cycle,
+    name, amount, keyword, category: isKnownCat(f?.category) ? f.category : "שונות", personKey, cycle,
     note: s(f?.note, 200), due_day: Number.isInteger(due) && due >= 1 && due <= 31 ? due : null,
   };
 }
