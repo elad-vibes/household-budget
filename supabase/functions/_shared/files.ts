@@ -33,6 +33,15 @@ function sniff(b: Uint8Array): string | null {
   return null;
 }
 
+// A password-protected PDF names an /Encrypt dictionary in its trailer (end of file; start of a linearized one).
+// Same rule as src/domain/pdf.ts — the edge functions cannot import from src. Base64 slices stay aligned: 4 chars = 3 bytes.
+const ENCRYPT = /\/Encrypt\s+\d+\s+\d+\s+R/;
+function isLockedPdf(b64: string): boolean {
+  const edge = 4 * Math.ceil(8192 / 3);
+  const text = (s: string) => atob(s.slice(0, s.length - (s.length % 4)));
+  return ENCRYPT.test(text(b64.slice(0, edge))) || ENCRYPT.test(text(b64.slice(-edge)));
+}
+
 export function checkFile(input: unknown, allowed: readonly string[]): CheckedFile {
   const f = input as { media_type?: unknown; data?: unknown } | null;
   if (!f || typeof f.media_type !== "string" || typeof f.data !== "string") {
@@ -49,5 +58,8 @@ export function checkFile(input: unknown, allowed: readonly string[]): CheckedFi
   }
   const real = sniff(head(data));
   if (real !== f.media_type) throw new HttpError(415, "type_mismatch", "תוכן הקובץ לא תואם לסוג שלו.");
+  if (real === PDF_TYPE && isLockedPdf(data)) {
+    throw new HttpError(422, "pdf_locked", "הקובץ מוגן בסיסמה, ולכן אי אפשר לקרוא אותו. פותחים אותו בדפדפן עם הסיסמה, בוחרים הדפסה ← שמירה כ-PDF, ומעלים את העותק החדש.");
+  }
   return { media_type: f.media_type as CheckedFile["media_type"], data, bytes };
 }

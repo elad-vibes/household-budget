@@ -87,6 +87,16 @@ describe("file validation", () => {
     expect((await send(Array(7).fill({ media_type: "image/jpeg", data: JPEG }))).body.error).toBe("too_many");
     expect((await send([{ media_type: "application/pdf", data: PDF }, { media_type: "image/jpeg", data: JPEG }])).body.error).toBe("one_pdf");
   });
+  it("rejects a password-protected PDF before calling Claude, and says what to do", async () => {
+    const trailer = "\ntrailer\n<< /Size 2 /Root 1 0 R /Encrypt 7 0 R >>\n%%EOF\n";
+    for (const body of ["%PDF-1.5\n1 0 obj\n<< /Type /Catalog >>\nendobj" + trailer, "%PDF-1.5\n" + "x".repeat(150_000) + trailer]) {
+      const r = await send([{ media_type: "application/pdf", data: Buffer.from(body).toString("base64") }]);
+      expect(r.status).toBe(422);
+      expect(r.body.error).toBe("pdf_locked");
+      expect(r.body.message).toMatch(/מוגן בסיסמה/);
+      expect(r.s.anthropicCalls).toHaveLength(0);
+    }
+  });
   it("rejects garbage base64", async () => {
     expect((await send([{ media_type: "image/jpeg", data: "not base64 at all!!".repeat(4) }])).status).toBe(400);
   });
