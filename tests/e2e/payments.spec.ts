@@ -89,6 +89,25 @@ test.describe("payment methods (live Supabase, synthetic data)", () => {
     expect(sw).toBeLessThanOrEqual(cw);
   });
 
+  test("statement upload: a password-protected PDF is stopped with a clear message, nothing is sent", async ({ page }) => {
+    const f = fixture()!;
+    await page.addInitScript((s) => {
+      localStorage.setItem("hb2-auth", s as string);
+      localStorage.setItem("hb2-onboarded", "1");
+    }, JSON.stringify(f.member));
+    let sent = 0;
+    await page.route("**/functions/v1/extract-statement", (route) => { sent++; return route.abort(); });
+    await page.goto("./#/add");
+    await expect(page.locator('select[data-change="st-month"]')).toBeVisible({ timeout: 20_000 });
+    await page.locator('select[data-change="st-month"]').selectOption(ym);
+    // synthetic bytes: a PDF whose trailer names an /Encrypt dictionary (no real statement anywhere)
+    const locked = "%PDF-1.5\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Size 2 /Root 1 0 R /Encrypt 7 0 R >>\n%%EOF\n";
+    await page.locator("#stFiles").setInputFiles({ name: "דף-חשבון.pdf", mimeType: "application/pdf", buffer: Buffer.from(locked) });
+    await expect(page.getByText(/דף-חשבון\.pdf: הקובץ מוגן בסיסמה/)).toBeVisible();
+    await expect(page.getByText(/שמירה כ-PDF/)).toBeVisible();
+    expect(sent).toBe(0);
+  });
+
   test("statement upload: a row whose date disagrees with the declared month is flagged and blocks save until resolved (bugs.md)", async ({ page }) => {
     const f = fixture()!;
     await page.addInitScript((s) => {

@@ -25,7 +25,16 @@ Commits: f224a9f (0012 + RLS tests) · aaac85e (collector + page) · 91962f9 (se
   Caddy basicauth); page live and green (screenshot from Elad 27.10). Nothing left here.
 - Elad first asked for a Claude Artifact dashboard, then chose his server instead → no Artifact was published.
 
-## ▶ HANDOFF (2026-10-28, session 9 — אזור תאילנד) — next session starts here
+## ▶ HANDOFF (2026-10-31, session 10 — PDF נעול בסיסמה) — next session starts here
+Branch `claude/locked-pdf` (from origin/main 1fd8887). Elad's October statement from a Thai bank would not import: it is password-protected
+(128-bit; not openable with an empty password — checked, no password was guessed or stored). Built: `src/domain/pdf.ts` (`isLockedPdf`, message),
+the check in `add.ts` before upload, the same refusal in `_shared/files.ts` (422 `pdf_locked`). DECISIONS #43.
+- Checks: `npm test` 373 (unit/pdf 5, functions +1) · typecheck · check:functions · scan · `npx playwright test payments` 3 passed (new: locked PDF stopped, nothing sent).
+- NOT deployed: the server side (`extract-statement`, `submit-receipts` use `checkFile`) — the client check already works once the site deploys.
+- Open: the real statement has still not been read (needs an unlocked copy); the Thai importer is therefore still unverified against a real bank format.
+- Waiting on Elad: push `claude/locked-pdf` + merge; make an unlocked copy of the statement (browser → print → save as PDF) and say where it is.
+
+## ▶ HANDOFF (2026-10-28, session 9 — אזור תאילנד)
 Branch `claude/thailand-region` (from origin/main bc173b4). One commit; Elad sends it to GitHub. DECISIONS #42.
 - Built: `household_settings.region` IL|TH (0016) → base currency ILS/THB, time zone, default payment methods (+ new type `e_wallet`), Thai banks as issuer
   suggestions, 2 extra categories + Thai classification rules, AI prompts per region, price comparison hidden for TH, rule-based tips without Israeli links,

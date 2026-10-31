@@ -4,6 +4,7 @@ import { on } from "../lib/events.ts";
 import { addM, curMonth, ils, mLabel, today, uid } from "../lib/format.ts";
 import { blobToBase64, prepareImage, STATEMENT_MAX_PIXELS, MAX_UPLOAD_BYTES } from "../lib/image.ts";
 import { fileKind, ImportError, localParse } from "../domain/parser.ts";
+import { isLockedPdf, lockedPdfMessage } from "../domain/pdf.ts";
 import { describeNext } from "../domain/schedule.ts";
 import { dupKey, personOptions } from "../domain/calc.ts";
 import { EXCL } from "../domain/categories.ts";
@@ -218,6 +219,7 @@ on("change", "st-files", async (el) => {
     const jobs: { label: string; files: { media_type: string; data: string }[] }[] = [];
     for (const p of pdfs) {
       if (p.size > MAX_UPLOAD_BYTES) { errs.push(`${p.name}: הקובץ גדול מ-5MB. אפשר לשלוח צילומי מסך במקום.`); continue; }
+      if (isLockedPdf(new Uint8Array(await p.arrayBuffer()))) { errs.push(lockedPdfMessage(p.name)); continue; }
       jobs.push({ label: p.name, files: [{ media_type: "application/pdf", data: await blobToBase64(p) }] });
     }
     if (imgs.length) {
